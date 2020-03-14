@@ -7,7 +7,7 @@
 .text
 
 .globl ldt_size, tss_size
-.globl gdt_desc, ldt_desc, tss_desc
+.globl gdt_desc, ldt_desc, tss_desc, gdt_desc_ptr
 .globl tss, tss_desc_ptr, ldt, ldt_desc_ptr
 .globl gdt_ptr
 .globl idt_desc_ptr, idt
@@ -33,6 +33,13 @@ _tss:
     .byte 0
     .endr
 tss_bottom:
+
+    .align  16
+
+gdt_desc: # creates the input for the LGDT function call in boot.S
+    .word gdt_bottom - gdt - 1
+    .long gdt
+
 
     .align  16
 gdt:

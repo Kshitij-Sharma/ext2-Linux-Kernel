@@ -25,6 +25,13 @@ bootimg: Makefile $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) -Ttext=0x400000 -o bootimg
 	sudo ./debug.sh
 
+bootimg-noimg: Makefile $(OBJS)
+	rm -f bootimg
+	$(CC) $(LDFLAGS) $(OBJS) -Ttext=0x400000 -o bootimg
+
+a: CC=i386-saenaios-gcc
+a: bootimg-noimg
+
 dep: Makefile.dep
 
 Makefile.dep: $(SRC)
