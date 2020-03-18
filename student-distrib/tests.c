@@ -1,7 +1,7 @@
 #include "tests.h"
 #include "x86_desc.h"
 #include "lib.h"
-
+#include "idt.h"
 #define PASS 1
 #define FAIL 0
 
@@ -34,7 +34,7 @@ int idt_test(){
 
 	int i;
 	int result = PASS;
-	for (i = 0; i < 10; ++i){
+	for (i = 0; i < 20; ++i){
 		if ((idt[i].offset_15_00 == NULL) && 
 			(idt[i].offset_31_16 == NULL)){
 			assertion_failure();
@@ -44,6 +44,27 @@ int idt_test(){
 
 	return result;
 }
+
+
+/* IDT Test - Example
+ * 
+ * Asserts that first 10 IDT entries are not NULL
+ * Inputs: None
+ * Outputs: PASS/FAIL
+ * Side Effects: None
+ * Coverage: Load IDT, IDT definition
+//  * Files: x86_desc.h/S
+//  */
+// int idt_divide_by_zero(int test_arg){
+// 	int zero = 0;
+
+// 	TEST_HEADER;
+// // 	// printf("idt div 0 test*******************************************************************************************************\n");
+// 	arg = test_arg/zero;
+// 	return PASS;
+// }
+
+
 
 // add more tests here
 
@@ -56,5 +77,9 @@ int idt_test(){
 /* Test suite entry point */
 void launch_tests(){
 	TEST_OUTPUT("idt_test", idt_test());
+	// TEST_OUTPUT("idt_test", idt_test());
+	// TEST_OUTPUT("idt_div_0", idt_divide_by_zero(5));
+	// TEST_OUTPUT("rtc works?", idt_rtc());
+	// exception_handler(0);
 	// launch your tests here
 }

@@ -6,11 +6,17 @@
 #ifndef _I8259_H
 #define _I8259_H
 
-#include "types.h"
+#include "lib.h"
+
 
 /* Ports that each PIC sits on */
-#define MASTER_8259_PORT    0x20
-#define SLAVE_8259_PORT     0xA0
+#define MASTER_8259_CMD_PORT    0x20
+#define MASTER_8259_DATA_PORT   0x21
+#define SLAVE_8259_CMD_PORT     0xA0
+#define SLAVE_8259_DATA_PORT    0xA1
+
+#define MASTER_PORT_MAX         8
+#define SLAVE_PORT_MAX          16
 
 /* Initialization control words to init each PIC.
  * See the Intel manuals for details on the meaning

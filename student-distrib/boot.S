@@ -27,6 +27,18 @@ continue:
     # Load the GDT
     lgdt gdt_desc
 
+    pushl %eax                                             # caller saves for initializing IDT
+    pushl %edx
+    pushl %ecx
+
+    call idt_init                                          # calls the function to initialize the IDT
+
+    popl %ecx                                              # caller restore from IDT init call 
+    popl %edx
+    popl %eax
+
+    lidt idt_desc_ptr                                      # uses lidt to load the IDT
+
     # Load CS with the new descriptor value
     ljmp    $KERNEL_CS, $keep_going
 
