@@ -17,7 +17,8 @@ void i8259_init(void) {
 
     // disables all PIC interrupts
     for(i = 0; i < SLAVE_PORT_MAX; i++)         disable_irq(i);
-    
+    // outb(0xFF, MASTER_8259_DATA_PORT);
+    // outb(0xFF, SLAVE_8259_DAT);
     /* initialize master with 4 ICWs */
     outb(ICW1, MASTER_8259_CMD_PORT );          // ICW1: tells the PIC it's being initalized, operating in cascade mode, etc.
     outb(ICW2_MASTER, MASTER_8259_DATA_PORT);   // ICW2: provides PIC with high bits of interrupt vector numbers (0x20-0x27)
@@ -32,6 +33,7 @@ void i8259_init(void) {
     
     // re-enables all PIC interrupts
     for(i = 0; i < SLAVE_PORT_MAX; i++)         enable_irq(i);
+    enable_irq(1);
 
     // printf("%x\n", inb(MASTER_8259_DATA_PORT));
     // printf("%x\n", inb(SLAVE_8259_DATA_PORT));

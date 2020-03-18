@@ -18,7 +18,7 @@
 // #define _IDT_INTERRUPT_HANDLERS_H
 
 extern void divide_by_zero_test();
-extern void keyboard_interrupt();
+extern void keyboard_interrupt_asm();
 extern void rtc_interrupt_asm();
 
 

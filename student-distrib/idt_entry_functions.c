@@ -31,24 +31,22 @@ void pit_interrupt()
     // FILL THIS IN
     return;     
 }
-// void keyboard_interrupt() // send eoi, assembly linkage, read the char    
-// { 
+void keyboard_interrupt() // send eoi, assembly linkage, read the char    
+{ 
     
-//     // FILL THIS IN    
-    
-//     exception_handler(1);
-// }
+    // FILL THIS IN    
+    printf("**************************************************************************");
+}
 void rtc_interrupt() // put this into an assembly file instead -- use iret and pushal popal -- also send EOI
 { 
     printf("RTC HANDLER \n");
-    outb(0x0C, 0x70); 
-    inb(0x71); 
-    printf("RTC HANDLER END \n");
+    outb(STATUS_REGISTER_C, RTC_CMD_PORT); 
+    inb(RTC_DATA_PORT); 
 }
 
 void system_call()                  { return; }
 
-char * error_messages[20] = {"Cannot divide by zero.", "Debug exception!", "Non-maskable interrupt exception.",
+char * error_messages[NUM_EXCEPTIONS] = {"Cannot divide by zero.", "Debug exception!", "Non-maskable interrupt exception.",
 "Breakpoint exception.", "Into Detected Overflow Exception!", "Out of bounds exception.", "Invalid opcode.",
 "No coprocessor exception.", "Double fault exception.", "Coprocessor segment overrun.", "Bad TSS.", "Segment not present.", 
 "Stack fault.", "General protection fault.", "Page fault.", "Unknown interrupt!", "Coprocessor fault.", "Alignment check.", "Machine check.",

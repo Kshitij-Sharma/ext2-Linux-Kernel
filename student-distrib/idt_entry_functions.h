@@ -9,6 +9,7 @@
 #define STATUS_REGISTER_B   0X8B
 #define STATUS_REGISTER_C   0X0C
 #define PIC_COMMAND_PORT    0x20
+#define NUM_EXCEPTIONS      20
 
 extern void divide_by_zero();
 extern void debug();

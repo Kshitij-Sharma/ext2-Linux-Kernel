@@ -40,14 +40,14 @@ void idt_init(){
         reserved,
         reserved,
         pit_interrupt,
-        keyboard_interrupt,
+        divide_by_zero,
+        empty,                  // cascade to slave
+        empty, 
+        empty,                  // serial port
         empty,
         empty,
         empty,
-        empty,
-        empty,
-        empty,
-        rtc_interrupt_asm,
+        rtc_interrupt_asm,      // real time clock
         empty,
         empty,
         empty,
