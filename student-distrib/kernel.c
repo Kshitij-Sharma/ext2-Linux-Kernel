@@ -144,7 +144,6 @@ void entry(unsigned long magic, unsigned long addr) {
     i8259_init();
     rtc_init();
     rtc_enable();
-    // asm volatile ("int $0x28");
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your
      * IDT correctly otherwise QEMU will triple fault and simple close

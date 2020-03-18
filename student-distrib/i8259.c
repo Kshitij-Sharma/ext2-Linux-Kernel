@@ -8,17 +8,21 @@
 uint8_t master_mask; /* IRQs 0-7  */
 uint8_t slave_mask;  /* IRQs 8-15 */
 
-/* Initialize the 8259 PIC */
+/* i8259_init(void(
+        INPUTS: none
+        OUTPUTS: none
+        SIDE EFFECTS: initializes the master and slave i8259 PICs. enables interrupts from keyboard and RTC
+*/
 void i8259_init(void) {
     int i;
 
-    // disables processor interrupts 
-    // cli();
-
     // disables all PIC interrupts
     for(i = 0; i < SLAVE_PORT_MAX; i++)         disable_irq(i);
+    
+    // alternate way to disable all interrupts
     // outb(0xFF, MASTER_8259_DATA_PORT);
-    // outb(0xFF, SLAVE_8259_DAT);
+    // outb(0xFF, SLAVE_8259_DATA_PORT);
+
     /* initialize master with 4 ICWs */
     outb(ICW1, MASTER_8259_CMD_PORT );          // ICW1: tells the PIC it's being initalized, operating in cascade mode, etc.
     outb(ICW2_MASTER, MASTER_8259_DATA_PORT);   // ICW2: provides PIC with high bits of interrupt vector numbers (0x20-0x27)
@@ -31,38 +35,47 @@ void i8259_init(void) {
     outb(ICW3_SLAVE, SLAVE_8259_DATA_PORT);     // ICW3: tells PIC the specific IR pin used in master/slave relationship
     outb(ICW4, SLAVE_8259_DATA_PORT);           // ICW4: specifies 8086 protocol, normal EOI signaling, etc. 
     
-    // re-enables all PIC interrupts
-    for(i = 0; i < SLAVE_PORT_MAX; i++)         enable_irq(i);
-    enable_irq(1);
+    /* turns on PIC interrupts for slave IRQ, RTC, keyboard*/
+    for(i = 0; i < SLAVE_PORT_MAX; i++)         disable_irq(i);
+    enable_irq(2);                  // enables slave IRQ
+    enable_irq(8);                  // enables RTC IRQ
+    enable_irq(1);                  // enables keeb IRQ
 
+    // high skill debugging
     // printf("%x\n", inb(MASTER_8259_DATA_PORT));
     // printf("%x\n", inb(SLAVE_8259_DATA_PORT));
 
-    
-    // re-enables processor interrupts
-    // sti();
 }
 
-/* Enable (unmask) the specified IRQ */
+/* enable_irq(irq_num)
+        INPUTS: IRQ line that we want to enable
+        OUTPUTS: none
+        SIDE EFFECTS: enables interrupts on either the master or slave PIC specified from the parameter
+*/
 void enable_irq(uint32_t irq_num) {
     uint16_t    port;
     uint8_t     value;
 
     // handles incorrect calls
     if (irq_num >= SLAVE_PORT_MAX || irq_num < 0)   return; 
+
     // first 8 IRQs correspond to master port
     if(irq_num < MASTER_PORT_MAX)                   port = MASTER_8259_DATA_PORT;
     // second 8 ports correspond to slave: so if irq_num > 8, we want to make it the corresponding slave port
     else{
         irq_num -= MASTER_PORT_MAX;
         port = SLAVE_8259_DATA_PORT;
-    }
+        }
 
-    value = inb(port) & ~(1 << irq_num); // turning the bit corresponding to the IR port off 
-    outb(value, port); // write back to the port
+    value = inb(port) & ~(1 << irq_num);    // turning the bit corresponding to the IR port off 
+    outb(value, port);                      // write back to the port
 }
 
-/* Disable (mask) the specified IRQ */
+/* disable_irq(irq_num)
+        INPUTS: IRQ line that we want to disable
+        OUTPUTS: none
+        SIDE EFFECTS: disables interrupts on either the master or slave PIC specified from the parameter
+*/
 void disable_irq(uint32_t irq_num) {
     uint16_t    port;
     uint8_t     value;
@@ -73,17 +86,26 @@ void disable_irq(uint32_t irq_num) {
     if(irq_num < MASTER_PORT_MAX)     port = MASTER_8259_DATA_PORT;
     // second 8 ports correspond to slave: so if irq_num > 8, we want to make it the corresponding slave port
     else{
-        irq_num -= MASTER_PORT_MAX; // make the IRQ number a value between 0 and 7 
+        irq_num -= MASTER_PORT_MAX; 
         port = SLAVE_8259_DATA_PORT;
     }
 
-    value = inb(port) | (1 << irq_num); // turning the bit corresponding to the IR port on
-    outb(value, port); // write back to the port
+    value = inb(port) | (1 << irq_num);     // turning the bit corresponding to the IR port on
+    outb(value, port);                      // write back to the port
 }
 
-/* Send end-of-interrupt signal for the specified IRQ */
+/* send_eoi(irq_num)
+        INPUTS: IRQ line we want to send an EOI to
+        OUTPUTS: none
+        SIDE EFFECTS: sends EOI signal to master or master and slave PIC at the specified IRQ line
+*/
 void send_eoi(uint32_t irq_num) {
-    if (irq_num > 7)
-        outb(EOI, SLAVE_8259_CMD_PORT);
-    outb(EOI, MASTER_8259_CMD_PORT);
+    /* when sending EOI to slave, we send to IRQ line on slave PIC 
+    and slave IRQ line on master PIC */
+    if (irq_num >= MASTER_PORT_MAX){
+        outb((EOI | (irq_num-MASTER_PORT_MAX)), SLAVE_8259_CMD_PORT);
+        outb((EOI | SLAVE_IRQ_NUM) , MASTER_8259_CMD_PORT);  
+    } 
+    /* when sending EOI to master PIC, we send it directly to the IRQ line */
+    else        outb((EOI | irq_num), MASTER_8259_CMD_PORT);
 }

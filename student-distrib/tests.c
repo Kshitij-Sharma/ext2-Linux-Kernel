@@ -55,14 +55,13 @@ int idt_test(){
  * Coverage: Load IDT, IDT definition
 //  * Files: x86_desc.h/S
 //  */
-// int idt_divide_by_zero(int test_arg){
-// 	int zero = 0;
-
-// 	TEST_HEADER;
-// // 	// printf("idt div 0 test*******************************************************************************************************\n");
-// 	arg = test_arg/zero;
-// 	return PASS;
-// }
+int idt_divide_by_zero(int test_arg){
+	int zero, arg;
+	zero = 0;
+	TEST_HEADER;
+	arg = test_arg/zero;
+	return PASS;
+}
 
 
 
@@ -78,7 +77,7 @@ int idt_test(){
 void launch_tests(){
 	TEST_OUTPUT("idt_test", idt_test());
 	// TEST_OUTPUT("idt_test", idt_test());
-	// TEST_OUTPUT("idt_div_0", idt_divide_by_zero(5));
+	TEST_OUTPUT("idt_div_0", idt_divide_by_zero(5));
 	// TEST_OUTPUT("rtc works?", idt_rtc());
 	// exception_handler(0);
 	// launch your tests here

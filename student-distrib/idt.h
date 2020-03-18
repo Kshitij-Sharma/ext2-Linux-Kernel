@@ -1,6 +1,6 @@
-#include "idt_entry_functions.h"
+#include "idt_handlers.h"
 #include "x86_desc.h"
-#include "idt_interrupt_handlers.h"
+#include "idt_interrupt_wrappers.h"
 #include "lib.h"
 
 

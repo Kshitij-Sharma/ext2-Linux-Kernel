@@ -18,6 +18,7 @@
 #define MASTER_PORT_MAX         8
 #define SLAVE_PORT_MAX          16
 
+#define SLAVE_IRQ_NUM           0x02
 /* Initialization control words to init each PIC.
  * See the Intel manuals for details on the meaning
  * of each word */

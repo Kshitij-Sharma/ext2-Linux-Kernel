@@ -12,6 +12,5 @@
 
 void rtc_init();
 void rtc_enable();
-void rtc_gay();
 // void rtc_
 #endif /* _RTC_H */
