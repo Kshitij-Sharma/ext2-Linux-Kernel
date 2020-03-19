@@ -12,5 +12,6 @@
 
 void rtc_init();
 void rtc_enable();
+void rtc_set_frequency();
 // void rtc_
 #endif /* _RTC_H */

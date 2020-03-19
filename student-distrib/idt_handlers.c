@@ -63,7 +63,7 @@ static char scancode_to_char[NUM_CODES/2] = {
     ' '
 };
 
-int RTC_ON_FLAG = 0;
+int RTC_ON_FLAG = 1;
 /*  generic exception function header 
         each function has no input or output.
         each function calls our exception handler, which pritns an error message amd freezes the program 
@@ -123,7 +123,8 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    // printf("RTC HANDLER\n");
+    /* testing RTC interrupts 10 times */
+    // if(RTC_ON_FLAG) printf("RTC HANDLER\n");
     if (RTC_ON_FLAG)            test_interrupts();
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 
