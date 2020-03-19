@@ -63,6 +63,13 @@ int idt_divide_by_zero(int test_arg){
 	return PASS;
 }
 
+int test_paging()
+{
+	int * test = NULL;
+	TEST_HEADER;
+	test = *test;
+	return PASS;
+}
 
 
 // add more tests here
@@ -75,10 +82,9 @@ int idt_divide_by_zero(int test_arg){
 
 /* Test suite entry point */
 void launch_tests(){
-	TEST_OUTPUT("idt_test", idt_test());
 	// TEST_OUTPUT("idt_test", idt_test());
 	// TEST_OUTPUT("idt_div_0", idt_divide_by_zero(5));
-	// TEST_OUTPUT("rtc works?", idt_rtc());
+	TEST_OUTPUT("paging test", test_paging());
 	// exception_handler(0);
 	// launch your tests here
 }

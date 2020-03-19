@@ -2,7 +2,7 @@
 #include "idt_handlers.h"
 
 /* scancodes for lowercase letters */
-static char scancode_to_char[NUM_CODES] = {
+static char scancode_to_char[NUM_CODES/2] = {
     0, 
     0, 
     '1',
@@ -111,10 +111,9 @@ void keyboard_interrupt()
     char pressed;
     pressed = inb(0x60);
     /* if tilde, we want to halt RTC spazzing */
-    if (scancode_to_char[pressed] == '`')
+    if (scancode_to_char[(unsigned)pressed] == '`')
         RTC_ON_FLAG = (RTC_ON_FLAG) ? 0 : 1;
-    printf("%c", scancode_to_char[pressed]);
-    // printf("eshan gay\n");
+    printf("%c", scancode_to_char[(unsigned)pressed]);
 }
 
 /* void rtc_interrupt()
@@ -135,7 +134,7 @@ void system_call()                  { return; }
 /* Array of error messages in order so we can index into them based on the argument of the function call*/
 char * error_messages[NUM_EXCEPTIONS] = {
     "Dividing by zero is illegal in thirteen countries.", 
-    "Debug exception. PENIS", 
+    "Debug exception.", 
     "Non-maskable interrupt exception.",
     "Breakpoint exception.", 
     "Into detected overflow exception.", 
