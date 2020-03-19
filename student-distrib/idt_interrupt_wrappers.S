@@ -17,7 +17,7 @@
     /*call C handler*/
     call keyboard_interrupt
     /* send EOI signal */
-    pushl $RTC_IRQ
+    pushl $IRQ_KEYBOARD
     call send_eoi               /* sends the EOI */
     popl %ebx
 
@@ -38,7 +38,7 @@ rtc_interrupt_asm:
     call rtc_interrupt 
 
     /* send EOI signal */
-    pushl $RTC_IRQ
+    pushl $IRQ_RTC
     call send_eoi               /* sends the EOI */
     popl %ebx
 

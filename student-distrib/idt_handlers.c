@@ -1,8 +1,70 @@
 
 #include "idt_handlers.h"
 
+/* scancodes for lowercase letters */
+static char scancode_to_char[NUM_CODES] = {
+    0, 
+    0, 
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '0',
+    '-',
+    '=', 
+    0,
+    0,
+    'q',
+    'w',
+    'e',
+    'r',
+    't',
+    'y',
+    'u',
+    'i',
+    'o',
+    'p',
+    '[',
+    ']',
+    '\n',
+    0,
+    'a',
+    's',
+    'd',
+    'f',
+    'g',
+    'h',
+    'j',
+    'k', 
+    'l', 
+    ';', 
+    '\'',
+    '`',
+    0, 
+    '\\',
+    'z',
+    'x',
+    'c',
+    'v',
+    'b',
+    'n',
+    'm',
+    ',',
+    '.',
+    '/',
+    0, 
+    '*',
+    0,
+    ' '
+};
 
-/* generic exception function header 
+int RTC_ON_FLAG = 0;
+/*  generic exception function header 
         each function has no input or output.
         each function calls our exception handler, which pritns an error message amd freezes the program 
 */
@@ -37,7 +99,7 @@ void pit_interrupt()
     return;     
 }
 
-/* void keyboard_interrupt()
+/*  void keyboard_interrupt()
         INPUTS: none
         OUTPUTS: none
         SIDE EFFECTS: (should) read which character is printed and print it to screen
@@ -46,8 +108,13 @@ void keyboard_interrupt()
 { 
     // read character --> print to screen
     // inb KBDR (if my 220 knowledge is correct)
-    // FILL THIS IN    
-    printf("**************************************************************************");
+    char pressed;
+    pressed = inb(0x60);
+    /* if tilde, we want to halt RTC spazzing */
+    if (scancode_to_char[pressed] == '`')
+        RTC_ON_FLAG = (RTC_ON_FLAG) ? 0 : 1;
+    printf("%c", scancode_to_char[pressed]);
+    // printf("eshan gay\n");
 }
 
 /* void rtc_interrupt()
@@ -57,8 +124,9 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    printf("RTC HANDLER\n");
-    outb(STATUS_REGISTER_C, RTC_CMD_PORT); 
+    // printf("RTC HANDLER\n");
+    if (RTC_ON_FLAG)            test_interrupts();
+    outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 
 }
 
