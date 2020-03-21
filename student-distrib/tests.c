@@ -307,7 +307,8 @@ int test_paging_ker_mem(int val) {
 			printf("INVALID TEST PARAMETER");
 			break;
 	}
-	return result;
+	magic = result;
+	return magic;
 }
 
 
@@ -355,7 +356,8 @@ int test_paging_video_mem(int val) {
 			printf("INVALID TEST PARAMETER");
 			break;
 	}
-	return result;
+	magic = result;
+	return magic;
 }
 
 // add more tests here
