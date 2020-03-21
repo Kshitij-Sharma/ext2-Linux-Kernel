@@ -63,7 +63,7 @@ static char scancode_to_char[NUM_CODES/2] = {
     ' '
 };
 
-int RTC_ON_FLAG = 1;
+int RTC_ON_FLAG = 0;
 /*  generic exception function header 
         each function has no input or output.
         each function calls our exception handler, which pritns an error message amd freezes the program 
@@ -123,14 +123,16 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    /* testing RTC interrupts 10 times */
-    // if(RTC_ON_FLAG) printf("RTC HANDLER\n");
+    // printf("RTC HANDLER\n");
     if (RTC_ON_FLAG)            test_interrupts();
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 
 }
 
-void system_call()                  { return; }
+void system_call()  
+{ 
+    printf("System call triggered! \n"); // prints out which exception was triggered
+}
 
 /* Array of error messages in order so we can index into them based on the argument of the function call*/
 char * error_messages[NUM_EXCEPTIONS] = {
@@ -149,7 +151,7 @@ char * error_messages[NUM_EXCEPTIONS] = {
     "Stack fault.", 
     "General protection fault.", 
     "Page fault.", 
-    "Unknown interrupt!!!!!!!!!", 
+    "Unknown interrupt!!!!!!!!", 
     "Coprocessor fault.", 
     "Alignment check.", 
     "Machine check.",

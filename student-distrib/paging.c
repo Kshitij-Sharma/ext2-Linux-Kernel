@@ -24,7 +24,6 @@ void paging_init(){
 		page_table[i] = (i * SIZE_OF_PAGE) | READ_WRITE; // attributes: supervisor level, read/write, not present.
  	}
 
-	// needs to be casted as page_table is a uint32_t pointer
 	page_directory[0] =  (uint32_t) page_table;
 	page_directory[0] |=  (USER | READ_WRITE | PRESENT);
 

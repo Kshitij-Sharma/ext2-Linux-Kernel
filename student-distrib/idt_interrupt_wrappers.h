@@ -15,6 +15,7 @@
 
 extern void keyboard_interrupt_asm();
 extern void rtc_interrupt_asm();
+extern void system_call_asm();
 
 
 #endif /* _IDT_INTERRUPT_WRAPPERS_H */

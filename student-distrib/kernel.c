@@ -147,6 +147,7 @@ void entry(unsigned long magic, unsigned long addr) {
     rtc_enable();
     paging_init();
 
+    // asm volatile ("int $0x80");
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your
      * IDT correctly otherwise QEMU will triple fault and simple close
