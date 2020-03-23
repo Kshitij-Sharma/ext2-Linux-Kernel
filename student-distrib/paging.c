@@ -25,11 +25,11 @@ void paging_init(){
  	}
 
 	page_directory[0] =  (uint32_t) page_table;
-	page_directory[0] |=  (USER | READ_WRITE | PRESENT);
+	page_directory[0] |=  (READ_WRITE | PRESENT);
 
 	/* loading at 4MB physical address */
 	page_directory[1] =  (KERNEL_START | PAGE_SIZE | READ_WRITE | PRESENT) | GLOBAL_BIT;
-	page_table[VIDEO_OFFSET] |=  (USER | READ_WRITE | PRESENT);
+	page_table[VIDEO_OFFSET] |=  (READ_WRITE | PRESENT);
 
 
     asm volatile(
