@@ -1,5 +1,6 @@
 #include "tests.h"
 #include "x86_desc.h"
+#include "idt_handlers.h"
 #include "lib.h"
 #include "idt.h"
 #include "rtc.h"
@@ -109,11 +110,14 @@ int test_idt_entries(){
         empty,
         empty                       /* interrupt end */
     };
-
-    int_ex[SYSTEM_CALL_IDX] =  system_call_asm;
 	int i;
 	int result = PASS;
-	for(i = 0; i < 20; i++)
+
+     for (i = OTHER_INTERRUPTS_IDX; i< NUM_VEC; i++){
+        if (i == SYSTEM_CALL_IDX)     int_ex[i] =  system_call_asm;
+        else                          int_ex[i] =  empty;
+    }
+	for(i = 0; i < NUM_VEC; i++)
 	{
 		/* check function pointers */
 		result = ((void *)((idt[i].offset_31_16<<16)+(idt[i].offset_15_00)) == int_ex[i]) ? PASS : FAIL;
@@ -173,7 +177,7 @@ int test_idt_entries(){
  * Shows that exceptions are handled when triggered
  * Inpu
 	TEST_HEADER;ts: none
- * Outputs: PASS/FAIL (WONT REACH HERE SINCE THE EXCEPTION FREEZES THE SYSTEM)
+ * Outputs: Should just freeze the sysytem after printing that a divide by 0 exception was triggered
  * Side Effects: divide by zero exception
  * Coverage: exceptions
  * Files: idt.h/.c idt_handlers.h/.c
@@ -188,11 +192,27 @@ int test_idt_div_zero(int test_arg){
 	return PASS | arg;
 }
 
+
+// int test_kbd(){
+// 	char out;
+// 	TEST_HEADER;
+// 	// outb(30,KB_CMD_REGISTER);
+// 	// outb(30,KB_STATUS_REGISTER);
+// 	outb(30,KB_DATA_PORT);
+// 	out = keyboard_interrupt();
+// 	printf("%c\n", out);
+// 	if (out == 'a')
+// 		return PASS;
+// 	else return FAIL;
+// }
+
+
+
 /* IDT Test - Other Exception
  * 
  * Shows that exceptions are handled when triggered
  * Inputs: none
- * Outputs: PASS/FAIL (WONT REACH HERE SINCE THE EXCEPTION FREEZES THE SYSTEM)
+ * Outputs: Should freeze the screen and say which exception was triggered (uncomment the exception you want to test)
  * Side Effects: SIMD exception (or others, uncomment) exception
  * Coverage: exceptions
  * Files: idt.h/.c. idt_handlers.h/.c
@@ -228,7 +248,7 @@ int test_system_call()
  * 
  * Shows that you can set RTC frequency
  * Inputs: none
- * Outputs: PASS/FAIL
+ * Outputs: Should see a visual difference in the frequency of the rtc interrupt (Returns PASS regardless)
  * Side Effects: change RTC frequency
  * Coverage: RTC frequency
  * Files: paging.c/.h
@@ -247,7 +267,7 @@ int test_rtc_frequency()
  * 
  * Shows that dereferencing a NULL pointer produces a page fault
  * Inputs: none
- * Outputs: PASS/FAIL
+ * Outputs: Page fault -- should freeze screen
  * Side Effects: page fault
  * Coverage: paging fault
  * Files: paging.c/.h
@@ -269,7 +289,7 @@ int test_paging()
  * Asserts that kernel memory is accessible within the 4MB to 8MB locations
  * Inputs: None
  * Outputs: PASS
- * Side Effects: When testing the ABOVE_KERNEL_MEM and BELOW_KERNEL_MEM cases, a page fault will occur
+ * Side Effects: When testing the ABOVE_KERNEL_MEM and BELOW_KERNEL_MEM cases, a page fault will occur, otherwise it should pass
  * Coverage: Page Directory set up
  * Files: paging.h/c
  */
@@ -373,23 +393,24 @@ void launch_tests(){
 	
 	/* tests for IDT */
 	TEST_OUTPUT("idt_test", idt_test());
+	// TEST_OUTPUT("test_kbd", test_kbd());
 	TEST_OUTPUT("test_idt_entries", test_idt_entries());
-	// TEST_OUTPUT("test_idt_div_zero", test_idt_div_zero(5));
-	// TEST_OUTPUT("test_other_idt_exceptions", test_idt_exceptions());
+	// TEST_OUTPUT("test_idt_div_zero", test_idt_div_zero(5)); // causes an exception
+	// TEST_OUTPUT("test_idt_exceptions", test_idt_exceptions()); // causes an exception
 	TEST_OUTPUT("test_system_call", test_system_call());
 	
 	/* tests for RTC */
-	// TEST_OUTPUT("test_rtc_frequency", test_rtc_frequency());
+	// TEST_OUTPUT("test_rtc_frequency", test_rtc_frequency()); // changes frequency of RTC interrupts
 
 	/* test keyboard: type and echo characters */
 	
 	/* tests for paging */
-	// TEST_OUTPUT("test_paging_above_kernel", test_paging_ker_mem(ABOVE_KERNEL_MEM));
-	// TEST_OUTPUT("test_paging_below_kernel", test_paging_ker_mem(BELOW_KERNEL_MEM));
+	// TEST_OUTPUT("test_paging_above_kernel", test_paging_ker_mem(ABOVE_KERNEL_MEM)); // causes an exception
+	// TEST_OUTPUT("test_paging_below_kernel", test_paging_ker_mem(BELOW_KERNEL_MEM)); // causes an exception
 	TEST_OUTPUT("test_paging_in_kernel", test_paging_ker_mem(IN_KERNEL_MEM));
 
-	// TEST_OUTPUT("test_paging_above_video", test_paging_video_mem(ABOVE_VIDEO_MEM));
-	// TEST_OUTPUT("test_paging_below_video", test_paging_video_mem(BELOW_VIDEO_MEM));
+	// TEST_OUTPUT("test_paging_above_video", test_paging_video_mem(ABOVE_VIDEO_MEM)); // causes an exception
+	// TEST_OUTPUT("test_paging_below_video", test_paging_video_mem(BELOW_VIDEO_MEM)); // causes an exception
 	TEST_OUTPUT("test_paging_in_video", test_paging_video_mem(IN_VIDEO_MEM));
 
 }

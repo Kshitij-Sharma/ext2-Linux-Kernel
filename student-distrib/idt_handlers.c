@@ -99,21 +99,22 @@ void pit_interrupt()
     return;     
 }
 
-/*  void keyboard_interrupt()
+/*  char keyboard_interrupt()
         INPUTS: none
-        OUTPUTS: none
+        OUTPUTS: returns the char pressed
         SIDE EFFECTS: (should) read which character is printed and print it to screen
 */
-void keyboard_interrupt()     
+char keyboard_interrupt()     
 { 
     // read character --> print to screen
     // inb KBDR (if my 220 knowledge is correct)
     char pressed;
-    pressed = inb(0x60);
-    /* if tilde, we want to halt RTC spazzing */
+    pressed = inb(KB_DATA_PORT);
+    /* if tilde, we want to toggle RTC spazzing */
     if (scancode_to_char[(unsigned)pressed] == '`')
         RTC_ON_FLAG = (RTC_ON_FLAG) ? 0 : 1;
     printf("%c", scancode_to_char[(unsigned)pressed]);
+    return scancode_to_char[(unsigned)pressed];
 }
 
 /* void rtc_interrupt()
@@ -123,7 +124,7 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    // printf("RTC HANDLER\n");
+    printf("RTC HANDLER\n");
     if (RTC_ON_FLAG)            test_interrupts();
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 

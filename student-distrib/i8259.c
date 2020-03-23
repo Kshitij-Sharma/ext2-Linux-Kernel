@@ -39,7 +39,7 @@ void i8259_init(void) {
     for(i = 0; i < SLAVE_PORT_MAX; i++)         disable_irq(i);
     enable_irq(2);                  // enables slave IRQ
     enable_irq(8);                  // enables RTC IRQ
-    enable_irq(1);                  // enables keeb IRQ
+    enable_irq(1);                  // enables keyboard IRQ
 
     // high skill debugging
     // printf("%x\n", inb(MASTER_8259_DATA_PORT));

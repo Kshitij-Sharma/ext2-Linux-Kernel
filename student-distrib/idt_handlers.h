@@ -33,7 +33,7 @@ extern void alignment_check();
 extern void machine_check();
 extern void reserved();
 extern void pit_interrupt();
-// extern void keyboard_interrupt();
+extern char keyboard_interrupt();
 extern void empty();
 extern void rtc_interrupt();
 extern void system_call();

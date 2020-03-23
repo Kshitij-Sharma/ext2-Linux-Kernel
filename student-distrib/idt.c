@@ -66,7 +66,10 @@ void idt_init(){
         empty                       /* interrupt end */
     };
 
-    interrupts_and_excpetions[SYSTEM_CALL_IDX] =  system_call_asm;
+    for (i = OTHER_INTERRUPTS_IDX; i< NUM_VEC; i++){
+        if (i == SYSTEM_CALL_IDX)     interrupts_and_excpetions[i] =  system_call_asm;
+        else                          interrupts_and_excpetions[i] =  empty;
+    }
     
     for (i = 0; i < NUM_VEC; i++)
     {
