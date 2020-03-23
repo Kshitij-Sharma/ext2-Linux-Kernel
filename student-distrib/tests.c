@@ -37,7 +37,7 @@ int idt_test(){
 
 	int i;
 	int result = PASS;
-	for (i = 0; i < 20; ++i){
+	for (i = 0; i < NUM_VEC; ++i){
 		if ((idt[i].offset_15_00 == NULL) && 
 			(idt[i].offset_31_16 == NULL)){
 			assertion_failure();
@@ -93,7 +93,7 @@ int test_idt_entries(){
         reserved,
         reserved,
         reserved,                   /*reserved by Intel end */
-        pit_interrupt,              /*interrupt start */
+        empty,              /*interrupt start */
         keyboard_interrupt_asm,
         empty,                      /* cascade to slave */
         empty, 
@@ -113,7 +113,7 @@ int test_idt_entries(){
 	int i;
 	int result = PASS;
 
-     for (i = OTHER_INTERRUPTS_IDX; i< NUM_VEC; i++){
+	for (i = OTHER_INTERRUPTS_IDX; i< NUM_VEC; i++){
         if (i == SYSTEM_CALL_IDX)     int_ex[i] =  system_call_asm;
         else                          int_ex[i] =  empty;
     }
@@ -272,7 +272,7 @@ int test_rtc_frequency()
  * Coverage: paging fault
  * Files: paging.c/.h
  */
-int test_paging()
+int test_paging_dereference_null()
 {
 	TEST_HEADER;
 	int * test, magic;
@@ -405,6 +405,7 @@ void launch_tests(){
 	/* test keyboard: type and echo characters */
 	
 	/* tests for paging */
+	// TEST_OUTPUT("test_paging_dereference_null", test_paging_dereference_null()); // causes an exception
 	// TEST_OUTPUT("test_paging_above_kernel", test_paging_ker_mem(ABOVE_KERNEL_MEM)); // causes an exception
 	// TEST_OUTPUT("test_paging_below_kernel", test_paging_ker_mem(BELOW_KERNEL_MEM)); // causes an exception
 	TEST_OUTPUT("test_paging_in_kernel", test_paging_ker_mem(IN_KERNEL_MEM));

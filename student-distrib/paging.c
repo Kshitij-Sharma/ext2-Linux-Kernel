@@ -36,14 +36,14 @@ void paging_init(){
                  "movl %0, %%eax;" 			/* clear eax*/
                  "movl %%eax, %%cr3;" 		/* sets the page directory pointer */
                  "movl %%cr4, %%eax;"
-                 "orl $0x00000010, %%eax;" 	/*mask used to set bit to 1*/
+                 "orl $0x00000010, %%eax;" 	/* mask used to set bit to 1 */
                  "movl %%eax, %%cr4;"		/* seting PSE to enable 4 MiB pages */
                  "movl %%cr0, %%eax;"
-                 "orl $0x80000000, %%eax;" 	/*mask used to set correct bit to 1*/
+                 "orl $0x80000000, %%eax;" 	/* mask used to set correct bit to 1 */
                  "movl %%eax, %%cr0;"		/* set paging bit */
                  :                      	/* no outputs */
                  :"r"(page_directory)   	/* input */
-                 :"%eax"               		 /* clobbered register */
+                 :"%eax"               		/* clobbered register */
                  );
                  
  }		

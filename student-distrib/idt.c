@@ -1,14 +1,9 @@
 #include "idt.h"
-
-
-
-
 /* idt_init()
         INPUTS: none
         OUTPUTS: none
         SIDE EFFECTS: initializes IDT with:
                                         0-19 for exceptions
-                                        32 for PIT interrupt
                                         33 for keyboard interrupt
                                         40 for RTC interrupts
 */
@@ -48,7 +43,7 @@ void idt_init(){
         reserved,
         reserved,
         reserved,                   /*reserved by Intel end */
-        pit_interrupt,              /*interrupt start */
+        empty,              /*interrupt start */
         keyboard_interrupt_asm,
         empty,                      /* cascade to slave */
         empty, 
@@ -65,8 +60,7 @@ void idt_init(){
         empty,
         empty                       /* interrupt end */
     };
-
-    for (i = OTHER_INTERRUPTS_IDX; i< NUM_VEC; i++){
+    for (i = OTHER_INTERRUPTS_IDX; i < NUM_VEC; i++){
         if (i == SYSTEM_CALL_IDX)     interrupts_and_excpetions[i] =  system_call_asm;
         else                          interrupts_and_excpetions[i] =  empty;
     }
