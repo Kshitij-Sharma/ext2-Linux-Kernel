@@ -33,6 +33,11 @@ void rtc_enable(){
     // MAGIC NUMBER: x040 is used to turn on PIE (periodic interrupt enable) in RTC register B
 }
 
+/* rtc_set_frequency()
+        INPUTS: none
+        OUTPUTS: none
+        SIDE EFFECTS: sets RTC rate
+*/
 void rtc_set_frequency(int rate){
     char prev;
     rate &= 0x0F;            

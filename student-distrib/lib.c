@@ -34,10 +34,12 @@ void scroll_down(void) {
     // printf("%d %d", screen_x, screen_y);
     if (screen_y >= (NUM_ROWS)){
         int32_t i;
+        /* move text on screen up */
         for (i = NUM_COLS; i < NUM_ROWS * NUM_COLS; i++) {
             *(uint8_t *)(video_mem + ((i-NUM_COLS) << 1)) =  *(uint8_t *)(video_mem + (i << 1));
             *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
         }
+        /* fill in the bottom row with blanks */
         for (i = (NUM_ROWS-1) * NUM_COLS; i < NUM_ROWS*NUM_COLS; i++){
             *(uint8_t *)(video_mem + (i << 1)) = ' ';
             *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
@@ -47,17 +49,21 @@ void scroll_down(void) {
     }
 }
 
-/* void clear(void);
+/* void wraparound(void);
  * Inputs: void
  * Return Value: none
- * Function: Clears video memory */
+ * Function: wraps curos around to next  */
 void wraparound(void) {
-    if (screen_x >= NUM_COLS-1){
+    if (screen_x >= NUM_COLS){
         screen_x = 0;
         screen_y++;
     } 
 }
 
+/* void backspace(void);
+ * Inputs: void
+ * Return Value: none
+ * Function: Backspace functionality */
 void backspace(void){
     if (screen_x != 0){
         screen_x--;

@@ -60,6 +60,7 @@ void idt_init(){
         empty,
         empty                       /* interrupt end */
     };
+    /* fills in all other as empty except for system call idx */
     for (i = OTHER_INTERRUPTS_IDX; i < NUM_VEC; i++){
         if (i == SYSTEM_CALL_IDX)     interrupts_and_excpetions[i] =  system_call_asm;
         else                          interrupts_and_excpetions[i] =  empty;

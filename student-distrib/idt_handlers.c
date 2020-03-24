@@ -23,6 +23,7 @@ int shift_on = 0;
 int caps_lock_on = 0;
 int control_on = 0;
 int alt_on = 0;
+int RTC_ON_FLAG = 0;
 
 /* scancodes for lowercase letters */
 static char scancode_to_char[NUM_CODES] = {
@@ -86,7 +87,6 @@ static char scancode_to_char[NUM_CODES] = {
     ' ', ' '
 };
 
-int RTC_ON_FLAG = 0;
 
 void reserved() { return; }
 void empty()    { return; }
@@ -102,41 +102,50 @@ void keyboard_interrupt()
     unsigned int pressed;
     char output_char;
     pressed = inb(0x60);
-    // printf("SCANCODE: %d\n", pressed);
+    /* backspace */
     if (pressed == BACKSPACE){
         backspace();
         return;
     }
+    /* caps lock */
     if (pressed == CAPS_LOCK_PRESSED){
         caps_lock_on = (caps_lock_on) ? 0 : 1;
         return;
     }
+    /* shift pressed */
     if ((pressed == LEFT_SHIFT_PRESSED) || (pressed == RIGHT_SHIFT_PRESSED)){
         shift_on = 1;
         return;
     }
+    /* shift released */
     if ((pressed == LEFT_SHIFT_RELEASED) || (pressed == RIGHT_SHIFT_RELEASED)){
         shift_on = 0;
         return;
     }
+    /* control pressed */
     if ((pressed == LEFT_CONTROL_PRESSED)){
         control_on = 1;
         return;
     }
+    /* control released */
     if (pressed == LEFT_CONTROL_RELEASED){
         control_on = 0;
         return;
     }
+    /* alt pressed */
     if (pressed == LEFT_ALT_PRESSED){
         alt_on = 1;
         return;
     }
+    /* alt released */
     if (pressed == LEFT_ALT_RELEASED){
         alt_on = 0;
         return;
     }
+    /* if we are releasing a key we don't do anything */
     if (pressed >= START_RELEASED || pressed == RIGHT_CONTROL_TAG)
         return;
+    /* ctrl+L clears screen */
     if (control_on && pressed == L_SCANCODE){
         clear();
         return;
@@ -144,7 +153,8 @@ void keyboard_interrupt()
     /* if tilde, we want to halt RTC spazzing */
     if (scancode_to_char[pressed] == '`')
         RTC_ON_FLAG = (RTC_ON_FLAG) ? 0 : 1;
-    if ((caps_lock_on && !shift_on) || (!caps_lock_on && shift_on)){
+    /* uses the uppercase character in the scancode if shift ^ caps lock is on*/
+    if ((caps_lock_on && !shift_on) || (!caps_lock_on && shift_on)){    // shift_on ^ caps_lock_on
         output_char = scancode_to_char[pressed*2+1];
     }
     else{
