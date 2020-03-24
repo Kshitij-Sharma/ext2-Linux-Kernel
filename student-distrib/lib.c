@@ -32,7 +32,7 @@ void clear(void) {
  * Function: Clears video memory */
 void scroll_down(void) {
     // printf("%d %d", screen_x, screen_y);
-    if (screen_y >= (NUM_ROWS)){
+    if (screen_y >= NUM_ROWS){
         int32_t i;
         /* move text on screen up */
         for (i = NUM_COLS; i < NUM_ROWS * NUM_COLS; i++) {
@@ -54,7 +54,7 @@ void scroll_down(void) {
  * Return Value: none
  * Function: wraps curos around to next  */
 void wraparound(void) {
-    if (screen_x >= NUM_COLS){
+    if (screen_x >= NUM_COLS+1){
         screen_x = 0;
         screen_y++;
     } 
@@ -66,13 +66,18 @@ void wraparound(void) {
  * Function: Backspace functionality */
 void backspace(void){
     if (screen_x != 0){
+        // moves cursor back
         screen_x--;
-    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
-    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-    if (screen_x == 0){
-        screen_y--;
-        screen_x = NUM_COLS-1;
-    }
+        
+        // deletes char at cursor
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+        
+        // case where we go up a line
+        if (screen_x == 0){
+            screen_y--;
+            screen_x = NUM_COLS-1;
+        }
     }
 }
 
@@ -227,7 +232,7 @@ void putc(uint8_t c) {
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
-        screen_x %= NUM_COLS;
+        // screen_x %= NUM_COLS;
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
 }
