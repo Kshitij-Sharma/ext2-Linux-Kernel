@@ -22,6 +22,8 @@ void clear(void) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
+    screen_y = 0;
+    screen_x = 0;
 }
 
 /* Standard printf().
@@ -150,6 +152,13 @@ format_char_switch:
     return (buf - format);
 }
 
+void backspace(void){
+    if (screen_x != 0){
+        screen_x--;
+    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
+    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+    }
+}
 /* int32_t puts(int8_t* s);
  *   Inputs: int_8* s = pointer to a string of characters
  *   Return Value: Number of bytes written
