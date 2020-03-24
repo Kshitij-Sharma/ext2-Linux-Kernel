@@ -26,6 +26,50 @@ void clear(void) {
     screen_x = 0;
 }
 
+/* void clear(void);
+ * Inputs: void
+ * Return Value: none
+ * Function: Clears video memory */
+void scroll_down(void) {
+    // printf("%d %d", screen_x, screen_y);
+    if (screen_y >= (NUM_ROWS)){
+        int32_t i;
+        for (i = NUM_COLS; i < NUM_ROWS * NUM_COLS; i++) {
+            *(uint8_t *)(video_mem + ((i-NUM_COLS) << 1)) =  *(uint8_t *)(video_mem + (i << 1));
+            *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+        }
+        for (i = (NUM_ROWS-1) * NUM_COLS; i < NUM_ROWS*NUM_COLS; i++){
+            *(uint8_t *)(video_mem + (i << 1)) = ' ';
+            *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+        }
+        screen_y = NUM_ROWS-1;
+        screen_x = 0;
+    }
+}
+
+/* void clear(void);
+ * Inputs: void
+ * Return Value: none
+ * Function: Clears video memory */
+void wraparound(void) {
+    if (screen_x >= NUM_COLS-1){
+        screen_x = 0;
+        screen_y++;
+    } 
+}
+
+void backspace(void){
+    if (screen_x != 0){
+        screen_x--;
+    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
+    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+    if (screen_x == 0){
+        screen_y--;
+        screen_x = NUM_COLS-1;
+    }
+    }
+}
+
 /* Standard printf().
  * Only supports the following format strings:
  * %%  - print a literal '%' character
@@ -152,13 +196,6 @@ format_char_switch:
     return (buf - format);
 }
 
-void backspace(void){
-    if (screen_x != 0){
-        screen_x--;
-    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
-    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-    }
-}
 /* int32_t puts(int8_t* s);
  *   Inputs: int_8* s = pointer to a string of characters
  *   Return Value: Number of bytes written

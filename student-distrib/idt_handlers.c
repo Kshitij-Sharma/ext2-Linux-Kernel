@@ -151,6 +151,8 @@ void keyboard_interrupt()
         output_char = scancode_to_char[pressed*2];
     }
     printf("%c", output_char);
+    wraparound();
+    scroll_down();
 }
 
 /* void rtc_interrupt()
