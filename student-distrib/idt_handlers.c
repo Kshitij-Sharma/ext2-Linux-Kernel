@@ -1,6 +1,7 @@
 
 #include "idt_handlers.h"
 
+#define ENTER_PRESSED               0x1C
 #define LEFT_SHIFT_PRESSED          0X2A
 #define LEFT_SHIFT_RELEASED         0XAA
 #define RIGHT_SHIFT_PRESSED         0X36
@@ -24,7 +25,7 @@ int caps_lock_on = 0;
 int control_on = 0;
 int alt_on = 0;
 int RTC_ON_FLAG = 0;
-
+int keyboard_buffer_idx = 0;
 /* scancodes for lowercase letters */
 static char scancode_to_char[NUM_CODES] = {
     0, 0,
@@ -96,6 +97,7 @@ void empty()    { return; }
         OUTPUTS: none
         SIDE EFFECTS: (should) read which character is printed and print it to screen
 */
+
 void keyboard_interrupt()     
 { 
     // read character --> print to screen
@@ -105,6 +107,7 @@ void keyboard_interrupt()
     /* backspace */
     if (pressed == BACKSPACE){
         backspace();
+        keyboard_buffer[keyboard_buffer_idx--] = ' ';
         return;
     }
     /* caps lock */
@@ -160,9 +163,21 @@ void keyboard_interrupt()
     else{
         output_char = scancode_to_char[pressed*2];
     }
-    printf("%c", output_char);
+    if(sys_read_flag)
+    {
+        if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE){
+            keyboard_buffer[keyboard_buffer_idx] = output_char;
+            keyboard_buffer_idx++;
+        }
+        if(keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1 || pressed == ENTER_PRESSED){
+            sys_read_flag = 0;
+            keyboard_buffer_idx = 0;
+        }
+    }
+    putc(output_char);
     wraparound();
     scroll_down();
+    
 }
 
 /* void rtc_interrupt()
@@ -178,10 +193,10 @@ void rtc_interrupt()
     inb(RTC_DATA_PORT); 
 }
 
-void system_call()  
-{ 
-    printf("System call triggered! \n"); // prints out which exception was triggered
-}
+// void system_call(int call_number, int first_arg, int second_arg, int third_arg)  
+// { 
+//     printf("System call triggered! \n"); // prints out which exception was triggered
+// }
 
 /* Array of error messages in order so we can index into them based on the argument of the function call*/
 char * error_messages[NUM_EXCEPTIONS] = {

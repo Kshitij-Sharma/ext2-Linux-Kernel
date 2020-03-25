@@ -11,6 +11,7 @@
 static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
+int next = 0;       // global var used for wraparound/backspace corner case
 
 /* void clear(void);
  * Inputs: void
@@ -49,15 +50,29 @@ void scroll_down(void) {
     }
 }
 
+/* void clear_line(void);
+ * Inputs: void
+ * Return Value: none
+ * Function: clears a line of text  */
+// void clear_line(void) {
+//     int i;
+//     screen_x = NUM_COLS;
+//     for(i = 0; i <= NUM_COLS; i++)      backspace();
+// }
+
+
 /* void wraparound(void);
  * Inputs: void
  * Return Value: none
  * Function: wraps curos around to next  */
 void wraparound(void) {
-    if (screen_x >= NUM_COLS+1){
-        screen_x = 0;
+    // 
+    if (screen_x == NUM_COLS - 1)       next = 1;
+    if(screen_x == 0 && next)
+    {
         screen_y++;
-    } 
+        next = 0;
+    }
 }
 
 /* void backspace(void);
@@ -65,19 +80,26 @@ void wraparound(void) {
  * Return Value: none
  * Function: Backspace functionality */
 void backspace(void){
+    if (screen_x == 0 && screen_y == 0) return;
     if (screen_x != 0){
         // moves cursor back
         screen_x--;
-        
         // deletes char at cursor
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
         
-        // case where we go up a line
-        if (screen_x == 0){
-            screen_y--;
-            screen_x = NUM_COLS-1;
-        }
+    }
+    // case where we go up a line
+    if (screen_x == 0){
+        // delete last char in prev row
+        screen_x = NUM_COLS-1;
+        next = 1;
+        // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
+        // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + NUM_COLS) << 1)) = ' ';
+        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + NUM_COLS) << 1) + 1) = ATTRIB;
+        // move cursor up
+        screen_y--;
     }
 }
 
@@ -232,7 +254,7 @@ void putc(uint8_t c) {
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
-        // screen_x %= NUM_COLS;
+        screen_x %= (NUM_COLS);
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
 }

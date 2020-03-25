@@ -59,8 +59,27 @@ system_call_asm:
 
     pushal 
 
-    call system_call
+    add $-1, %eax # subtract 1 to account for the fact that jump tables are 0 indexed while the number we are provided goes from 1-10
+    cmp $10, %eax
+    jg error_ret
+    /* push params */
+    push %edx
+    push %ecx
+    push %ebx
 
+    /* jump to function */
+    jmp     *sys_call_table(,%eax,4)
+
+    /* pop params */
+    pop %ebx
+    pop %ecx
+    pop %edx
+    jmp cont
+
+    error_ret:
+    movl $-1, %eax
+
+    cont:
      /* send EOI signal */
     pushl $IRQ_RTC
     call send_eoi               /* sends the EOI */
@@ -73,3 +92,17 @@ system_call_asm:
     /* Return control */
     iret
 /*void system_call()                  { return; }*/
+
+sys_call_table:
+        .long   sys_halt
+        .long   sys_execute
+        .long   sys_read
+        .long   sys_write
+        .long   sys_open
+        .long   sys_close
+        .long   sys_getargs
+        .long   sys_vidmap
+        .long   sys_set_handler
+        .long   sys_sigreturn
+        
+

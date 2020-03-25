@@ -5,6 +5,7 @@
 #include "idt.h"
 #include "rtc.h"
 #include "paging.h"
+#include "syscall_handlers.h"
 #define PASS 1
 #define FAIL 0
 
@@ -46,6 +47,17 @@ int idt_test(){
 	}
 
 	return result;
+}
+
+
+int gay(){
+	TEST_HEADER;
+
+	char buf[20];
+	int nb = _sys_read_terminal(0, buf, 200);
+	if(nb != 0)				assertion_failure();
+	printf("%s\n", buf); 
+	return PASS;
 }
 
 
@@ -392,12 +404,13 @@ void launch_tests(){
 	// launch your tests here
 	
 	/* tests for IDT */
-	TEST_OUTPUT("idt_test", idt_test());
+	// TEST_OUTPUT("idt_test", idt_test());
+	TEST_OUTPUT("idt_test", gay());
 	// TEST_OUTPUT("test_kbd", test_kbd());
-	TEST_OUTPUT("test_idt_entries", test_idt_entries());
+	// TEST_OUTPUT("test_idt_entries", test_idt_entries());
 	// TEST_OUTPUT("test_idt_div_zero", test_idt_div_zero(5)); // causes an exception
 	// TEST_OUTPUT("test_idt_exceptions", test_idt_exceptions()); // causes an exception
-	TEST_OUTPUT("test_system_call", test_system_call());
+	// TEST_OUTPUT("test_system_call", test_system_call());
 	
 	/* tests for RTC */
 	// TEST_OUTPUT("test_rtc_frequency", test_rtc_frequency()); // changes frequency of RTC interrupts
@@ -408,10 +421,10 @@ void launch_tests(){
 	// TEST_OUTPUT("test_paging_dereference_null", test_paging_dereference_null()); // causes an exception
 	// TEST_OUTPUT("test_paging_above_kernel", test_paging_ker_mem(ABOVE_KERNEL_MEM)); // causes an exception
 	// TEST_OUTPUT("test_paging_below_kernel", test_paging_ker_mem(BELOW_KERNEL_MEM)); // causes an exception
-	TEST_OUTPUT("test_paging_in_kernel", test_paging_ker_mem(IN_KERNEL_MEM));
+	// TEST_OUTPUT("test_paging_in_kernel", test_paging_ker_mem(IN_KERNEL_MEM));
 
 	// TEST_OUTPUT("test_paging_above_video", test_paging_video_mem(ABOVE_VIDEO_MEM)); // causes an exception
 	// TEST_OUTPUT("test_paging_below_video", test_paging_video_mem(BELOW_VIDEO_MEM)); // causes an exception
-	TEST_OUTPUT("test_paging_in_video", test_paging_video_mem(IN_VIDEO_MEM));
+	// TEST_OUTPUT("test_paging_in_video", test_paging_video_mem(IN_VIDEO_MEM));
 
 }
