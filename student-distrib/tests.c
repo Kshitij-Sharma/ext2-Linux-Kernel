@@ -49,11 +49,10 @@ int idt_test(){
 	return result;
 }
 
-
 int gay(){
 	TEST_HEADER;
 
-	char buf[20];
+	char buf[128];
 	int nb = _sys_read_terminal(0, buf, 200);
 	if(nb != 0)				assertion_failure();
 	printf("%s\n", buf); 

@@ -144,3 +144,13 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
 //     sti();
 //     return 0;
 // }
+
+
+/* @TODO:
+Fix the egde case bug for backspace
+send eshan to a homosexual shock therapy conversion camp
+figure out the cursor _
+Write Write 
+Add more test cases for read and write for terminal
+move on and help kshitij 
+*/

@@ -9,13 +9,20 @@
 #define CAPS_LOCK_PRESSED           0X3A
 #define CAPS_LOCK_RELEASED          0XBA
 #define START_RELEASED              0X81
-#define LEFT_CONTROL_PRESSED        0X1D
+#define START_IGNORE                0X37
 #define LEFT_CONTROL_RELEASED       0X9D
 #define RIGHT_CONTROL_TAG           0XE0
 #define LEFT_ALT_PRESSED            0X38
 #define LEFT_ALT_RELEASED           0XB8
 #define L_SCANCODE                  0x26
 #define BACKSPACE                   0X0E
+#define CAPS_IGNORE_START           0x27
+#define IGNORE_BRACKET              0x1A
+#define LEFT_CONTROL_PRESSED        0X1D
+#define CAPS_IGNORE_END             0x2B
+#define LETTER_START                0x10
+#define LETTER_END                  0x32
+/* enter, left control, 1a 1b*/
 
 // #define END_RELEASED              
 
@@ -88,6 +95,18 @@ static char scancode_to_char[NUM_CODES] = {
     ' ', ' '
 };
 
+/* scancodes
+up arrow 72, 200
+down arrow 80, 208
+left arrow 75, 203
+right arrow 77, 205
+insert - 82, 210
+home - 71, 199
+*/
+
+
+
+
 
 void reserved() { return; }
 void empty()    { return; }
@@ -104,6 +123,7 @@ void keyboard_interrupt()
     unsigned int pressed;
     char output_char;
     pressed = inb(0x60);
+    // printf(" Scancode:%d \n", pressed);
     /* backspace */
     if (pressed == BACKSPACE){
         backspace();
@@ -146,30 +166,38 @@ void keyboard_interrupt()
         return;
     }
     /* if we are releasing a key we don't do anything */
-    if (pressed >= START_RELEASED || pressed == RIGHT_CONTROL_TAG)
-        return;
     /* ctrl+L clears screen */
     if (control_on && pressed == L_SCANCODE){
         clear();
         return;
     }
     /* if tilde, we want to halt RTC spazzing */
-    if (scancode_to_char[pressed] == '`')
+    if (scancode_to_char[pressed*2] == '`')
         RTC_ON_FLAG = (RTC_ON_FLAG) ? 0 : 1;
+    if (pressed >= START_RELEASED || pressed == RIGHT_CONTROL_TAG || pressed >= START_IGNORE)
+        return;
     /* uses the uppercase character in the scancode if shift ^ caps lock is on*/
-    if ((caps_lock_on && !shift_on) || (!caps_lock_on && shift_on)){    // shift_on ^ caps_lock_on
+    if (!caps_lock_on && shift_on)     // shift_on ^ caps_lock_on
         output_char = scancode_to_char[pressed*2+1];
-    }
-    else{
-        output_char = scancode_to_char[pressed*2];
-    }
+    
+    // don't let caps lock affect shift
+    else if ((caps_lock_on && !shift_on) 
+            && (pressed >= LETTER_START && pressed <= LETTER_END)
+            && !(pressed >= CAPS_IGNORE_START && pressed <= CAPS_IGNORE_END) 
+            && !(pressed >= IGNORE_BRACKET && pressed <= LEFT_CONTROL_PRESSED))
+                output_char = scancode_to_char[pressed*2+1];
+    
+    
+    else       output_char = scancode_to_char[pressed*2]; // else print out the lowercase or unshifted version of the scancode char
+    
+    /* interaction with _sys_read_terminal */
     if(sys_read_flag)
     {
         if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE){
             keyboard_buffer[keyboard_buffer_idx] = output_char;
             keyboard_buffer_idx++;
         }
-        if(keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1 || pressed == ENTER_PRESSED){
+        if(pressed == ENTER_PRESSED){
             sys_read_flag = 0;
             keyboard_buffer_idx = 0;
         }
@@ -187,7 +215,7 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    // printf("RTC HANDLER\n");
+    printf("RTC HANDLER\n");
     if (RTC_ON_FLAG)            test_interrupts();
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 

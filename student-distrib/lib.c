@@ -257,6 +257,8 @@ void putc(uint8_t c) {
         screen_x %= (NUM_COLS);
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
+    wraparound();
+    scroll_down();
 }
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);
