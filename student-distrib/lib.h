@@ -29,6 +29,10 @@ int8_t* strcpy(int8_t* dest, const int8_t*src);
 int8_t* strncpy(int8_t* dest, const int8_t*src, uint32_t n);
 void test_interrupts(void);
 
+int log_base_two(int n);
+int power_of_two(int num);
+
+
 #define KEYBOARD_BUFFER_SIZE    128
 char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
 volatile int sys_read_flag;

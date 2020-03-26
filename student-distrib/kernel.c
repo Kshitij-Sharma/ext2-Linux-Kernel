@@ -144,7 +144,7 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Init the PIC */
     i8259_init();
     rtc_init();
-    rtc_enable();
+    // rtc_enable();
     paging_init();
 
     // asm volatile ("int $0x80");

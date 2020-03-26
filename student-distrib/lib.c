@@ -14,6 +14,21 @@ static char* video_mem = (char *)VIDEO;
 int forward_next = 0;       // global var used for wraparound/backspace corner case
 int backward_next = 0;
 
+int log_base_two(int n) 
+{ 
+    return (n > 1) ? 1 + log_base_two(n / 2) : 0; 
+} 
+
+int power_of_two(int num){
+    if (num == 0) return 1;
+    while (num != 1){
+        if (num % 2 == 1) return 1;
+        num /= 2;
+    }
+    return 0;
+}
+
+
 /* void clear(void);
  * Inputs: void
  * Return Value: none

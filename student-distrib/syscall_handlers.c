@@ -140,7 +140,6 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
 
 // }
 
-
 int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes)
 {
     int i;
@@ -164,6 +163,27 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes)
     return 0;
 }
 
+int32_t _sys_write_rtc(int32_t frequency){
+    // sets the RTC rate to 2Hz
+    char prev;
+    int rate;
+    /* param check */
+    if (power_of_two(frequency) || frequency < 0)              return -1;
+    // if (frequency > MAX_INTERRUPT_FREQUENCY)    frequency = MAX_INTERRUPT_FREQUENCY;
+    if (frequency > MAX_INTERRUPT_FREQUENCY){
+        frequency = MAX_INTERRUPT_FREQUENCY;
+    }
+    rate = (log_base_two(FREQ_CONVERSION_CONST/frequency)/log_base_two(2)) + 1;
+    if (rate <= 2) rate = 3;
+
+    // MAGIC NUMBER: 0x0F sets rate selector bits in register A
+    outb(RTC_STATUS_REGISTER_A, RTC_CMD_PORT);          // set index to register A, disable NMI
+    prev = inb(RTC_DATA_PORT);                          // get initial value of register A
+    outb(RTC_STATUS_REGISTER_A, RTC_DATA_PORT);         // reset index to A
+    outb(((prev & 0xF0) | rate), RTC_DATA_PORT);        // writes rate (bottom 4 bits) to A
+    // MAGIC NUMBER: 0xF0 is used to clear bottom 4 bits before setting rate
+    return 0;
+}
 
 /* @TODO:
 figure out the cursor _

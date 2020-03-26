@@ -1,30 +1,11 @@
 #include "rtc.h"
 
-/* rtc_init()
-        INPUTS: none
-        OUTPUTS: none
-        SIDE EFFECTS: sets RTC rate and initializes it
-*/
-void rtc_init(){
-    // sets the RTC rate to 2Hz
-    char prev;
-    int rate;
-    rate = 0x0F;
-    // MAGIC NUMBER: 0x0F sets rate selector bits in register A
-    outb(RTC_STATUS_REGISTER_A, RTC_CMD_PORT);          // set index to register A, disable NMI
-    prev = inb(RTC_DATA_PORT);                          // get initial value of register A
-    outb(RTC_STATUS_REGISTER_A, RTC_DATA_PORT);         // reset index to A
-    outb(((prev & 0xF0) | rate), RTC_DATA_PORT);        // writes rate (bottom 4 bits) to A
-    // MAGIC NUMBER: 0xF0 is used to clear bottom 4 bits before setting rate
-
-}
-
 /* rtc_enable()
         INPUTS: none
         OUTPUTS: none
         SIDE EFFECTS: enables periodic interrupts on RTC
 */
-void rtc_enable(){
+void rtc_init(){
     char prev;
     outb(RTC_STATUS_REGISTER_B, RTC_CMD_PORT);              // set index to register B
     prev = inb(RTC_DATA_PORT);                              // get initial value from register B
@@ -38,7 +19,7 @@ void rtc_enable(){
         OUTPUTS: none
         SIDE EFFECTS: sets RTC rate
 */
-void rtc_set_frequency(int rate){
+void rtc_set_frequency_from_rate(int rate){
     char prev;
     rate &= 0x0F;            
     // MAGIC NUMBER: 0x0F set rate selector bits in register A

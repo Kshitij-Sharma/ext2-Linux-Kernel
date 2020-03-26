@@ -49,18 +49,6 @@ int idt_test(){
 	return result;
 }
 
-int gay(){
-	TEST_HEADER;
-
-	char buf[128];
-	int nb = _sys_read_terminal(0, (void*) buf, 200);
-	if(nb != 0)				assertion_failure();
-	nb = _sys_write_terminal(0, (void *) buf, 128);
-	if(nb != 0)				assertion_failure();
-	return PASS;
-}
-
-
 /* IDT Test - Check Entries
  * 
  * Checks all IDT entry member values for first 20 exceptions
@@ -256,25 +244,6 @@ int test_system_call()
 	return PASS;
 }
 
-/* RTC Test - Set Frequency
- * 
- * Shows that you can set RTC frequency
- * Inputs: none
- * Outputs: Should see a visual difference in the frequency of the rtc interrupt (Returns PASS regardless)
- * Side Effects: change RTC frequency
- * Coverage: RTC frequency
- * Files: paging.c/.h
- */
-int test_rtc_frequency()
-{
-	TEST_HEADER;
-	int i;
-	/* sets RTC frequency after delay */
-	for(i = 0; i < 1500000; i++) printf("starting in %d\n", i);
-	rtc_set_frequency(0x04);
-	return PASS;
-}
-
 /* Paging Test - Dereferencing Invalid Pointer
  * 
  * Shows that dereferencing a NULL pointer produces a page fault
@@ -394,18 +363,56 @@ int test_paging_video_mem(int val) {
 
 // add more tests here
 
-/* Checkpoint 2 tests */
+
+
+/* System Read/Write Test - Terminal
+ * 
+ * Shows that you can do system reads and writes from terminal
+ * Inputs: none
+ * Outputs: PASS or assertion failure 
+ * Side Effects: none
+ * Coverage: system read/write
+ * Files: syscall_handlers.h/.c
+ */
+int test_sys_rw_terminal(){
+	TEST_HEADER;
+
+	char buf[128];
+	int nb = _sys_read_terminal(0, (void*) buf, 200);
+	if(nb != 0)				assertion_failure();
+	nb = _sys_write_terminal(0, (void *) buf, 128);
+	if(nb != 0)				assertion_failure();
+	return PASS;
+}
+
+/* System Write Test - RTC
+ * 
+ * Shows that you can set RTC frequency
+ * Inputs: none
+ * Outputs: Should see a visual difference in the frequency of the rtc interrupt (Returns PASS regardless)
+ * Side Effects: change RTC frequency
+ * Coverage: RTC frequency
+ * Files: syscall_handlers.h/.c
+ */
+int test_sys_write_rtc()
+{
+	TEST_HEADER;
+	int i;
+	/* sets RTC frequency after delay */
+	for(i = 0; i < 15000; i++) printf("%d", i);
+	_sys_write_rtc(2);
+	return PASS;
+}/* Checkpoint 2 tests */
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
 
 /* Test suite entry point */
+	/* CP1 Tests */
+// launch your tests here
 void launch_tests(){
-	// launch your tests here
-	
 	/* tests for IDT */
-	// TEST_OUTPUT("idt_test", idt_test());
-	TEST_OUTPUT("idt_test", gay());
+	// TEST_OUTPUT("idt_test", gay());
 	// TEST_OUTPUT("test_kbd", test_kbd());
 	// TEST_OUTPUT("test_idt_entries", test_idt_entries());
 	// TEST_OUTPUT("test_idt_div_zero", test_idt_div_zero(5)); // causes an exception
@@ -426,5 +433,21 @@ void launch_tests(){
 	// TEST_OUTPUT("test_paging_above_video", test_paging_video_mem(ABOVE_VIDEO_MEM)); // causes an exception
 	// TEST_OUTPUT("test_paging_below_video", test_paging_video_mem(BELOW_VIDEO_MEM)); // causes an exception
 	// TEST_OUTPUT("test_paging_in_video", test_paging_video_mem(IN_VIDEO_MEM));
+	/* CP2 Tests */
 
+	/* tests for terminal driver */
+	TEST_OUTPUT("test_sys_rw_terminal", test_sys_rw_terminal());
+	TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
+
+	/* CP3 Tests */
+	/* CP4 Tests */
+	/* CP5 Tests */
+
+	/* CP2 Tests */
+	/* CP2 Tests */
+	/* CP2 Tests */
+
+	/* CP2 Tests */
+	/* CP2 Tests */
+	/* CP2 Tests */
 }
