@@ -156,6 +156,7 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes)
     /* put passed in buffer into an appropriately sized buffer */
     memset(write_string, NULL, KEYBOARD_BUFFER_SIZE); 
     memcpy(write_string, buf, nbytes);
+    // write_string[KEYBOARD_BUFFER_SIZE-1] = '\n';
 
     for(i = 0; i < nbytes; i++) {    
         if(write_string[i] != NULL)                 putc(write_string[i]);
@@ -165,12 +166,6 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes)
 
 
 /* @TODO:
-Fix the egde case bug for backspace
-send eshan to a homosexual shock therapy conversion camp
 figure out the cursor _
-Write Write 
-Add more test cases for read and write for terminal
 move on and help kshitij 
-backspace bug at the top left
-space isnt working
 */

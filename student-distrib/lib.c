@@ -11,7 +11,8 @@
 static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
-int next = 0;       // global var used for wraparound/backspace corner case
+int forward_next = 0;       // global var used for wraparound/backspace corner case
+int backward_next = 0;
 
 /* void clear(void);
  * Inputs: void
@@ -25,6 +26,7 @@ void clear(void) {
     }
     screen_y = 0;
     screen_x = 0;
+    memset(keyboard_buffer, NULL, KEYBOARD_BUFFER_SIZE);
 }
 
 /* void clear(void);
@@ -67,11 +69,15 @@ void scroll_down(void) {
  * Function: wraps curos around to next  */
 void wraparound(void) {
     // 
-    if (screen_x == NUM_COLS - 1)       next = 1;
-    if(screen_x == 0 && next)
+    if (forward_next == 80){
+        forward_next = 0;
+    }
+    if (screen_x == NUM_COLS - 1)       forward_next = 80;
+    if(screen_x == 0 && forward_next == 0)
     {
         screen_y++;
-        next = 0;
+        backward_next = 80;
+        forward_next = 1;
     }
 }
 
@@ -87,20 +93,36 @@ void backspace(void){
         // deletes char at cursor
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        
+        forward_next = screen_x + 1;
+        backward_next = screen_x - 1;
+        if (screen_x == 0) {
+            backward_next = 80;
+            forward_next = 1;
+        }
+        return;
     }
     // case where we go up a line
-    if (screen_x == 0){
+    if (screen_x == 0 && screen_y != 0){
+        if (backward_next == 80){
+            screen_x = NUM_COLS-1;
+            backward_next = 79;
+            forward_next = 0;
+        }
+        else{
+            screen_x = NUM_COLS-1;
+            forward_next = 80;
+            backward_next = 78;
+        }
         // delete last char in prev row
-        screen_x = NUM_COLS-1;
-        next = 1;
         // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
         // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + NUM_COLS) << 1)) = ' ';
-        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + NUM_COLS) << 1) + 1) = ATTRIB;
-        // move cursor up
+        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + screen_x) << 1)) = ' ';
+        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + screen_x) << 1) + 1) = ATTRIB;
         screen_y--;
+        // move cursor up
+        return;
     }
+    return;
 }
 
 /* Standard printf().

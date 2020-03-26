@@ -127,7 +127,8 @@ void keyboard_interrupt()
     /* backspace */
     if (pressed == BACKSPACE){
         backspace();
-        keyboard_buffer[keyboard_buffer_idx--] = NULL;
+        if (keyboard_buffer_idx > 0)
+            keyboard_buffer[keyboard_buffer_idx--] = NULL;
         return;
     }
     /* caps lock */

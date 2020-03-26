@@ -13,7 +13,6 @@
 #define KB_STATUS_REGISTER      0x64        // read access
 #define KB_CMD_REGISTER         0x64        // write access
 #define NUM_CODES               116
-#define KEYBOARD_BUFFER_SIZE    128
 // extern void keyboard_interrupt();
 extern void empty();
 extern void reserved();
@@ -22,5 +21,4 @@ extern void rtc_interrupt();
 extern void SIMD_floating_point();
 
 void exception_handler(int index);
-char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
-volatile int sys_read_flag;
+
