@@ -168,4 +168,6 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes)
 /* @TODO:
 figure out the cursor _
 move on and help kshitij 
+dont go back up the line if you hit enter on it
+dont delete all the blanks, just go to text
 */

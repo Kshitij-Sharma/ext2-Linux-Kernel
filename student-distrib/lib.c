@@ -103,6 +103,7 @@ void backspace(void){
     }
     // case where we go up a line
     if (screen_x == 0 && screen_y != 0){
+        if (*(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + NUM_COLS-1) << 1)) == '\n') return;
         if (backward_next == 80){
             screen_x = NUM_COLS-1;
             backward_next = 79;
