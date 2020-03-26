@@ -53,9 +53,10 @@ int gay(){
 	TEST_HEADER;
 
 	char buf[128];
-	int nb = _sys_read_terminal(0, buf, 200);
+	int nb = _sys_read_terminal(0, (void*) buf, 200);
 	if(nb != 0)				assertion_failure();
-	printf("%s\n", buf); 
+	nb = _sys_write_terminal(0, (void *) buf, 128);
+	if(nb != 0)				assertion_failure();
 	return PASS;
 }
 

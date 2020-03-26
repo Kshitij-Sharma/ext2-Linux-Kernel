@@ -104,16 +104,24 @@ int32_t sys_sigreturn (void){
     // use jump table to go to appropriate place
 /* only called when the enter key is pressed */
 int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
-        
-    if(NULL == buf || nbytes <= 0)         return -1;
-    memset(keyboard_buffer, ' ', KEYBOARD_BUFFER_SIZE);
+    
+    /* check edge cases */
+    if(NULL == buf || nbytes < 0)       return -1;
+    if(nbytes == 0)                     return 0;
+
+    /* clears the keyboard buffer */
+    memset(keyboard_buffer, NULL, KEYBOARD_BUFFER_SIZE);
+    /* adjusts nbytes if overflow */
     nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE: nbytes;
 
     // cli();
     // if(!sys_kb_flag)
+
+    /* reads data/fills buffer from keyboard */
     sys_read_flag = 1;
     while(sys_read_flag);
     
+    /* copies memory from keyboard input to buffer */
     memcpy(buf, keyboard_buffer, nbytes);
     
     // memmove(keyboard_buffer, keyboard_buffer + nbytes, KEYBOARD_BUFFER_SIZE - nbytes);
@@ -133,17 +141,27 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
 // }
 
 
-// int32_t _sys_write_terminal (void* buf, int32_t nbytes)
-// {
-//     cli();
+int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes)
+{
+    int i;
+    char write_string[KEYBOARD_BUFFER_SIZE];
 
-//     // clears the whole line
-//     clear_line();
-//     printf("%s\n", (char *)buf);
-    
-//     sti();
-//     return 0;
-// }
+    /* check edge cases */
+    if(NULL == buf || nbytes < 0)       return -1;
+    if(nbytes == 0)                     return 0;
+
+    /* adjusts nbytes if overflow */
+    nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE: nbytes;
+
+    /* put passed in buffer into an appropriately sized buffer */
+    memset(write_string, NULL, KEYBOARD_BUFFER_SIZE); 
+    memcpy(write_string, buf, nbytes);
+
+    for(i = 0; i < nbytes; i++) {    
+        if(write_string[i] != NULL)                 putc(write_string[i]);
+    }
+    return 0;
+}
 
 
 /* @TODO:
@@ -153,4 +171,6 @@ figure out the cursor _
 Write Write 
 Add more test cases for read and write for terminal
 move on and help kshitij 
+backspace bug at the top left
+space isnt working
 */
