@@ -32,4 +32,4 @@ int32_t _sys_read_rtc (int32_t fd, void* buf, int32_t nbytes);
 /* helper functions for sys read */
 int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes);
 int32_t _sys_write_filesystem (int32_t fd, void* buf, int32_t nbytes);
-int32_t _sys_write_rtc (int32_t fd, void* buf, int32_t nbytes);
+int32_t _sys_write_rtc (int32_t freq);

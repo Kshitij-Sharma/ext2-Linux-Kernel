@@ -379,10 +379,9 @@ int test_sys_rw_terminal(){
 
 	char buf[128];
 	int nb = _sys_read_terminal(0, (void*) buf, 200);
-	printf("%s", buf);
-	// if(nb != 0)				assertion_failure();
+	if(nb != 0)				assertion_failure();
 	nb = _sys_write_terminal(0, (void *) buf, 128);
-	// if(nb != 0)				assertion_failure();
+	if(nb != 0)				assertion_failure();
 	return PASS;
 }
 
@@ -399,35 +398,9 @@ int test_sys_write_rtc()
 {
 	TEST_HEADER;
 	int i;
-	void * buf;
 	/* sets RTC frequency after delay */
-	// for(i = 0; i < 100000; i++);
-	_sys_write_rtc(NULL, buf, 2);
-	clear();
-	// for(i = 0; i < 50000; i++);
-	// _sys_write_rtc(NULL, buf, 4);
-	// clear();
-	for(i = 0; i < 100000; i++);
-	_sys_write_rtc(NULL, buf, 8);
-	clear();
-	// for(i = 0; i < 50000; i++);
-	// _sys_write_rtc(NULL, buf, 16);
-	// clear();
-	for(i = 0; i < 100000; i++);
-	_sys_write_rtc(NULL, buf, 32);
-	clear();
-	// for(i = 0; i < 50000; i++);
-	// _sys_write_rtc(NULL, buf, 64);
-	// clear();
-	for(i = 0; i < 100000; i++);
-	_sys_write_rtc(NULL, buf, 128);
-	clear();
-	// for(i = 0; i < 50000; i++);
-	// _sys_write_rtc(NULL, buf, 256);
-	// clear();
-	for(i = 0; i < 100000; i++);
-	_sys_write_rtc(NULL, buf, 512);
-	clear();
+	for(i = 0; i < 15000; i++) printf("%d", i);
+	_sys_write_rtc(2);
 	return PASS;
 }/* Checkpoint 2 tests */
 /* Checkpoint 3 tests */
@@ -463,7 +436,7 @@ void launch_tests(){
 	/* CP2 Tests */
 
 	/* tests for terminal driver */
-	// TEST_OUTPUT("test_sys_rw_terminal", test_sys_rw_terminal());
+	TEST_OUTPUT("test_sys_rw_terminal", test_sys_rw_terminal());
 	TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
 
 	/* CP3 Tests */
