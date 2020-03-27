@@ -363,6 +363,7 @@ int test_paging_video_mem(int val) {
 
 // add more tests here
 
+/* Checkpoint 2 tests */
 
 
 /* System Read/Write Test - Terminal
@@ -443,7 +444,12 @@ int test_sys_write_rtc()
 	RTC_ON_FLAG = 1;
 	return PASS;
 }
-/* Checkpoint 2 tests */
+
+int test_sys_read_rtc(){
+	TEST_HEADER;
+	_sys_read_rtc(0, NULL, 0);
+	return PASS;
+}
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -478,7 +484,8 @@ void launch_tests(){
 
 	/* tests for terminal driver */
 	// TEST_OUTPUT("test_sys_rw_terminal", test_sys_rw_terminal());
-	TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
+	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
+	TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
 
 	/* CP3 Tests */
 	/* CP4 Tests */

@@ -137,7 +137,9 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
 // }
 
 int32_t _sys_read_rtc (int32_t fd, void* buf, int32_t nbytes){
-    
+    RTC_READ_FLAG = 1;
+    while(RTC_READ_FLAG);
+    printf("read rtc\n");
     return 0;
 }
 

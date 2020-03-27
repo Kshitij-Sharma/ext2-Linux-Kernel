@@ -81,14 +81,21 @@ int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry){
             length - number of bytes to read starting at offset
 *   Outputs: None
 */
-
+/*
+ * 
+ * 
+ * 
+ *      ADD CHECKING FOR LENGTH! 
+ * 
+ * 
+ */
 int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length){
   inode_t* file_cur;
   uint8_t* data_cur;
-  int data_block_num = 0;
+  int data_block_num = offset / _4KB_;
   /* parameter checks  */
   if (inode < 0 || inode >= DIR_ENTRIES || buf == NULL 
-      || length < 0 || length > (4*INODE_SIZE))
+      || length < 0)
     return -1;
 
   /* clear buf */
@@ -98,7 +105,7 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length
   file_cur = &(inode_head[inode]);
   /* get to the spot we want to start reading from */ 
   data_cur = data_blocks +       // start of data blocks  
-              (_4KB_ * file_cur->datablock_nums[offset / _4KB_]) +  // data block we want to read from  
+              (_4KB_ * file_cur->datablock_nums[data_block_num]) +  // data block we want to read from  
               (offset % _4KB_);   // where in that data block we start
   
   /* copies data from data blocks to buf */
@@ -117,7 +124,7 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length
   }
   
   // data block index = offset/4KB --> offset % 4KB is where in the data block we start at
-  return 0;
+  return length;
 }
 
 
