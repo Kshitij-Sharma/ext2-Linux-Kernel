@@ -7,12 +7,45 @@
 #define NUM_COLS    80
 #define NUM_ROWS    25
 #define ATTRIB      0x7
+#define CURSOR_COMMAND_PORT     0x3D4
+#define CURSOR_DATA_PORT        0X3D5
+#define HALF_BYTE_MASK          0X0F
+#define FULL_BYTE_MASK          0XFF
+#define BYTE_SHIFT              0X8
 
 static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
 int forward_next = 0;       // global var used for wraparound/backspace corner case
 int backward_next = 0;
+
+
+// void enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
+// {
+//  outb(0x0A, 0x3D4);
+//  outb((inb(0x3D5) & 0xC0) | cursor_start, 0x3D5);
+ 
+//  outb(0x0B, 0x3D4);
+//  outb((inb(0x3D5) & 0xE0) | cursor_end, 0x3D5);
+// }
+
+// void disable_cursor()
+// {
+//  outb(0x0A, 0x3D4);
+//  outb(0x20, 0x3D5);
+// }
+
+void update_cursor() // *************************MAKE SURE YOU CHECK CONSTANT NAMES, FIX MAGIC NUMBERS, AND COMMENT 
+{
+    uint16_t pos = screen_y * NUM_COLS + screen_x;
+ 
+    outb(HALF_BYTE_MASK, CURSOR_COMMAND_PORT);
+    outb((uint8_t) (pos & FULL_BYTE_MASK), CURSOR_DATA_PORT);
+    outb(0x0E, CURSOR_COMMAND_PORT);
+    outb((uint8_t) ((pos >> BYTE_SHIFT) & FULL_BYTE_MASK), CURSOR_DATA_PORT);
+}
+
+
 
 int log_base_two(int n) 
 { 
@@ -42,6 +75,7 @@ void clear(void) {
     screen_y = 0;
     screen_x = 0;
     memset(keyboard_buffer, NULL, KEYBOARD_BUFFER_SIZE);
+    update_cursor();
 }
 
 /* void clear(void);
@@ -114,6 +148,7 @@ void backspace(void){
             backward_next = 80;
             forward_next = 1;
         }
+        update_cursor();
         return;
     }
     // case where we go up a line
@@ -136,8 +171,10 @@ void backspace(void){
         *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + screen_x) << 1) + 1) = ATTRIB;
         screen_y--;
         // move cursor up
+        update_cursor();
         return;
     }
+    update_cursor();
     return;
 }
 
@@ -297,6 +334,7 @@ void putc(uint8_t c) {
     }
     wraparound();
     scroll_down();
+    update_cursor();
 }
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);

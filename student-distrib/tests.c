@@ -484,8 +484,8 @@ void launch_tests(){
 
 	/* tests for terminal driver */
 	// TEST_OUTPUT("test_sys_rw_terminal", test_sys_rw_terminal());
-	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
-	TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
+	TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
+	// TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
 
 	/* CP3 Tests */
 	/* CP4 Tests */

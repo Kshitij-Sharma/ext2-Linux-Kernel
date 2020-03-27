@@ -31,6 +31,9 @@ void test_interrupts(void);
 
 int log_base_two(int n);
 int power_of_two(int num);
+void update_cursor();
+// void disable_cursor();
+// void enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
 
 
 #define KEYBOARD_BUFFER_SIZE    128
