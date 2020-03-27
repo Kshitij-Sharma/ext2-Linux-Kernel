@@ -129,16 +129,17 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
     // keyboard_buffer_index = (KEYBOARD_BUFFER_SIZE - nbytes);
 
     // sti();
-    return 0;
+    return nbytes;
 }
 
 // int32_t _sys_read_filesystem (int32_t fd, void* buf, int32_t nbytes){
 
 // }
 
-// int32_t _sys_read_rtc (int32_t fd, void* buf, int32_t nbytes){
-
-// }
+int32_t _sys_read_rtc (int32_t fd, void* buf, int32_t nbytes){
+    
+    return 0;
+}
 
 int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes)
 {
@@ -148,28 +149,34 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes)
     /* check edge cases */
     if(NULL == buf || nbytes < 0)       return -1;
     if(nbytes == 0)                     return 0;
-
     /* adjusts nbytes if overflow */
-    nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE: nbytes;
+    nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE : nbytes;
 
     /* put passed in buffer into an appropriately sized buffer */
     memset(write_string, NULL, KEYBOARD_BUFFER_SIZE); 
     memcpy(write_string, buf, nbytes);
+
     // write_string[KEYBOARD_BUFFER_SIZE-1] = '\n';
 
     for(i = 0; i < nbytes; i++) {    
         if(write_string[i] != NULL)                 putc(write_string[i]);
     }
-    return 0;
+
+    return nbytes;
 }
 
-int32_t _sys_write_rtc(int32_t frequency){
+int32_t _sys_write_rtc(int32_t fd, void* buf, int32_t nbytes){
     // sets the RTC rate to 2Hz
     char prev;
     int rate;
+    int frequency = nbytes;
+    
     /* param check */
+    // if (buf == NULL)                    return -1;
     if (power_of_two(frequency) || frequency < 0)              return -1;
-    // if (frequency > MAX_INTERRUPT_FREQUENCY)    frequency = MAX_INTERRUPT_FREQUENCY;
+    
+    // gets frequency from buffer
+    // frequency = (int) buf[0];
     if (frequency > MAX_INTERRUPT_FREQUENCY){
         frequency = MAX_INTERRUPT_FREQUENCY;
     }
