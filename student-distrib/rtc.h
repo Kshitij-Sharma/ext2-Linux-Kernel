@@ -2,6 +2,7 @@
 #define _RTC_H
 
 #include "lib.h"
+#include "idt_handlers.h"
 // #include <stdio.h>
 // #include <math.h>
 

@@ -7,6 +7,7 @@
 */
 void rtc_init(){
     char prev;
+    RTC_ON_FLAG = 1;
     outb(RTC_STATUS_REGISTER_B, RTC_CMD_PORT);              // set index to register B
     prev = inb(RTC_DATA_PORT);                              // get initial value from register B
     outb(RTC_STATUS_REGISTER_B, RTC_CMD_PORT);              // reset index to register B

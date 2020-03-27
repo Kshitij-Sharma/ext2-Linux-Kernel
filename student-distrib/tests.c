@@ -398,38 +398,52 @@ int test_sys_rw_terminal(){
 int test_sys_write_rtc()
 {
 	TEST_HEADER;
-	int i;
+	long long i;
 	void * buf;
 	/* sets RTC frequency after delay */
 	// for(i = 0; i < 100000; i++);
 	_sys_write_rtc(NULL, buf, 2);
+	for(i = 0; i < 450000000; i++);
+	RTC_ON_FLAG = 0;
 	clear();
 	// for(i = 0; i < 50000; i++);
 	// _sys_write_rtc(NULL, buf, 4);
 	// clear();
-	for(i = 0; i < 100000; i++);
+	RTC_ON_FLAG = 1;
 	_sys_write_rtc(NULL, buf, 8);
+	for(i = 0; i < 300000000; i++);
+	RTC_ON_FLAG = 0;
 	clear();
 	// for(i = 0; i < 50000; i++);
 	// _sys_write_rtc(NULL, buf, 16);
 	// clear();
-	for(i = 0; i < 100000; i++);
+	RTC_ON_FLAG = 1;
 	_sys_write_rtc(NULL, buf, 32);
+	for(i = 0; i < 150000000; i++);
+	RTC_ON_FLAG = 0;
 	clear();
 	// for(i = 0; i < 50000; i++);
 	// _sys_write_rtc(NULL, buf, 64);
 	// clear();
-	for(i = 0; i < 100000; i++);
+
+	RTC_ON_FLAG = 1;
 	_sys_write_rtc(NULL, buf, 128);
+	for(i = 0; i < 150000000; i++);
+	RTC_ON_FLAG = 0;
 	clear();
+	
 	// for(i = 0; i < 50000; i++);
 	// _sys_write_rtc(NULL, buf, 256);
 	// clear();
-	for(i = 0; i < 100000; i++);
+	RTC_ON_FLAG = 1;
 	_sys_write_rtc(NULL, buf, 512);
+	for(i = 0; i < 150000000; i++);
+	RTC_ON_FLAG = 0;
 	clear();
+	RTC_ON_FLAG = 1;
 	return PASS;
-}/* Checkpoint 2 tests */
+}
+/* Checkpoint 2 tests */
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */

@@ -31,7 +31,6 @@ int shift_on = 0;
 int caps_lock_on = 0;
 int control_on = 0;
 int alt_on = 0;
-int RTC_ON_FLAG = 1;
 int RTC_read_flag = 0;
 int keyboard_buffer_idx = 0;
 /* scancodes for lowercase letters */
