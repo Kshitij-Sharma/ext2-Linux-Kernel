@@ -127,8 +127,10 @@ void keyboard_interrupt()
     /* backspace */
     if (pressed == BACKSPACE){
         backspace();
-        if (keyboard_buffer_idx > 0)
+        if (keyboard_buffer_idx > 0){
             keyboard_buffer[keyboard_buffer_idx--] = NULL;
+            echo_flag = 1;
+        }
         return;
     }
     /* caps lock */
@@ -192,7 +194,7 @@ void keyboard_interrupt()
     else        output_char = scancode_to_char[pressed*2]; // else print out the lowercase or unshifted version of the scancode char
     
     /* interaction with _sys_read_terminal */
-    if (keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE) echo_flag = 0;
+    if (keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
     if(sys_read_flag)
     {
         if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1){
@@ -200,6 +202,7 @@ void keyboard_interrupt()
             keyboard_buffer_idx++;
         }
         if(pressed == ENTER_PRESSED){
+            keyboard_buffer[keyboard_buffer_idx] = output_char;
             sys_read_flag = 0;
             keyboard_buffer_idx = 0;
             echo_flag = 1;

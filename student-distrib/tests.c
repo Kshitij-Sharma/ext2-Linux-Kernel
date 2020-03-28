@@ -379,10 +379,10 @@ int test_sys_rw_terminal(){
 	TEST_HEADER;
 
 	char buf[128];
-	int nb = _sys_read_terminal(0, (void*) buf, 200);
-	printf("%s", buf);
+	_sys_read_terminal(0, (void*) buf, 200);
+	// printf("%s", buf);
 	// if(nb != 0)				assertion_failure();
-	nb = _sys_write_terminal(0, (void *) buf, 128);
+	_sys_write_terminal(0, (void *) buf, 128);
 	// if(nb != 0)				assertion_failure();
 	return PASS;
 }
@@ -450,6 +450,15 @@ int test_sys_read_rtc(){
 	_sys_read_rtc(0, NULL, 0);
 	return PASS;
 }
+
+int test_file_open_read(){
+	TEST_HEADER;
+	char buf[128];
+	int32_t fileName = _sys_open_file("test.txt");
+	_sys_read_file(fileName,buf, 100);
+	printf("%s", buf);
+	return PASS;
+}
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -479,12 +488,14 @@ void launch_tests(){
 
 	// TEST_OUTPUT("test_paging_above_video", test_paging_video_mem(ABOVE_VIDEO_MEM)); // causes an exception
 	// TEST_OUTPUT("test_paging_below_video", test_paging_video_mem(BELOW_VIDEO_MEM)); // causes an exception
+	TEST_OUTPUT("test_file_open_read", test_file_open_read());
 	// TEST_OUTPUT("test_paging_in_video", test_paging_video_mem(IN_VIDEO_MEM));
 	/* CP2 Tests */
 
 	/* tests for terminal driver */
 	// TEST_OUTPUT("test_sys_rw_terminal", test_sys_rw_terminal());
-	TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
+	// TEST_OUTPUT("test_sys_rw_terminal", test_sys_rw_terminal());
+	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
 	// TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
 
 	/* CP3 Tests */

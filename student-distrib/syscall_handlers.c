@@ -311,7 +311,9 @@ int32_t _sys_open_terminal (const int8_t* filename){
  * Side Effects: 
  */
 int32_t _sys_open_file (const int8_t* filename){ 
-    dentry_t* this_file;
+    // dentry_t * this_file; // ***************ADD RETURN VAL CHECKING *****************
+    // this_file->inode = -1;
+    dentry_t * this_file;
     data_bytes_read = 0;
     read_dentry_by_name(filename, this_file); 
     return this_file->inode;
