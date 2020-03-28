@@ -5,6 +5,7 @@
 
 #include "types.h"
 #include "lib.h"
+#include "multiboot.h"
 
 // for boot block
 #define BOOT_RESERVED    52
@@ -17,7 +18,7 @@
 #define _4KB_            4096
 
 // for data blocks
-#define DATA_BLOCK_HEAD  (_4KB_ + (DIR_ENTRIES * _4KB_))
+// #define DATA_BLOCK_HEAD  (_4KB_ + (DIR_ENTRIES * _4KB_))
 
 // file type macros
 #define RTC_FILE        0
@@ -42,7 +43,8 @@ typedef struct boot_block_struct{
   uint32_t entries;
   uint32_t inodes;
   uint32_t datablocks;
-  char reserved[BOOT_RESERVED];
+  uint32_t reserved[13];
+  // char reserved[BOOT_RESERVED];
   dentry_t dir_entries[DIR_ENTRIES];
 } boot_block_t;
 /* This structure is used to hold file length
@@ -61,7 +63,7 @@ uint8_t* data_blocks;
 //
 
 /* Initialize the start of the file system */
-int32_t filesys_start(uint32_t root_loc);
+int32_t filesys_start(module_t *offset);
 
 /* Read the directory entry by given name */
 int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry);

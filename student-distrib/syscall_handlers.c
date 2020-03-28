@@ -177,18 +177,20 @@ int32_t _sys_read_rtc (int32_t fd, void* buf, int32_t nbytes){
  *  
  * Terminal helper function for system read
  * Inputs: file descriptor, buffer (to fill), number of bytes to read
- * Outputs: number of bytes read
- * Side Effects: none
+ * Outputs: 0 if success (read nbytes), -1 if fail (read < nbytes)
+ * Side Effects: moves forward in file
  */
 int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
     int32_t data_read;
+    /* condition checks */
     if(nbytes <= 0 || buf == NULL || fd < 0) return -1;
+    /* does the data read */
     data_read = read_data(fd, data_bytes_read, buf, nbytes);
-    if(data_read > 0){
-        data_bytes_read += data_read;
-        return 0;
-    }
-    return -1;
+    /* moves forward in file corresponding to how many bytes are read */
+    if(data_read > 0)                       data_bytes_read += data_read;
+    /* checks that we have read ALL bytes requested */
+    if(data_read != nbytes)                 return -1;
+    return data_read;
 }
 /** _sys_read_directory
  *  
@@ -275,7 +277,7 @@ int32_t _sys_write_rtc(int32_t fd, void* buf, int32_t nbytes){
  */
 
 int32_t _sys_write_file (int32_t fd, void* buf, int32_t nbytes){
-    return 0;
+    return -1;
 }
 /** sys_write_rtc
  *  
@@ -286,7 +288,7 @@ int32_t _sys_write_file (int32_t fd, void* buf, int32_t nbytes){
  */
 
 int32_t _sys_write_directory (int32_t fd, void* buf, int32_t nbytes){
-    return 0;
+    return -1;
 }
 
 /**
@@ -313,12 +315,27 @@ int32_t _sys_open_terminal (const int8_t* filename){
 int32_t _sys_open_file (const int8_t* filename){ 
     // dentry_t * this_file; // ***************ADD RETURN VAL CHECKING *****************
     // this_file->inode = -1;
-    dentry_t * this_file;
+    int8_t file[32];
+    int i;
+    int ret_val;
+    for (i = 0; i < 32; i++)
+    { 
+        if(filename[i] == '\0')        break;
+        file[i] = filename[i];
+    }
+    file[i] = '\0';
+    /* sets up a blank dentry to be filled by read */
+    dentry_t this_file;
+    this_file.inode = 0;
+    this_file.file_type = 0;
     data_bytes_read = 0;
-    read_dentry_by_name(filename, this_file); 
-    return this_file->inode;
+    
+    /* populates dentry with read call */
+    ret_val = read_dentry_by_name(file, &this_file); 
+     if (ret_val == -1)         return -1;
+    /* returns inode number with associated file */
+    return this_file.inode;
 }
-
 /** _sys_open_directory
  *  
  * Directory helper function for system write
@@ -337,6 +354,7 @@ int32_t _sys_open_directory (const int8_t* filename){
  * Side Effects: 
  */
 int32_t _sys_open_rtc (const int8_t* filename){
+    
     return 0;
 }
 

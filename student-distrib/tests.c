@@ -193,21 +193,6 @@ int test_idt_div_zero(int test_arg){
 }
 
 
-// int test_kbd(){
-// 	char out;
-// 	TEST_HEADER;
-// 	// outb(30,KB_CMD_REGISTER);
-// 	// outb(30,KB_STATUS_REGISTER);
-// 	outb(30,KB_DATA_PORT);
-// 	out = keyboard_interrupt();
-// 	printf("%c\n", out);
-// 	if (out == 'a')
-// 		return PASS;
-// 	else return FAIL;
-// }
-
-
-
 /* IDT Test - Other Exception
  * 
  * Shows that exceptions are handled when triggered
@@ -236,8 +221,7 @@ int test_idt_exceptions(){
  * Coverage: system call
  * Files: paging.c/.h
  */
-int test_system_call()
-{
+int test_system_call(){
 	TEST_HEADER;
 	/* makes a system call */
 	asm volatile ("int $0x80");
@@ -253,8 +237,7 @@ int test_system_call()
  * Coverage: paging fault
  * Files: paging.c/.h
  */
-int test_paging_dereference_null()
-{
+int test_paging_dereference_null(){
 	TEST_HEADER;
 	int * test, magic;
 	/* attempt to dereference NULL */
@@ -365,7 +348,6 @@ int test_paging_video_mem(int val) {
 
 /* Checkpoint 2 tests */
 
-
 /* System Read/Write Test - Terminal
  * 
  * Shows that you can do system reads and writes from terminal
@@ -396,37 +378,31 @@ int test_sys_rw_terminal(){
  * Coverage: RTC frequency
  * Files: syscall_handlers.h/.c
  */
-int test_sys_write_rtc()
-{
+int test_sys_write_rtc(){
 	TEST_HEADER;
 	long long i;
 	void * buf;
 	/* sets RTC frequency after delay */
-	// for(i = 0; i < 100000; i++);
 	_sys_write_rtc(NULL, buf, 2);
 	for(i = 0; i < 450000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
-	// for(i = 0; i < 50000; i++);
-	// _sys_write_rtc(NULL, buf, 4);
-	// clear();
+
+	/* sets RTC frequency after delay */
 	RTC_ON_FLAG = 1;
 	_sys_write_rtc(NULL, buf, 8);
 	for(i = 0; i < 300000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
-	// for(i = 0; i < 50000; i++);
-	// _sys_write_rtc(NULL, buf, 16);
-	// clear();
+
+	/* sets RTC frequency after delay */
 	RTC_ON_FLAG = 1;
 	_sys_write_rtc(NULL, buf, 32);
 	for(i = 0; i < 150000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
-	// for(i = 0; i < 50000; i++);
-	// _sys_write_rtc(NULL, buf, 64);
-	// clear();
 
+	/* sets RTC frequency after delay */
 	RTC_ON_FLAG = 1;
 	_sys_write_rtc(NULL, buf, 128);
 	for(i = 0; i < 150000000; i++);
@@ -445,18 +421,113 @@ int test_sys_write_rtc()
 	return PASS;
 }
 
+/* System Read Test - RTC
+ * 
+ * Shows that you can read RTC interrupt
+ * Inputs: none
+ * Outputs: Pass Fail
+ * Side Effects: prints "RTC INTERRUPT" to screen via RTC handler
+ * Coverage: RTC read
+ * Files: syscall_handlers.h/.c
+ */
 int test_sys_read_rtc(){
 	TEST_HEADER;
 	_sys_read_rtc(0, NULL, 0);
 	return PASS;
 }
 
-int test_file_open_read(){
+/* System Open/Read Test - text file
+ * 
+ * Shows that you can open and read a text file
+ * Inputs: none
+ * Outputs: PASS or assertion failure
+ * Side Effects: displays contents of frame0 on screen
+ * Coverage: file open/read
+ * Files: syscall_handlers.h/.c, filesys.c/.h
+ */
+int test_file_read_open_text(){
 	TEST_HEADER;
-	char buf[128];
-	int32_t fileName = _sys_open_file("test.txt");
-	_sys_read_file(fileName,buf, 100);
-	printf("%s", buf);
+	char buf[200];
+	int32_t i, ret, filename;
+	/* opens frame0.txt */
+	filename = _sys_open_file("frame0.txt");
+	/* reads file */
+	ret = _sys_read_file(filename, buf, 187);
+	/* checks that read was successful */
+	if(ret != 187) 				assertion_failure();
+	/* prints out read content */
+	for (i = 0; i < 187; i++) {
+		if(buf[i] != '\0')	putc(buf[i]);
+	}
+	printf("\n");
+	return PASS;
+}
+
+/* System Open/Read Test - EXE file
+ * 
+ * Shows that you can open and read a non-text file
+ * Inputs: none
+ * Outputs: PASS or assertion failure
+ * Side Effects: displays contents of ls on screen
+ * Coverage: file open/read
+ * Files: syscall_handlers.h/.c, filesys.c/.h
+ */
+int test_file_read_open_non_text(){
+	TEST_HEADER;
+	char buf[7000];
+	int32_t i, ret, filename;
+
+	/* opens frame0.txt */
+	// filename = _sys_open_file("ls");
+	filename = _sys_open_file("grep");
+	
+	/* reads file */
+	ret = _sys_read_file(filename, buf, 6149);
+	
+	/* checks that read was successful */
+	if(ret != 6149) 				assertion_failure();
+	// if(ret != 5349) 				assertion_failure();
+	
+	/* prints out read content */
+	// for (i = 0; i < 5349; i++) {
+	for (i = 0; i < 6149; i++) {
+		if(buf[i] != '\0')	putc(buf[i]);
+	}
+	printf("\n");
+	return PASS;
+}
+
+
+/* System Open/Read Test - long text file
+ * 
+ * Shows that you can open and read a text file
+ * Inputs: none
+ * Outputs: PASS or assertion failure
+ * Side Effects: displays contents of verylongfilewithverylargename on screen
+ * Coverage: file open/read
+ * Files: syscall_handlers.h/.c, filesys.c/.h
+ */
+int test_file_read_open_text_long(){
+	TEST_HEADER;
+	char buf[37000];
+	int32_t i, ret, filename;
+	/* opens frame0.txt */
+	// filename = _sys_open_file("verylargetextwithverylongname.txt");
+	filename = _sys_open_file("fish");
+	
+	// if(filename == -1)				assertion_failure();
+	/* reads file */
+	// ret = _sys_read_file(filename, buf, 5244);
+	ret = _sys_read_file(filename, buf, 36170);
+	/* checks that read was successful */
+	// if(ret != 5244) 				assertion_failure();
+	if(ret != 36170) 				assertion_failure();
+	
+	/* prints out read content */
+	// for (i = 0; i < 5244; i++) 
+	for (i = 0; i < 36170; i++) 
+	{	if(buf[i] != '\0')	putc(buf[i]); }
+	printf("\n");
 	return PASS;
 }
 /* Checkpoint 3 tests */
@@ -468,7 +539,6 @@ int test_file_open_read(){
 // launch your tests here
 void launch_tests(){
 	/* tests for IDT */
-	// TEST_OUTPUT("idt_test", gay());
 	// TEST_OUTPUT("test_kbd", test_kbd());
 	// TEST_OUTPUT("test_idt_entries", test_idt_entries());
 	// TEST_OUTPUT("test_idt_div_zero", test_idt_div_zero(5)); // causes an exception
@@ -488,7 +558,6 @@ void launch_tests(){
 
 	// TEST_OUTPUT("test_paging_above_video", test_paging_video_mem(ABOVE_VIDEO_MEM)); // causes an exception
 	// TEST_OUTPUT("test_paging_below_video", test_paging_video_mem(BELOW_VIDEO_MEM)); // causes an exception
-	TEST_OUTPUT("test_file_open_read", test_file_open_read());
 	// TEST_OUTPUT("test_paging_in_video", test_paging_video_mem(IN_VIDEO_MEM));
 	/* CP2 Tests */
 
@@ -498,6 +567,15 @@ void launch_tests(){
 	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
 	// TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
 
+	/* tests for files */
+	// TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
+	TEST_OUTPUT("test_file_read_open_text_long", test_file_read_open_text_long());
+	// TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
+	// TEST_OUTPUT("test_file_read_open_test", test_file_read_open_text());
+
+	/* tests for directory */
+
+	/* tests for RTC */
 	/* CP3 Tests */
 	/* CP4 Tests */
 	/* CP5 Tests */

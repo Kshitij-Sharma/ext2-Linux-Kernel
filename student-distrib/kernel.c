@@ -10,7 +10,7 @@
 #include "tests.h"
 #include "rtc.h"
 #include "paging.h"
-#include 
+#include "syscall_handlers.h"
 
 #define RUN_TESTS
 
@@ -50,7 +50,7 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Is the command line passed? */
     if (CHECK_FLAG(mbi->flags, 2))
         printf("cmdline = %s\n", (char *)mbi->cmdline);
-
+    // module_t* mod = (module_t*)mbi->mods_addr;
     if (CHECK_FLAG(mbi->flags, 3)) {
         int mod_count = 0;
         int i;
@@ -146,7 +146,8 @@ void entry(unsigned long magic, unsigned long addr) {
     i8259_init();
     rtc_init();
     // rtc_enable();
-    paging_init();
+    filesys_start((module_t*)mbi->mods_addr);
+    // paging_init();
 
     // asm volatile ("int $0x80");
     /* Enable interrupts */

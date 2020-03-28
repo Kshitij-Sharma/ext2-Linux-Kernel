@@ -12,10 +12,14 @@
     Outputs: None
     Return Value: 0 if success
 */
-int32_t filesys_start(uint32_t offset){
-  boot_block = (boot_block_t*) offset;
-  inode_head = (inode_t *)(offset + _4KB_);
-  data_blocks = (uint8_t *)(offset + DATA_BLOCK_HEAD);
+int32_t filesys_start(module_t *offset){
+  /* sets boot block */
+  boot_block = (boot_block_t*) offset->mod_start;
+  /* sets inode head as 4KB after boot block */
+  inode_head = (inode_t*)(offset->mod_start + _4KB_);
+  /* sets data blocks start to be right after all inodes */ 
+  data_blocks = (uint8_t*)((_4KB_ * (int32_t)boot_block->inodes) 
+                            + (uint32_t)inode_head ); 
   return 0;
 }
 /*
@@ -105,10 +109,10 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length
   /* get to the proper inode */
   file_cur = &(inode_head[inode]);
   /* get to the spot we want to start reading from */ 
-  data_cur = data_blocks +       // start of data blocks  
+  data_cur =  data_blocks +       // start of data blocks  
               (_4KB_ * file_cur->datablock_nums[data_block_num]) +  // data block we want to read from  
               (offset % _4KB_);   // where in that data block we start
-  
+
   /* copies data from data blocks to buf */
   while(length != 0)
   {
@@ -118,7 +122,8 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length
     data_cur++;
     length--;
     bytes_read++;
-    if((data_cur - data_blocks) % _4KB_ == 0 && length > 0){
+    if((data_cur - data_blocks) % _4KB_ == 0 && length > 0)
+    {
         data_block_num++;
         data_cur = data_blocks +       // start of data blocks  
                    (_4KB_ * file_cur->datablock_nums[data_block_num]);  // data block we want to read from   
