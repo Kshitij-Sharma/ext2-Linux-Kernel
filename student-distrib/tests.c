@@ -381,39 +381,44 @@ int test_sys_rw_terminal(){
 int test_sys_write_rtc(){
 	TEST_HEADER;
 	long long i;
-	void * buf;
+	int freq;
+	freq = 2;
 	/* sets RTC frequency after delay */
-	_sys_write_rtc(NULL, buf, 2);
+	_sys_write_rtc(NULL, (void*) freq, 4);
 	for(i = 0; i < 450000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
 
+	freq = 8;
 	/* sets RTC frequency after delay */
 	RTC_ON_FLAG = 1;
-	_sys_write_rtc(NULL, buf, 8);
+	_sys_write_rtc(NULL, (void*) freq, 0);
 	for(i = 0; i < 300000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
-
+	
+	freq = 32;
 	/* sets RTC frequency after delay */
 	RTC_ON_FLAG = 1;
-	_sys_write_rtc(NULL, buf, 32);
+	_sys_write_rtc(NULL, (void*) freq, 0);
 	for(i = 0; i < 150000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
-
+	
+	freq = 128;
 	/* sets RTC frequency after delay */
 	RTC_ON_FLAG = 1;
-	_sys_write_rtc(NULL, buf, 128);
+	_sys_write_rtc(NULL, (void*) freq, 0);
 	for(i = 0; i < 150000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
 	
 	// for(i = 0; i < 50000; i++);
-	// _sys_write_rtc(NULL, buf, 256);
+	// _sys_write_rtc(NULL, freq, 256);
 	// clear();
+	freq = 512;
 	RTC_ON_FLAG = 1;
-	_sys_write_rtc(NULL, buf, 512);
+	_sys_write_rtc(NULL, (void*) freq, 0);
 	for(i = 0; i < 150000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
@@ -482,11 +487,12 @@ int test_file_read_open_non_text(){
 	filename = _sys_open_file("grep");
 	
 	/* reads file */
+	// ret = _sys_read_file(filename, buf, 5349);
 	ret = _sys_read_file(filename, buf, 6149);
-	
+
 	/* checks that read was successful */
-	if(ret != 6149) 				assertion_failure();
 	// if(ret != 5349) 				assertion_failure();
+	if(ret != 6149) 				assertion_failure();
 	
 	/* prints out read content */
 	// for (i = 0; i < 5349; i++) {
@@ -517,17 +523,41 @@ int test_file_read_open_text_long(){
 	
 	// if(filename == -1)				assertion_failure();
 	/* reads file */
-	// ret = _sys_read_file(filename, buf, 5244);
-	ret = _sys_read_file(filename, buf, 36170);
+	// ret = _sys_read_file(filename, buf, 5277);
+	ret = _sys_read_file(filename, buf, 36164);
 	/* checks that read was successful */
-	// if(ret != 5244) 				assertion_failure();
-	if(ret != 36170) 				assertion_failure();
+	// if(ret != 5277) 				assertion_failure();
+	if(ret != 36164) 				assertion_failure();
 	
 	/* prints out read content */
-	// for (i = 0; i < 5244; i++) 
-	for (i = 0; i < 36170; i++) 
+	// for (i = 0; i < 5277; i++) 
+	for (i = 0; i < 36164; i++) 
 	{	if(buf[i] != '\0')	putc(buf[i]); }
 	printf("\n");
+	return PASS;
+}
+
+/* System Read Test - directory
+ * 
+ * Shows that you can read the directory
+ * Inputs: none
+ * Outputs: PASS or assertion failure
+ * Side Effects: displays contents of the directory
+ * Coverage: file open/read
+ * Files: syscall_handlers.h/.c, filesys.c/.h
+ */
+int test_directory_read(){
+	TEST_HEADER;
+	char buf[32*17];
+	int i;
+
+	_sys_read_directory(0, buf, 32*17);
+
+	for (i = 0; i < 32*17; i++) {
+		if(buf[i] != '\0')	putc(buf[i]);
+		if((i+1) % 32 == 0)		printf("\n");
+	}
+
 	return PASS;
 }
 /* Checkpoint 3 tests */
@@ -569,13 +599,15 @@ void launch_tests(){
 
 	/* tests for files */
 	// TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
-	TEST_OUTPUT("test_file_read_open_text_long", test_file_read_open_text_long());
+	// TEST_OUTPUT("test_file_read_open_text_long", test_file_read_open_text_long());
 	// TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
 	// TEST_OUTPUT("test_file_read_open_test", test_file_read_open_text());
 
 	/* tests for directory */
+	TEST_OUTPUT("test_directory_read", test_directory_read());
 
 	/* tests for RTC */
+
 	/* CP3 Tests */
 	/* CP4 Tests */
 	/* CP5 Tests */

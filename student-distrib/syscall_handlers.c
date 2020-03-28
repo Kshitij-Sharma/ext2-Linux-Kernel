@@ -194,13 +194,18 @@ int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
 }
 /** _sys_read_directory
  *  
- * Directory helper function for system read
+ * Reads the directory and puts all the filenames in a buffer
  * Inputs: file descriptor, buffer (to fill), number of bytes to read
- * Outputs: 0 @ directory end
- * Side Effects: none
+ * Outputs: Returns number of bytes read 
+ * Side Effects: Buffer holds a filename from the directory every 32 bytes
  */
 int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
- return 0;
+ int i;
+ for(i = 0; i < boot_block->entries; i++){
+    strncpy((int8_t*) ((i * FILENAME_LEN) + buf), 
+            (int8_t*) boot_block->dir_entries[i].file_name, FILENAME_LEN);
+ }
+ return FILENAME_LEN * boot_block->entries;
 }
 
 /**
@@ -214,7 +219,7 @@ int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
  * Side Effects: 
  */
 int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes){
-    int i;
+    int i, bytes_written;
     char write_string[KEYBOARD_BUFFER_SIZE];
 
     /* check edge cases */
@@ -228,11 +233,16 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes){
     memcpy(write_string, buf, nbytes);
 
     /* prints all non-null characters */
+    bytes_written = 0;
     for(i = 0; i < nbytes; i++) {    
-        if(write_string[i] != NULL)                 putc(write_string[i]);
+        if(write_string[i] != NULL)
+        {
+            putc(write_string[i]);
+            bytes_written++;
+        }                 
     }
 
-    return nbytes;
+    return bytes_written;
 }
 /** sys_write_rtc
  *  
@@ -246,8 +256,8 @@ int32_t _sys_write_rtc(int32_t fd, void* buf, int32_t nbytes){
     // sets the RTC rate to 2Hz
     char prev;
     int rate;
-    int frequency = nbytes;
     
+    int32_t frequency = (int32_t) buf;
     /* param check */
     // if (buf == NULL)                    return -1;
     if (power_of_two(frequency) || frequency < 0)              return -1;
@@ -294,7 +304,6 @@ int32_t _sys_write_directory (int32_t fd, void* buf, int32_t nbytes){
 /**
  *  OPEN HELPERS 
  **/
-
 /** _sys_open_file
  *  
  * File helper function for system open
@@ -354,14 +363,14 @@ int32_t _sys_open_directory (const int8_t* filename){
  * Side Effects: 
  */
 int32_t _sys_open_rtc (const int8_t* filename){
-    
+    int freq = 2;
+    _sys_write_rtc(NULL, (void *) freq, 0); // sets the RTC frequency to 2Hz
     return 0;
 }
 
 /**
  *  CLOSE HELPERS 
  **/
-
 /** _sys_close_file
  *  
  * File helper function for system close
@@ -403,14 +412,22 @@ int32_t _sys_close_directory(int32_t fd){
     return 0;
 }
 
+
+
+
+
+
+
+
+
+
+
 int32_t _sys_dummy_read_write(int32_t fd, void* buf, int32_t nbytes){
     return -1;
 }
-
 int32_t _sys_dummy_open(const int8_t* filename){
     return -1;
 }
-
 int32_t _sys_dummy_close(int32_t fd){
     return -1;
 }

@@ -1,4 +1,4 @@
-// #include "lib.h"
+#include "lib.h"
 #include "idt_handlers.h"
 #include "rtc.h"
 #include "filesys.h"
