@@ -92,6 +92,7 @@ int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry){
 int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length){
   inode_t* file_cur;
   uint8_t* data_cur;
+  uint32_t bytes_read = 0;
   int data_block_num = offset / _4KB_;
   /* parameter checks  */
   if (inode < 0 || inode >= DIR_ENTRIES || buf == NULL 
@@ -116,6 +117,7 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length
     /* move forward */
     data_cur++;
     length--;
+    bytes_read++;
     if((data_cur - data_blocks) % _4KB_ == 0 && length > 0){
         data_block_num++;
         data_cur = data_blocks +       // start of data blocks  
@@ -124,7 +126,7 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length
   }
   
   // data block index = offset/4KB --> offset % 4KB is where in the data block we start at
-  return length;
+  return bytes_read;
 }
 
 

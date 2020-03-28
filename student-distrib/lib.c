@@ -13,7 +13,13 @@
 #define FULL_BYTE_MASK          0XFF
 #define BYTE_SHIFT              0X8
 
-static int screen_x;
+
+/** log_base_two
+ *  
+ * Inputs: integer to take log of
+ * Outputs: log of number passed in   
+ * Side Effects: 
+ */static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
 int forward_next = 0;       // global var used for wraparound/backspace corner case

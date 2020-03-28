@@ -25,6 +25,8 @@
 #define REGULAR_FILE    2
 
 
+typedef int32_t bytes_offset;       
+bytes_offset data_bytes_read;                                                                                                                                                                             ;
 /* This structure is used to hold file attributes such as 
  * file name, size, index node value, and reserved data */
 typedef struct dentry_struct{
@@ -32,7 +34,7 @@ typedef struct dentry_struct{
   uint32_t file_type;
   uint32_t inode;
   uint8_t reserved[DENTRY_RESERVED];
-}dentry_t;
+} dentry_t;
 
 /* This structure is used to hold file system statistics
  * and directory entries */
@@ -54,12 +56,18 @@ boot_block_t* boot_block;
 inode_t* inode_head;
 uint8_t* data_blocks;
 
+//
+//  File system routines
+//
 
+/* Initialize the start of the file system */
 int32_t filesys_start(uint32_t root_loc);
 
+/* Read the directory entry by given name */
 int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry);
 
+/* Read the directory enty by given index */
 int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry);
 
+/* Read data from the files */
 int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length);
-
