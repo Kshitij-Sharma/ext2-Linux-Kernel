@@ -219,24 +219,26 @@ int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
  */
 int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes){
     int i, bytes_written;
-    char write_string[KEYBOARD_BUFFER_SIZE];
+    char write_string[nbytes];
     int enter_flag = 0;
 
     /* check edge cases */
     if(NULL == buf || nbytes < 0)       return -1;
     if(nbytes == 0)                     return 0;
     /* adjusts nbytes if overflow */
-    nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE : nbytes;
+    // nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE : nbytes;
 
     /* put passed in buffer into an appropriately sized buffer */
-    memset(write_string, NULL, KEYBOARD_BUFFER_SIZE); 
+    memset(write_string, NULL, nbytes); 
     memcpy(write_string, buf, nbytes);
 
     /* prints all non-null characters */
     bytes_written = 0;
-    for(i = 0; i < nbytes; i++) {    
-        if(write_string[i] != NULL )
+    for(i = 0; i < nbytes; i++) { 
+        /* writes non null characters */   
+        if(write_string[i] != NULL)
         {
+            if (enter_flag)  continue;
             putc(write_string[i]);
             bytes_written++;
         }                 
@@ -246,6 +248,7 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes){
 
     return bytes_written;
 }
+
 /** sys_write_rtc
  *  
  * RTC helper function for system write
@@ -253,7 +256,6 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes){
  * Outputs: 0 @ directory end
  * Side Effects: sets RTC rate
  */
-
 int32_t _sys_write_rtc(int32_t fd, void* buf, int32_t nbytes){
     // sets the RTC rate to 2Hz
     char prev;

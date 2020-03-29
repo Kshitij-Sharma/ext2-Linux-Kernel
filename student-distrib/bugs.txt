@@ -4,46 +4,64 @@ BUG LOG
     (task)          || (files)
         - bugs
         
-Checkpoint 1:
+-----------------------------------Checkpoint 1 Bugs-----------------------------------
 
-    1. load GDT     || boot.S
-                    || x86_desc.S 
+        1. load GDT     || boot.S
+                        || x86_desc.S 
 
-    2. init IDT     || idt_handlers.h/.c
-                    || idt_interrupt_wrappers.h/.S
-                    || idt.h/.c
-                    || boot.S
-        BUG: incorrect assembly linkage for interrupt handlers
-                - control wasn't given back to the user after interrupts were called because we wrote the handlers in C, so there was no iret
-                - SOLUTION      : wrote assembly wrappers in x86 and called a C handler inside of the assembly handler. We ended the assembly handler with an iret.
-                                : used 'iret' to correctly leave interrupts and swap stacks appropriately
-        BUG: EOI signal was not being properly sent
-                - We were sending the EOI to the wrong port, so the RTC was never receiving it, masking all future RTC interrupts.
-                - SOLUTION      : Fixed the ports used in the EOI function so that it was mapped correctly.
-        BUG: function pointers to IDT entry functions were not being found by compiler
-                - incorrect includes caused the compiler to throw "undefined reference" error to all of our interrupt/exception handlers in the file that initializes IDT
-                - SOLUTION      : fix includes, the issue arose from us including a ".S" file in a ".c" file
+        2. init IDT     || idt_handlers.h/.c
+                        || idt_interrupt_wrappers.h/.S
+                        || idt.h/.c
+                        || boot.S
+                BUG: Incorrect assembly linkage for interrupt handlers
+                        - control wasn't given back to the user after interrupts were called because we wrote the handlers in C, so there was no iret
+                        - SOLUTION      : wrote assembly wrappers in x86 and called a C handler inside of the assembly handler. We ended the assembly handler with an iret.
+                                        : used 'iret' to correctly leave interrupts and swap stacks appropriately
+                BUG: EOI signal was not being properly sent
+                        - We were sending the EOI to the wrong port, so the RTC was never receiving it, masking all future RTC interrupts.
+                        - SOLUTION      : Fixed the ports used in the EOI function so that it was mapped correctly.
+                BUG: Function pointers to IDT entry functions were not being found by compiler
+                        - incorrect includes caused the compiler to throw "undefined reference" error to all of our interrupt/exception handlers in the file that initializes IDT
+                        - SOLUTION      : fix includes, the issue arose from us including a ".S" file in a ".c" file
 
-    3. init devices || i8259.h/.c
-                    || rtc.h/.c
-                    || kernel.c 
-        BUG: not clearing PIC interrupts when initializing
-                - we learnedthat gdb was causing interrupts to occur while running the kernel via gdb, resulting in RTC interrupts not being registered properly
-                - although PIC interrupts were masked prior to initialization, they were somehow re-enabled after the ICWs were written to this
-                - SOLUTION      : re-clear all interrupts after PIC initialization
-                                : only enable interrupts for keyboard and RTC after PIC initialization
-        BUG: keyboard printing garbage charcters instead of appropriate keys
-                - we were indexing into our scancode array by the character pressed (read in as type char) instead of by the decimal equivalent (type unsigned)
-                - SOLUTION      : cast the pressed button from char to unsigned when indexing into array
+        3. init devices || i8259.h/.c
+                            || rtc.h/.c
+                            || kernel.c 
+                BUG: Not clearing PIC interrupts when initializing
+                        - we learnedthat gdb was causing interrupts to occur while running the kernel via gdb, resulting in RTC interrupts not being registered properly
+                        - although PIC interrupts were masked prior to initialization, they were somehow re-enabled after the ICWs were written to this
+                        - SOLUTION      : re-clear all interrupts after PIC initialization
+                                        : only enable interrupts for keyboard and RTC after PIC initialization
+                BUG: Keyboard printing garbage charcters instead of appropriate keys
+                        - we were indexing into our scancode array by the character pressed (read in as type char) instead of by the decimal equivalent (type unsigned)
+                        - SOLUTION      : cast the pressed button from char to unsigned when indexing into array
   
-    4. init paging  || paging.h/.c
-                    || kernel.c
-        BUG: Boot loop with global bit undefined
-                - any issue regarding paging usually causes a bootloop and we noticed this first when the proper descriptor bits weren't set for the kernel page
-                - SOLUTION: In Appendix C it tells you that the kernel needs to be global so we OR'd the Kernel page with the global bit
-        BUG: Set directory pages to be 4MiB pages
-                - Using the "Understanding the Linux Kernel" book, it explains the set up for the cr3 register and setting the paging bit,
-                  however, it doesn't detail setting the directory pages to 4MiB pages
-                - SOLUTTION: Set the PSE bit in register cr4 to enable 4MiB
+        4. init paging  || paging.h/.c
+                        || kernel.c
+                BUG: Boot loop with global bit undefined
+                        - any issue regarding paging usually causes a bootloop and we noticed this first when the proper descriptor bits weren't set for the kernel page
+                        - SOLUTION: In Appendix C it tells you that the kernel needs to be global so we OR'd the Kernel page with the global bit
+                BUG: Set directory pages to be 4MiB pages
+                        - Using the "Understanding the Linux Kernel" book, it explains the set up for the cr3 register and setting the paging bit,
+                        however, it doesn't detail setting the directory pages to 4MiB pages
+                        - SOLUTTION: Set the PSE bit in register cr4 to enable 4MiB
 
-     
+-----------------------------------Checkpoint 2 Bugs-----------------------------------
+
+        1. terminal driver      || syscall_handlers.h/.c
+                                || idt_handlers.h/.c
+                BUG: Non letters were printing out the shifted character when caps lock was on 
+                        - ! was printed rather than 1 for example
+                        - SOLUTION: broke up our if statements for caps lock and shift so they can be handled seperately
+                BUG: Backspace was not deletigng the last character on the previous line (if deleting form x = 0)
+                        - SOLUTION: change loop bounds within backspace function to include last index
+        2. filesystem driver    || syscall_handlers.h/.c
+                                || filesys.h/.c
+                BUG: Read data was constantly reading null characters 
+                        - data blocks were not being accessed properly because we used the maximum amount of inodes rather than accessing it dynamically via the boot block struct
+                        - SOLUTION: Used num_entries rather than inodes
+        3. RTC driver           || syscall_handlers.h/.c
+                                || rtc.h/.c
+                BUG: _sys_write_rtc was not changing frequency properyly
+                        - Problem: we were passing in the frequency in a void * buffer and ended up casting it to weird type, so the frequency value never made it to the function
+                        - SOLUTION: We passed frequency in as an address to an int and cased to (void *) and this solved it                        

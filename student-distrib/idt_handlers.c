@@ -95,19 +95,6 @@ static char scancode_to_char[NUM_CODES] = {
     ' ', ' '
 };
 
-/* scancodes
-up arrow 72, 200
-down arrow 80, 208
-left arrow 75, 203
-right arrow 77, 205
-insert - 82, 210
-home - 71, 199
-*/
-
-
-
-
-
 void reserved() { return; }
 void empty()    { return; }
 
@@ -116,14 +103,13 @@ void empty()    { return; }
         OUTPUTS: none
         SIDE EFFECTS: (should) read which character is printed and print it to screen
 */
-
 void keyboard_interrupt()     
 { 
     // read character --> print to screen
     unsigned int pressed;
     char output_char;
     pressed = inb(0x60);
-    // printf(" Scancode:%d \n", pressed);
+
     /* backspace */
     if (pressed == BACKSPACE){
         backspace();
@@ -149,7 +135,7 @@ void keyboard_interrupt()
         return;
     }
     /* control pressed */
-    if ((pressed == LEFT_CONTROL_PRESSED)){
+    if (pressed == LEFT_CONTROL_PRESSED){
         control_on = 1;
         return;
     }
@@ -194,7 +180,7 @@ void keyboard_interrupt()
     else        output_char = scancode_to_char[pressed*2]; // else print out the lowercase or unshifted version of the scancode char
     
     /* interaction with _sys_read_terminal */
-    if (keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
+    if(keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
     if(sys_read_flag)
     {
         if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1){

@@ -6,13 +6,13 @@
 #include "filesys.h"
 
 /*
-    filesys_start()
+    filesys_init()
     Description: Initializes the filsystem at the proper starting address
     Inputs: offset - starting address of the file system
     Outputs: None
     Return Value: 0 if success
 */
-int32_t filesys_start(module_t *offset){
+int32_t filesys_init(module_t *offset){
   /* sets boot block */
   boot_block = (boot_block_t*) offset->mod_start;
   /* sets inode head as 4KB after boot block */

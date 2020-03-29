@@ -9,10 +9,10 @@ void rtc_init(){
     char prev;
     RTC_ON_FLAG = 0;
     RTC_READ_FLAG = 0;
-    outb(RTC_STATUS_REGISTER_B, RTC_CMD_PORT);              // set index to register B
-    prev = inb(RTC_DATA_PORT);                              // get initial value from register B
-    outb(RTC_STATUS_REGISTER_B, RTC_CMD_PORT);              // reset index to register B
-    outb((prev | 0x40), RTC_DATA_PORT);                     // turns on interrupts in RTC
+    outb(RTC_STATUS_REGISTER_B, RTC_CMD_PORT);          // set index to register B
+    prev = inb(RTC_DATA_PORT);                          // get initial value from register B
+    outb(RTC_STATUS_REGISTER_B, RTC_CMD_PORT);          // reset index to register B
+    outb((prev | 0x40), RTC_DATA_PORT);                 // turns on interrupts in RTC
     // MAGIC NUMBER: x040 is used to turn on PIE (periodic interrupt enable) in RTC register B
 }
 

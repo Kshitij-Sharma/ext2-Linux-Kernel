@@ -63,7 +63,7 @@ uint8_t* data_blocks;
 //
 
 /* Initialize the start of the file system */
-int32_t filesys_start(module_t *offset);
+int32_t filesys_init(module_t *offset);
 
 /* Read the directory entry by given name */
 int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry);

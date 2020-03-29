@@ -362,13 +362,29 @@ int test_sys_rw_terminal(){
 
 	char buf[128];
 	while (1){
-	_sys_read_terminal(0, (void*) buf, 200);
-	_sys_write_terminal(0, (void *) buf, 128);
+	int nb = _sys_read_terminal(0, (void*) buf, 400);
+	_sys_write_terminal(0, (void *) buf, nb);
 	}
 	// printf("%s", buf);
 	// if(nb != 0)				assertion_failure();
 	// if(nb != 0)				assertion_failure();
 	return PASS;
+}
+
+/* System Read/Write Test - Terminal
+ * 
+ * Shows that you can do system reads and writes from terminal
+ * Inputs: none
+ * Outputs: PASS or assertion failure 
+ * Side Effects: none
+ * Coverage: system read/write
+ * Files: syscall_handlers.h/.c
+ */
+int test_sys_write_terminal_overflow(){
+	TEST_HEADER;
+	int i;
+	i = _sys_write_terminal(0, "1234", 5);
+	return (i == 4) ? PASS : FAIL;
 }
 
 /* System Write Test - RTC
@@ -392,10 +408,26 @@ int test_sys_write_rtc(){
 	RTC_ON_FLAG = 0;
 	clear();
 
+	freq = 4;
+	/* sets RTC frequency after delay */
+	_sys_write_rtc(NULL, (void*) freq, 4);
+	RTC_ON_FLAG = 1;
+	for(i = 0; i < 450000000; i++);
+	RTC_ON_FLAG = 0;
+	clear();
+
 	freq = 8;
 	/* sets RTC frequency after delay */
 	RTC_ON_FLAG = 1;
 	_sys_write_rtc(NULL, (void*) freq, 0);
+	for(i = 0; i < 300000000; i++);
+	RTC_ON_FLAG = 0;
+	clear();
+
+	freq = 16;
+	/* sets RTC frequency after delay */
+	_sys_write_rtc(NULL, (void*) freq, 4);
+	RTC_ON_FLAG = 1;
 	for(i = 0; i < 300000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
@@ -407,11 +439,27 @@ int test_sys_write_rtc(){
 	for(i = 0; i < 150000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
+
+	freq = 64;
+	/* sets RTC frequency after delay */
+	_sys_write_rtc(NULL, (void*) freq, 4);
+	RTC_ON_FLAG = 1;
+	for(i = 0; i < 150000000; i++);
+	RTC_ON_FLAG = 0;
+	clear();
 	
 	freq = 128;
 	/* sets RTC frequency after delay */
 	RTC_ON_FLAG = 1;
 	_sys_write_rtc(NULL, (void*) freq, 0);
+	for(i = 0; i < 150000000; i++);
+	RTC_ON_FLAG = 0;
+	clear();
+
+	freq = 256;
+	/* sets RTC frequency after delay */
+	_sys_write_rtc(NULL, (void*) freq, 4);
+	RTC_ON_FLAG = 1;
 	for(i = 0; i < 150000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
@@ -430,7 +478,16 @@ int test_sys_write_rtc(){
 }
 
 
-int test_rtc_open(){
+/* System Open Test - RTC
+ * 
+ * Shows that you can open the RTC
+ * Inputs: none
+ * Outputs: Pass Fail
+ * Side Effects: sets RTC frequency to 0
+ * Coverage: RTC open
+ * Files: syscall_handlers.h/.c
+ */
+int test_sys_open_rtc(){
 	TEST_HEADER;
 	long long i;
 	int freq;
@@ -450,6 +507,7 @@ int test_rtc_open(){
 	RTC_ON_FLAG = 0;
 	return PASS;
 }
+
 /* System Read Test - RTC
  * 
  * Shows that you can read RTC interrupt
@@ -599,32 +657,23 @@ int test_directory_read(){
 	return PASS;
 }
 
-int terminal_write_test(){
-	TEST_HEADER;
-	int i;
-	i = _sys_write_terminal(0, "1234", 5);
-	printf("%d\n",i);
-	return PASS;
-}
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
 
 /* Test suite entry point */
-	/* CP1 Tests */
 // launch your tests here
 void launch_tests(){
+	/******************************** CP1 TESTS ********************************/ 
 	/* tests for IDT */
 	// TEST_OUTPUT("test_kbd", test_kbd());
 	// TEST_OUTPUT("test_idt_entries", test_idt_entries());
 	// TEST_OUTPUT("test_idt_div_zero", test_idt_div_zero(5)); // causes an exception
 	// TEST_OUTPUT("test_idt_exceptions", test_idt_exceptions()); // causes an exception
 	// TEST_OUTPUT("test_system_call", test_system_call());
-	// TEST_OUTPUT("terminal_write_test", terminal_write_test());
 	
 	/* tests for RTC */
 	// TEST_OUTPUT("test_rtc_frequency", test_rtc_frequency()); // changes frequency of RTC interrupts
-	// TEST_OUTPUT("test_rtc_open", test_rtc_open()); // changes frequency of RTC interrupts
 
 	/* test keyboard: type and echo characters */
 	
@@ -637,24 +686,24 @@ void launch_tests(){
 	// TEST_OUTPUT("test_paging_above_video", test_paging_video_mem(ABOVE_VIDEO_MEM)); // causes an exception
 	// TEST_OUTPUT("test_paging_below_video", test_paging_video_mem(BELOW_VIDEO_MEM)); // causes an exception
 	// TEST_OUTPUT("test_paging_in_video", test_paging_video_mem(IN_VIDEO_MEM));
-	/* CP2 Tests */
-
+	
+	/******************************** CP2 TESTS ********************************/ 
 	/* tests for terminal driver */
 	// TEST_OUTPUT("test_sys_rw_terminal", test_sys_rw_terminal());
-	// TEST_OUTPUT("test_sys_rw_terminal", test_sys_rw_terminal());
-	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
-	// TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
+	// TEST_OUTPUT("test_sys_write_terminal_overflow", test_sys_write_terminal_overflow());
 
 	/* tests for files */
-	// TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
-	// TEST_OUTPUT("test_file_read_open_text_long", test_file_read_open_text_long());
-	// TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
-	// TEST_OUTPUT("test_file_read_open_test", test_file_read_open_text());
+	TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
+	TEST_OUTPUT("test_file_read_open_text_long", test_file_read_open_text_long());
+	TEST_OUTPUT("test_file_read_open_text", test_file_read_open_text());
 
 	/* tests for directory */
 	TEST_OUTPUT("test_directory_read", test_directory_read());
 
 	/* tests for RTC */
+	// TEST_OUTPUT("test_sys_open_rtc", test_sys_open_rtc()); // changes frequency of RTC interrupts
+	// TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
+	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
 
 	/* CP3 Tests */
 	/* CP4 Tests */

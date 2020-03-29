@@ -146,8 +146,8 @@ void entry(unsigned long magic, unsigned long addr) {
     i8259_init();
     rtc_init();
     // rtc_enable();
-    filesys_start((module_t*)mbi->mods_addr);
-    // paging_init();
+    filesys_init((module_t*)mbi->mods_addr);
+    paging_init();
 
     // asm volatile ("int $0x80");
     /* Enable interrupts */
