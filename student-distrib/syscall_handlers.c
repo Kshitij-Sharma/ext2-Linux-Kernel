@@ -23,6 +23,15 @@
 int32_t sys_halt (int8_t status){
     return 0; 
 }
+
+/** sys_execute
+ *  
+ * execute system call 
+ * Inputs: command
+ * Outputs: 0
+ * Side Effects: None
+ * NOT YET IMPLEMENTED
+ */
 int32_t sys_execute (const int8_t* command){
     return 0;
 }
@@ -271,8 +280,8 @@ int32_t _sys_write_rtc(int32_t fd, void* buf, int32_t nbytes){
     if (frequency > MAX_INTERRUPT_FREQUENCY){
         frequency = MAX_INTERRUPT_FREQUENCY;
     }
-    rate = (log_base_two(FREQ_CONVERSION_CONST/frequency)/log_base_two(2)) + 1;
-    if (rate <= 2) rate = 3;
+    rate = (log_base_two(FREQ_CONVERSION_CONST/frequency)/log_base_two(2)) + 1; // this conversion was found on OSDev and it just an equation to convert frequency to rate
+    if (rate <= 2) rate = 3; // 3 is the lowest the rate can be, so if it is under that, set it to 3
 
     // MAGIC NUMBER: 0x0F sets rate selector bits in register A
     outb(RTC_STATUS_REGISTER_A, RTC_CMD_PORT);          // set index to register A, disable NMI
@@ -328,10 +337,10 @@ int32_t _sys_open_terminal (const int8_t* filename){
 int32_t _sys_open_file (const int8_t* filename){ 
     // dentry_t * this_file; // ***************ADD RETURN VAL CHECKING *****************
     // this_file->inode = -1;
-    int8_t file[32];
+    int8_t file[MAX_NAME_LENGTH];
     int i;
     int ret_val;
-    for (i = 0; i < 32; i++)
+    for (i = 0; i < MAX_NAME_LENGTH; i++)
     { 
         if(filename[i] == '\0')        break;
         file[i] = filename[i];

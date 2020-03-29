@@ -41,6 +41,10 @@ int backward_next = 0;
 //  outb(0x20, 0x3D5);
 // }
 
+/* void update_cursor(void);
+ * Inputs: void
+ * Return Value: none
+ * Function: Moves cursor to screen_x and screen_y  */
 void update_cursor() // *************************MAKE SURE YOU CHECK CONSTANT NAMES, FIX MAGIC NUMBERS, AND COMMENT 
 {
     uint16_t pos = screen_y * NUM_COLS + screen_x;
@@ -52,20 +56,6 @@ void update_cursor() // *************************MAKE SURE YOU CHECK CONSTANT NA
 }
 
 
-
-int log_base_two(int n) 
-{ 
-    return (n > 1) ? 1 + log_base_two(n / 2) : 0; 
-} 
-
-int power_of_two(int num){
-    if (num == 0) return 1;
-    while (num != 1){
-        if (num % 2 == 1) return 1;
-        num /= 2;
-    }
-    return 0;
-}
 
 
 /* void clear(void);
@@ -84,10 +74,10 @@ void clear(void) {
     update_cursor();
 }
 
-/* void clear(void);
+/* void scroll_down(void);
  * Inputs: void
  * Return Value: none
- * Function: Clears video memory */
+ * Function: Scrolls the page down */
 void scroll_down(void) {
     // printf("%d %d", screen_x, screen_y);
     if (screen_y >= NUM_ROWS){
@@ -184,6 +174,26 @@ void backspace(void){
     return;
 }
 
+/* void log_base_two(int n);
+ * Inputs: n: number to calculate log of
+ * Return Value: log of n 
+ * Function: Calculates log base 2 of n */
+int log_base_two(int n) 
+{ 
+    return (n > 1) ? 1 + log_base_two(n / 2) : 0; 
+} 
+/* void power_of_two(int num);
+ * Inputs: num: int to check if it is power of two
+ * Return Value: 0 for success, 1 for failure
+ * Function: Checks for power of two  */
+int power_of_two(int num){
+    if (num == 0) return 1;
+    while (num != 1){
+        if (num % 2 == 1) return 1;
+        num /= 2;
+    }
+    return 0;
+}
 /* Standard printf().
  * Only supports the following format strings:
  * %%  - print a literal '%' character

@@ -43,7 +43,7 @@ typedef struct boot_block_struct{
   uint32_t entries;
   uint32_t inodes;
   uint32_t datablocks;
-  uint32_t reserved[13];
+  char reserved[BOOT_RESERVED];
   // char reserved[BOOT_RESERVED];
   dentry_t dir_entries[DIR_ENTRIES];
 } boot_block_t;

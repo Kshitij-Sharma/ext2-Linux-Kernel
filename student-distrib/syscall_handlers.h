@@ -5,6 +5,7 @@
 #include "PCB.h"
 
 #define MAX_INTERRUPT_FREQUENCY     1024   
+#define MAX_NAME_LENGTH             32
 int32_t sys_halt(int8_t status);
 int32_t sys_execute(const int8_t* command);
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes);
