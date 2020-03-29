@@ -200,12 +200,11 @@ int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
  * Side Effects: Buffer holds a filename from the directory every 32 bytes
  */
 int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
- int i;
- for(i = 0; i < boot_block->entries; i++){
-    strncpy((int8_t*) ((i * FILENAME_LEN) + buf), 
-            (int8_t*) boot_block->dir_entries[i].file_name, FILENAME_LEN);
- }
- return FILENAME_LEN * boot_block->entries;
+    dentry_t curr_dentry;
+    read_dentry_by_index(fd, &curr_dentry);
+    strncpy((int8_t*) ((fd * FILENAME_LEN) + buf), 
+            (int8_t*) curr_dentry.file_name, FILENAME_LEN);
+    return 0;
 }
 
 /**
@@ -221,6 +220,7 @@ int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
 int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes){
     int i, bytes_written;
     char write_string[KEYBOARD_BUFFER_SIZE];
+    int enter_flag = 0;
 
     /* check edge cases */
     if(NULL == buf || nbytes < 0)       return -1;
@@ -235,12 +235,14 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes){
     /* prints all non-null characters */
     bytes_written = 0;
     for(i = 0; i < nbytes; i++) {    
-        if(write_string[i] != NULL)
+        if(write_string[i] != NULL )
         {
             putc(write_string[i]);
             bytes_written++;
         }                 
+        if (write_string[i] == '\n') enter_flag = 1;
     }
+    if (!enter_flag) putc('\n');
 
     return bytes_written;
 }

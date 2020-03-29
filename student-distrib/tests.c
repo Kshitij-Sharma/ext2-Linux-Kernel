@@ -361,10 +361,12 @@ int test_sys_rw_terminal(){
 	TEST_HEADER;
 
 	char buf[128];
+	while (1){
 	_sys_read_terminal(0, (void*) buf, 200);
+	_sys_write_terminal(0, (void *) buf, 128);
+	}
 	// printf("%s", buf);
 	// if(nb != 0)				assertion_failure();
-	_sys_write_terminal(0, (void *) buf, 128);
 	// if(nb != 0)				assertion_failure();
 	return PASS;
 }
@@ -385,6 +387,7 @@ int test_sys_write_rtc(){
 	freq = 2;
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
+	RTC_ON_FLAG = 1;
 	for(i = 0; i < 450000000; i++);
 	RTC_ON_FLAG = 0;
 	clear();
@@ -426,6 +429,27 @@ int test_sys_write_rtc(){
 	return PASS;
 }
 
+
+int test_rtc_open(){
+	TEST_HEADER;
+	long long i;
+	int freq;
+	freq = 1024;
+	/* sets RTC frequency after delay */
+	_sys_write_rtc(NULL, (void*) freq, 4);
+	RTC_ON_FLAG = 1;
+	for(i = 0; i < 450000000; i++);
+	RTC_ON_FLAG = 0;
+	clear();
+
+	freq = 2;
+	/* sets RTC frequency after delay */
+	RTC_ON_FLAG = 1;
+	_sys_open_rtc(NULL);
+	for(i = 0; i < 450000000; i++);
+	RTC_ON_FLAG = 0;
+	return PASS;
+}
 /* System Read Test - RTC
  * 
  * Shows that you can read RTC interrupt
@@ -437,9 +461,19 @@ int test_sys_write_rtc(){
  */
 int test_sys_read_rtc(){
 	TEST_HEADER;
-	_sys_read_rtc(0, NULL, 0);
+	int freq;
+	int i = 450000000;
+	freq = 2;
+	/* sets RTC frequency after delay */
+	_sys_write_rtc(NULL, (void*) freq, 4);
+	for(i = 0; i < 450000000; i++);
+	while (i-- > 0){
+		_sys_read_rtc(0, NULL, 0);
+		test_interrupts();
+	}
 	return PASS;
 }
+
 
 /* System Open/Read Test - text file
  * 
@@ -551,13 +585,25 @@ int test_directory_read(){
 	char buf[32*17];
 	int i;
 
-	_sys_read_directory(0, buf, 32*17);
+
+	for (i = 0; i < boot_block->entries; i++){
+		_sys_read_directory(i, buf, 32);
+	}
+	// _sys_read_directory(0, buf, 32*17);
 
 	for (i = 0; i < 32*17; i++) {
 		if(buf[i] != '\0')	putc(buf[i]);
 		if((i+1) % 32 == 0)		printf("\n");
 	}
 
+	return PASS;
+}
+
+int terminal_write_test(){
+	TEST_HEADER;
+	int i;
+	i = _sys_write_terminal(0, "1234", 5);
+	printf("%d\n",i);
 	return PASS;
 }
 /* Checkpoint 3 tests */
@@ -574,9 +620,11 @@ void launch_tests(){
 	// TEST_OUTPUT("test_idt_div_zero", test_idt_div_zero(5)); // causes an exception
 	// TEST_OUTPUT("test_idt_exceptions", test_idt_exceptions()); // causes an exception
 	// TEST_OUTPUT("test_system_call", test_system_call());
+	// TEST_OUTPUT("terminal_write_test", terminal_write_test());
 	
 	/* tests for RTC */
 	// TEST_OUTPUT("test_rtc_frequency", test_rtc_frequency()); // changes frequency of RTC interrupts
+	// TEST_OUTPUT("test_rtc_open", test_rtc_open()); // changes frequency of RTC interrupts
 
 	/* test keyboard: type and echo characters */
 	
