@@ -132,6 +132,9 @@ void wraparound(void) {
  * Function: Backspace functionality */
 void backspace(void){
     if (screen_x == 0 && screen_y == 0) return;
+    if (keyboard_buffer_idx == 0){
+        return;
+    }
     if (screen_x != 0){
         // moves cursor back
         screen_x--;

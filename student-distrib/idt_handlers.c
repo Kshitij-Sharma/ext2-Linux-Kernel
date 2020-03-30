@@ -31,8 +31,8 @@ int shift_on = 0;
 int caps_lock_on = 0;
 int control_on = 0;
 int alt_on = 0;
-int keyboard_buffer_idx = 0;
 int echo_flag = 1;
+// keyboard_buffer_idx = 0;
 /* scancodes for lowercase letters */
 static char scancode_to_char[NUM_CODES] = {
     0, 0,
@@ -181,8 +181,8 @@ void keyboard_interrupt()
     
     /* interaction with _sys_read_terminal */
     if(keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
-    if(sys_read_flag)
-    {
+    // if(sys_read_flag)
+    // {
         if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1){
             keyboard_buffer[keyboard_buffer_idx] = output_char;
             keyboard_buffer_idx++;
@@ -193,7 +193,7 @@ void keyboard_interrupt()
             keyboard_buffer_idx = 0;
             echo_flag = 1;
         }
-    }
+    // }
     if (echo_flag == 1) putc(output_char);
     wraparound();
     scroll_down();

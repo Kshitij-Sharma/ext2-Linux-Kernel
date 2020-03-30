@@ -492,6 +492,7 @@ int test_sys_open_rtc(){
 	long long i;
 	int freq;
 	freq = 1024;
+	clear();
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
 	RTC_ON_FLAG = 1;
@@ -513,7 +514,7 @@ int test_sys_open_rtc(){
  * Shows that you can read RTC interrupt
  * Inputs: none
  * Outputs: Pass Fail
- * Side Effects: prints "RTC INTERRUPT" to screen via RTC handler
+ * Side Effects: prints test_interrupts output to screen via RTC handler
  * Coverage: RTC read
  * Files: syscall_handlers.h/.c
  */
@@ -524,7 +525,8 @@ int test_sys_read_rtc(){
 	freq = 2;
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
-	for(i = 0; i < 450000000; i++);
+	RTC_ON_FLAG = 1;
+	for(i = 0; i < 200000000; i++);
 	while (i-- > 0){
 		_sys_read_rtc(0, NULL, 0);
 		test_interrupts();
@@ -693,17 +695,17 @@ void launch_tests(){
 	// TEST_OUTPUT("test_sys_write_terminal_overflow", test_sys_write_terminal_overflow());
 
 	/* tests for files */
-	TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
-	TEST_OUTPUT("test_file_read_open_text_long", test_file_read_open_text_long());
-	TEST_OUTPUT("test_file_read_open_text", test_file_read_open_text());
+	// TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
+	// TEST_OUTPUT("test_file_read_open_text_long", test_file_read_open_text_long());
+	// TEST_OUTPUT("test_file_read_open_text", test_file_read_open_text());
 
-	/* tests for directory */
-	TEST_OUTPUT("test_directory_read", test_directory_read());
+	// /* tests for directory */
+	// TEST_OUTPUT("test_directory_read", test_directory_read());
 
 	/* tests for RTC */
+	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
 	// TEST_OUTPUT("test_sys_open_rtc", test_sys_open_rtc()); // changes frequency of RTC interrupts
 	// TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
-	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
 
 	/* CP3 Tests */
 	/* CP4 Tests */

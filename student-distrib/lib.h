@@ -39,6 +39,7 @@ void update_cursor();
 #define KEYBOARD_BUFFER_SIZE    128
 char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
 volatile int sys_read_flag;
+int keyboard_buffer_idx;
 
 /* Userspace address-check functions */
 int32_t bad_userspace_addr(const void* addr, int32_t len);
