@@ -224,7 +224,33 @@ int test_idt_exceptions(){
 int test_system_call(){
 	TEST_HEADER;
 	/* makes a system call */
-	asm volatile ("int $0x80");
+	asm volatile (
+			// "movl $0, %eax;"
+			// "int $0x80;"
+			// "cmpl $-1, %eax;"
+			// "je wrong;"
+
+			"movl $1, %eax;"
+			"int $0x80;"
+			"movl $2, %eax;"
+			"int $0x80;"
+			"movl $3, %eax;"
+			"int $0x80;"
+			"movl $4, %eax;"
+			"int $0x80;"
+			"movl $5, %eax;"
+			"int $0x80;"
+			"movl $6, %eax;"
+			"int $0x80;"
+			"movl $7, %eax;"
+			"int $0x80;"
+			"movl $8, %eax;"
+			"int $0x80;"
+			"movl $9, %eax;"
+			"int $0x80;"
+			"movl $10, %eax;"
+			"int $0x80;"
+			);
 	return PASS;
 }
 
@@ -708,6 +734,8 @@ void launch_tests(){
 	// TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
 
 	/* CP3 Tests */
+	TEST_OUTPUT("test_system_call", test_system_call());
+
 	/* CP4 Tests */
 	/* CP5 Tests */
 

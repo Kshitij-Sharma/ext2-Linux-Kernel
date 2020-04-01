@@ -12,18 +12,18 @@
         OUTPUTS: none
         SIDE EFFECTS: prints out key pressed to screen
 */keyboard_interrupt_asm:     
-    pushal
-    
-    /*call C handler*/
-    call keyboard_interrupt
-    /* send EOI signal */
-    pushl $IRQ_KEYBOARD
-    call send_eoi               /* sends the EOI */
-    popl %ebx
+        pushal
+
+        /*call C handler*/
+        call keyboard_interrupt
+        /* send EOI signal */
+        pushl $IRQ_KEYBOARD
+        call send_eoi               /* sends the EOI */
+        popl %ebx
 
 
-    popal
-    iret
+        popal
+        iret
 
 /* rtc_interrupt_asm()
         INPUTS: none
@@ -33,21 +33,21 @@
 */
 rtc_interrupt_asm:  
 
-    pushal
-    /* call the C handler*/
-    call rtc_interrupt 
+        pushal
+        /* call the C handler*/
+        call rtc_interrupt 
 
-    /* send EOI signal */
-    pushl $IRQ_RTC
-    call send_eoi               /* sends the EOI */
-    popl %ebx
+        /* send EOI signal */
+        pushl $IRQ_RTC
+        call send_eoi               /* sends the EOI */
+        popl %ebx
 
 
 
-    popal
-    
-    /* Return control */
-    iret
+        popal
+
+        /* Return control */
+        iret
 
 /* system_call_asm()
         INPUTS: none
@@ -57,41 +57,43 @@ rtc_interrupt_asm:
 */  
 system_call_asm:
 
-    pushal 
+        pushal 
 
-    add $-1, %eax # subtract 1 to account for the fact that jump tables are 0 indexed while the number we are provided goes from 1-10
-    cmp $10, %eax
-    jg error_ret
-    /* push params */
-    push %edx
-    push %ecx
-    push %ebx
+        /* error check parameter */
+        cmp $0, %eax
+        jle error_ret
+        cmp $10, %eax
+        jg  error_ret
+        
+        add $-1, %eax /* subtract 1 to account for the fact that jump tables are 0 indexed while the number we are provided goes from 1-10 */
+        
+        
+        /* push params */
+        push %edx
+        push %ecx
+        push %ebx
 
-    /* jump to function */
-    jmp     *sys_call_table(,%eax,4)
+        /* jump to function */
+        call     *sys_call_table(,%eax,4)
 
-    /* pop params */
-    pop %ebx
-    pop %ecx
-    pop %edx
-    jmp cont
+        /* pop params */
+        pop %ebx
+        pop %ecx
+        pop %edx
+        jmp cont
 
-    error_ret:
-    movl $-1, %eax
+        error_ret:
+        movl $-1, %eax
 
-    cont:
-     /* send EOI signal */
-    pushl $IRQ_RTC
-    call send_eoi               /* sends the EOI */
-    popl %ebx
+        cont:
+        /* send EOI signal */
+        pushl $IRQ_RTC
+        call send_eoi               /* sends the EOI */
+        popl %ebx
 
-
-
-    popal
-    
-    /* Return control */
-    iret
-/*void system_call()                  { return; }*/
+        popal
+        /* Return control to user stack */
+        iret
 
 sys_call_table:
         .long   sys_halt

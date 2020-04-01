@@ -21,9 +21,11 @@
  * NOT YET IMPLEMENTED
  */
 int32_t sys_halt (int8_t status){
+    printf("halt called\n");
     return 0; 
 }
 int32_t sys_execute (const int8_t* command){
+    printf("execute called\n");
     return 0;
 }
 
@@ -36,6 +38,7 @@ int32_t sys_execute (const int8_t* command){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
+    printf("read called\n");
     return 0;
 }
 
@@ -48,6 +51,7 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
+    printf("write called\n");
     return 0;
 }
 
@@ -60,6 +64,7 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_open (const int8_t* filename){
+    printf("open called\n");
     return 0;
 }
 
@@ -72,6 +77,7 @@ int32_t sys_open (const int8_t* filename){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_close (int32_t fd){
+    printf("close called\n");
     return 0;
 }
 
@@ -84,6 +90,7 @@ int32_t sys_close (int32_t fd){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_getargs(int8_t* buf, int32_t nbytes){
+    printf("getargs called\n");
     return 0;
 }
 
@@ -96,6 +103,7 @@ int32_t sys_getargs(int8_t* buf, int32_t nbytes){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_vidmap (int8_t** screen_start){
+    printf("vidmap called\n");
     return 0;
 }
 
@@ -108,6 +116,7 @@ int32_t sys_vidmap (int8_t** screen_start){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_set_handler (int32_t signum, void* handler_address){
+    printf("set handler called\n");
     return 0;
 }
 
@@ -120,15 +129,17 @@ int32_t sys_set_handler (int32_t signum, void* handler_address){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_sigreturn (void){
+    printf("sigreturn called\n");
     return 0;
 }
+
+
+
 
 
 /**
  *  HELPER FUNCTIONS 
  **/
-
-
 /**
  *  Terminal 
  **/
@@ -219,6 +230,9 @@ int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes){
     return bytes_written;
 }
 
+
+
+
 /**
  *  RTC  HELPERS 
  **/
@@ -290,6 +304,8 @@ int32_t _sys_read_rtc (int32_t fd, void* buf, int32_t nbytes){
     // printf("read rtc\n");
     return 0;
 }
+
+
 
 
 /**
@@ -366,6 +382,8 @@ int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
 int32_t _sys_write_file (int32_t fd, void* buf, int32_t nbytes){
     return -1;
 }
+
+
 
 /**
  *  DIRECTORY  HELPERS 
