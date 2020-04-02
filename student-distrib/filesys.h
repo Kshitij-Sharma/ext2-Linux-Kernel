@@ -21,9 +21,11 @@
 // #define DATA_BLOCK_HEAD  (_4KB_ + (DIR_ENTRIES * _4KB_))
 
 // file type macros
-#define RTC_FILE        0
-#define DIRECTORY       1
-#define REGULAR_FILE    2
+#define RTC_FILE          0
+#define DIRECTORY         1
+#define REGULAR_FILE      2
+#define HEADER_INFO       40
+#define EXECUTABLE_CHECK  4
 
 
 typedef int32_t bytes_offset;       

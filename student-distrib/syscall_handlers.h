@@ -2,12 +2,24 @@
 #include "idt_handlers.h"
 #include "rtc.h"
 #include "filesys.h"
-#include "PCB.h"
+#include "paging.h"
 
 #define MAX_INTERRUPT_FREQUENCY     1024   
 #define MAX_NAME_LENGTH             32
 int32_t sys_halt(int8_t status);
+
+
+
+
 int32_t sys_execute(const int8_t* command);
+int32_t _execute_parse_args(int8_t* command, char * program_name, char * argument);
+int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf);
+int32_t _execute_setup_program_paging();
+int32_t _execute_user_program_loader();
+int32_t _execute_create_PCB();
+int32_t _execute_context_switch();
+
+
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes);
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes);
 int32_t sys_open (const int8_t* filename);

@@ -46,5 +46,36 @@ void paging_init(){
                  :"%eax"               		/* clobbered register */
                  );
                  
- }		
+ }
+
+	/*
+		flush_tlb()
+		Description: flushes tlb
+		Inputs: None
+		Outputs: None
+		Side Effects: none
+	*/
+  void flush_tlb(){
+    asm volatile(
+      "movl %%cr3, %%eax;"
+      "movl %%eax, %%cr3;"
+      :
+      :
+      :"%eax"
+    );
+}
+
+/*
+		paging_program()
+		Description: Sets up paging for program execute
+		Inputs: None
+		Outputs: None
+		Side Effects: maybe?
+	*/
+void paging_program(uint32_t physical_address){
+	page_directory[SYS_VIRTUAL_MEM] = physical_address;
+	page_directory[SYS_VIRTUAL_MEM] |= _4MB_PAGE | USER | PRESENT;
+}
+
+
 

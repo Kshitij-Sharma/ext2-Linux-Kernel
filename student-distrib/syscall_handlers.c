@@ -24,8 +24,104 @@ int32_t sys_halt (int8_t status){
     printf("halt called\n");
     return 0; 
 }
+
+
+/** sys_halt
+ *  
+ * Halt system call
+ * Inputs: int8_t status
+ * Outputs: int32_t
+ * Side Effects: None
+ * NOT YET IMPLEMENTED
+ */
 int32_t sys_execute (const int8_t* command){
-    printf("execute called\n");
+    // printf("execute called\n");
+    // int8_t tempret;
+    // int8_t prog_name[32];
+    // int8_t arg[128];
+
+    // memset(prog_name, '\0', 32);
+    // memset(arg, '\0', 128);
+    
+    // tempret = _execute_parse_args(command, prog_name, arg);
+    // if(tempret == -1)   return -1;
+    
+    // tempret = _execute_executable_check(prog_name);
+    // if(tempret == -1)   return -1;
+
+    // tempret = _execute_setup_program_paging();
+    // if(tempret == -1)   return -1;
+
+    // int8_t* buf;
+    // _execute_executable_check(prog_name, buf);
+    /** Execute:
+     * - user level tasks share a common mapping for kernel page
+     * - only one page needed for each tasks' use memory
+     * 1. parse arguments (DONE)
+     * 2. check if executable (DONE)
+     * 3. set up paging for the program
+     *  - all user programs 128MB in virtual mem
+     *  - physical memory for programs start at 8MB + (process no * 4MB)
+     *  - flush TLB after page stop
+     * 4. program loader
+     *  - checks ELF constant (done in executable check)
+     *  - copies file contents to correct location
+     *      - fs driver should copy a program image from random 4kB disk block in the file system into contiguous physica mem
+     *  - needs to correctly  
+     *  - finds addr of first instruction
+    */
+    return 0;
+}
+
+int32_t _execute_parse_args(int8_t* command, int8_t* prog_name, int8_t* arg){
+    if(command == NULL || prog_name == NULL || arg == NULL)  return -1;
+
+    /* skips spaces in front of program name */
+    while (*command == ' ' && *command != '\0') command++;
+    if (*command == '\0') return -1; // -1 implies bad command name
+    /* copies name of program into prog_name buffer */
+    while (*command != ' ' && *command != '\0') memcpy(prog_name++, command++, 1);
+    /* skips spaces in front of argument name */
+    while (*command == ' ' && *command != '\0') command++;
+
+    if (*command == '\0') return -2; // -2 implies no arg
+    /* copies arguments into arg buffer */
+    while (*command != ' ' && *command != '\0') memcpy(arg++, command++, 1);
+
+    return 0;
+}
+
+int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf){
+    int ret;
+    dentry_t prog_dentry;
+    // prog_dentry.file_name = 0;
+    // prog_dentry.file_type = 0;
+    /* 4 values @ start signifying executable */ 
+    int8_t elf[4] = {0x7f, 0x45, 0x4c, 0x46};
+    /* buffer used for checking */
+    memset((void *)buf, '\0', EXECUTABLE_CHECK);
+    
+    /* fills buf with 40 bytes of program info, we use read_dentry/data b/c we don't want to move our pointer forward */
+    ret = read_dentry_by_name(prog_name, &prog_dentry);
+    if(prog_dentry.file_type != REGULAR_FILE || ret == -1)   return -1;
+    read_data(prog_dentry.inode, 0, (uint8_t *) buf, HEADER_INFO);
+ 
+    /* checks "ELF" */ 
+    ret = strncmp((const int8_t*) elf, (const int8_t*) buf, EXECUTABLE_CHECK);
+
+    /* checks return value */
+    return (ret == 0) ? 0 : -1;
+
+  }
+
+int32_t _execute_setup_program_paging(){
+    // page_directory[0x80] = (cur_num_proceses * _4MB_) + KERNEL_MEM_START + _4MB_;
+    // page_directory[0x80] |= FOUR_MB_PAGE | USER | PRESENT;
+    return 0;
+}
+
+int32_t _execute_user_program_loader(){
+
     return 0;
 }
 

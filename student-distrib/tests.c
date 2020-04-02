@@ -685,6 +685,24 @@ int test_directory_read(){
 	return PASS;
 }
 
+int test_execute_helpers(){
+	TEST_HEADER;
+	char buf1[128];
+	int i;
+	char prog_name[32];
+    memset(prog_name, '\0', 32);
+	char arg[128];
+	memset(arg, '\0', 128);
+	char buf[30] = {' ', ' ', ' ', ' ','l','s',' ',' ',' ','a','p','p','l','e','s',' ', ' '};
+	_execute_parse_args(buf, prog_name, arg);
+	printf("Program name is:%s\nArgs are:%s\n", prog_name, arg);
+
+	i = _execute_executable_check(prog_name, buf1);
+
+	return (i==0) ? PASS : FAIL;
+
+}
+
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -721,7 +739,7 @@ void launch_tests(){
 	// TEST_OUTPUT("test_sys_write_terminal_overflow", test_sys_write_terminal_overflow());
 
 	/* tests for files */
-	// TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
+	TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
 	// TEST_OUTPUT("test_file_read_open_text_long", test_file_read_open_text_long());
 	// TEST_OUTPUT("test_file_read_open_text", test_file_read_open_text());
 
@@ -734,7 +752,8 @@ void launch_tests(){
 	// TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
 
 	/* CP3 Tests */
-	TEST_OUTPUT("test_system_call", test_system_call());
+	// TEST_OUTPUT("test_system_call", test_system_call());
+	TEST_OUTPUT("test_execute_helpers", test_execute_helpers());
 
 	/* CP4 Tests */
 	/* CP5 Tests */
