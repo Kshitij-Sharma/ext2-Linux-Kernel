@@ -13,7 +13,8 @@
 #define USER                0x4
 #define GLOBAL_BIT          0x100
 #define PAGE_SIZE           0x80
-#define SYS_VIRTUAL_MEM     0x80
+#define SYS_VIRTUAL_MEM     0x20 // 128MB equivalates to x8000000, however page directory goes in 4MB increments,
+                                 // so we do x8000000 / x400000 = x20
 
 // testing globals
 #define ABOVE_KERNEL_MEM        (KERNEL_START + _4MB_PAGE + 4)
@@ -31,4 +32,5 @@ uint32_t page_table [NUMBER_OF_ENTRIES] __attribute__((aligned (SIZE_OF_PAGE)));
 void paging_init();
 void flush_tlb();
 void program_paging();
+int process_num;
 

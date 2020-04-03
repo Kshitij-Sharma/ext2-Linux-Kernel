@@ -148,7 +148,7 @@ void entry(unsigned long magic, unsigned long addr) {
     // rtc_enable();
     filesys_init((module_t*)mbi->mods_addr);
     paging_init();
-
+    process_num = 0;
     // asm volatile ("int $0x80");
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your

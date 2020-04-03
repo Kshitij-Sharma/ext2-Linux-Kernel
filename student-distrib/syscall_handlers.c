@@ -1,16 +1,17 @@
 #include "syscall_handlers.h"
 
+pcb_t * curr_pcb_ptr = NULL;
 
-// // rtc fops table
-// file_ops_t rtc_fops = {_sys_read_rtc, _sys_write_rtc, _sys_open_rtc, _sys_close_rtc};
-// //stdin fops table
-// file_ops_t std_in = {_sys_read_terminal, _sys_dummy_read_write, _sys_dummy_open, _sys_dummy_close};
-// //stdout fops table
-// file_ops_t std_out = {_sys_dummy_read_write, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
-// //file fops table
-// file_ops_t file_fops = {_sys_read_file, _sys_write_file, _sys_open_file, _sys_close_file};
-// //directory fops table
-// file_ops_t dir_fops = {_sys_read_directory, _sys_write_directory, _sys_open_directory, _sys_close_directory};
+// rtc fops table
+file_ops_t rtc_fops = {_sys_read_rtc, _sys_write_rtc, _sys_open_rtc, _sys_close_rtc};
+//stdin fops table
+file_ops_t std_in = {_sys_read_terminal, _sys_dummy_read_write, _sys_dummy_open, _sys_dummy_close};
+//stdout fops table
+file_ops_t std_out = {_sys_dummy_read_write, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
+//file fops table
+file_ops_t file_fops = {_sys_read_file, _sys_write_file, _sys_open_file, _sys_close_file};
+//directory fops table
+file_ops_t dir_fops = {_sys_read_directory, _sys_write_directory, _sys_open_directory, _sys_close_directory};
 
 /** sys_halt
  *  
@@ -115,14 +116,31 @@ int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf){
   }
 
 int32_t _execute_setup_program_paging(){
-    // page_directory[0x80] = (cur_num_proceses * _4MB_) + KERNEL_MEM_START + _4MB_;
-    // page_directory[0x80] |= FOUR_MB_PAGE | USER | PRESENT;
+    program_paging((process_num * _4MB_PAGE) + USER_START);
+    flush_tlb();
     return 0;
 }
 
-int32_t _execute_user_program_loader(){
+int32_t _execute_user_program_loader(int8_t * prog_name){
+    // put the contents of the file into memory location 0x8048000
+    int32_t fd = _sys_open_file(prog_name);
+    int out = _sys_read_file(fd, PROGRAM_IMAGE, _4KB_);
+    return (out == -1) ? -1 : 0;
+}
 
-    return 0;
+pcb_t * _execute_create_PCB(){
+    file_desc_t stdin;
+    file_desc_t stdout;
+    pcb_t new_pcb;
+    new_pcb.parent_pcb = curr_pcb_ptr;
+    new_pcb.process_id = process_num++;
+    stdin.file_ops_table = &std_in;
+    stdout.file_ops_table = &std_out;
+    new_pcb.file_desc_array[0] = stdin;//SET EQUAL TO STDIN
+    new_pcb.file_desc_array[1] = stdout;//SET EQUAL TO STDOUT
+    new_pcb.next_open_index = 2;
+    curr_pcb_ptr = &new_pcb;
+    return &new_pcb;
 }
 
 /** sys_read
@@ -464,7 +482,7 @@ int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
     /* moves forward in file corresponding to how many bytes are read */
     if(data_read > 0)                       data_bytes_read += data_read;
     /* checks that we have read ALL bytes requested */
-    if(data_read != nbytes)                 return -1;
+    // if(data_read != nbytes)                 return -1;
     return data_read;
 }
 /** sys_write_file

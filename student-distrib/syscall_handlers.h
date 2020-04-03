@@ -3,9 +3,12 @@
 #include "rtc.h"
 #include "filesys.h"
 #include "paging.h"
+#include "PCB.h"
 
 #define MAX_INTERRUPT_FREQUENCY     1024   
 #define MAX_NAME_LENGTH             32
+#define PROGRAM_IMAGE               0X08048000
+
 int32_t sys_halt(int8_t status);
 
 
@@ -16,7 +19,7 @@ int32_t _execute_parse_args(int8_t* command, char * program_name, char * argumen
 int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf);
 int32_t _execute_setup_program_paging();
 int32_t _execute_user_program_loader();
-int32_t _execute_create_PCB();
+pcb_t * _execute_create_PCB(){
 int32_t _execute_context_switch();
 
 
@@ -50,6 +53,7 @@ int32_t _sys_close_terminal(int32_t fd);
 int32_t _sys_close_file(int32_t fd);
 int32_t _sys_close_rtc(int32_t fd);
 int32_t _sys_close_directory(int32_t fd);
+
 
 
 // int32_t _sys_dummy_read_write(int32_t fd, void* buf, int32_t nbytes);

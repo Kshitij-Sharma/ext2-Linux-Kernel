@@ -72,8 +72,10 @@ void paging_init(){
 		Outputs: None
 		Side Effects: maybe?
 	*/
-void paging_program(uint32_t physical_address){
+void program_paging(uint32_t physical_address){
+	/* maps spot in virtual memory to appropriate physical memory */
 	page_directory[SYS_VIRTUAL_MEM] = physical_address;
+	/* assigns approriate attributes to the page */
 	page_directory[SYS_VIRTUAL_MEM] |= _4MB_PAGE | USER | PRESENT;
 }
 

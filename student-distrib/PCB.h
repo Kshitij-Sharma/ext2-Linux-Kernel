@@ -1,4 +1,4 @@
-#include "syscall_handlers.h"
+#include "lib.h"
 
 #define FILE_DESC_ARR_SIZE 8
 #define TABLE_SIZE
@@ -7,14 +7,23 @@
 
 typedef struct file_descriptor_struct{
   file_ops_t* file_ops_table;
-  uint32_t inode;
-  uint32_t file_position;
-  uint32_t flags;
+  uint32_t inode;               // identifier for the process
+  uint32_t file_position;       // location in program
+  uint32_t flags; 
 
 } file_desc_t;
 
 typedef struct pcb_struct{
-  file_desc_t pcb[FILE_DESC_ARR_SIZE];
+  file_desc_t file_desc_array[FILE_DESC_ARR_SIZE];    // files opened (children)
+  uint32_t parent_pcb;
+  uint32_t process_id; // which number process is it
+  uint32_t next_open_index;
+  
+  // current PCB
+  // something for registers (esp ebp eip) -- just need one of these
+  // PID: index of child process in parent process FD array
+  // parent process (one pointer to an inode)
+  // start and end of program (?)
 } pcb_t;
 
 typedef struct file_ops_struct {
