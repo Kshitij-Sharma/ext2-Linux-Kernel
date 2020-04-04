@@ -1,13 +1,13 @@
 #include "syscall_handlers.h"
 
-pcb_t * curr_pcb_ptr = NULL;
+pcb_t * cur_pcb_ptr = NULL;
 
 // rtc fops table
 file_ops_t rtc_fops = {_sys_read_rtc, _sys_write_rtc, _sys_open_rtc, _sys_close_rtc};
 //stdin fops table
-file_ops_t std_in = {_sys_read_terminal, _sys_dummy_read_write, _sys_dummy_open, _sys_dummy_close};
+file_ops_t std_in_fops = {_sys_read_terminal, _sys_dummy_read_write, _sys_dummy_open, _sys_dummy_close};
 //stdout fops table
-file_ops_t std_out = {_sys_dummy_read_write, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
+file_ops_t std_out_fops = {_sys_dummy_read_write, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
 //file fops table
 file_ops_t file_fops = {_sys_read_file, _sys_write_file, _sys_open_file, _sys_close_file};
 //directory fops table
@@ -36,25 +36,29 @@ int32_t sys_halt (int8_t status){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_execute (const int8_t* command){
-    // printf("execute called\n");
-    // int8_t tempret;
-    // int8_t prog_name[32];
-    // int8_t arg[128];
+    printf("execute called\n");
+    int8_t tempret;
+    int8_t prog_name[32];
+    int8_t arg[128];
 
-    // memset(prog_name, '\0', 32);
-    // memset(arg, '\0', 128);
+    memset(prog_name, '\0', 32);
+    memset(arg, '\0', 128);
     
-    // tempret = _execute_parse_args(command, prog_name, arg);
-    // if(tempret == -1)   return -1;
+    tempret = _execute_parse_args(command, prog_name, arg);
+    if(tempret == -1)   return -1;
     
-    // tempret = _execute_executable_check(prog_name);
-    // if(tempret == -1)   return -1;
+    int8_t* buf;
+    tempret = _execute_executable_check(prog_name, buf);
+    if(tempret == -1)   return -1;
 
-    // tempret = _execute_setup_program_paging();
-    // if(tempret == -1)   return -1;
+    tempret = _execute_setup_program_paging();
+    if(tempret == -1)   return -1;
 
-    // int8_t* buf;
-    // _execute_executable_check(prog_name, buf);
+    tempret = _execute_user_program_loader(prog_name);
+    if(tempret == -1)   return -1;
+
+    cur_pcb_ptr = _execute_create_PCB();
+    _execute_context_switch();
     /** Execute:
      * - user level tasks share a common mapping for kernel page
      * - only one page needed for each tasks' use memory
@@ -67,7 +71,7 @@ int32_t sys_execute (const int8_t* command){
      * 4. program loader
      *  - checks ELF constant (done in executable check)
      *  - copies file contents to correct location
-     *      - fs driver should copy a program image from random 4kB disk block in the file system into contiguous physica mem
+     *      - fs driver should copy a program image from random 4kB disk block in the file system into contiguous physical mem
      *  - needs to correctly  
      *  - finds addr of first instruction
     */
@@ -98,7 +102,8 @@ int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf){
     // prog_dentry.file_name = 0;
     // prog_dentry.file_type = 0;
     /* 4 values @ start signifying executable */ 
-    int8_t elf[4] = {0x7f, 0x45, 0x4c, 0x46};
+    int8_t elf[4] = {ELF_ONE, ELF_TWO, ELF_THREE, ELF_FOUR}; 
+    
     /* buffer used for checking */
     memset((void *)buf, '\0', EXECUTABLE_CHECK);
     
@@ -129,19 +134,37 @@ int32_t _execute_user_program_loader(int8_t * prog_name){
 }
 
 pcb_t * _execute_create_PCB(){
-    file_desc_t stdin;
-    file_desc_t stdout;
-    pcb_t new_pcb;
-    new_pcb.parent_pcb = curr_pcb_ptr;
-    new_pcb.process_id = process_num++;
-    stdin.file_ops_table = &std_in;
-    stdout.file_ops_table = &std_out;
-    new_pcb.file_desc_array[0] = stdin;//SET EQUAL TO STDIN
-    new_pcb.file_desc_array[1] = stdout;//SET EQUAL TO STDOUT
-    new_pcb.next_open_index = 2;
-    curr_pcb_ptr = &new_pcb;
-    return &new_pcb;
+    file_desc_t * stdin;
+    file_desc_t * stdout;
+    pcb_t* new_pcb = _8_MB - (_8_KB * (process_num+1));
+    
+    new_pcb->parent_pcb = cur_pcb_ptr;
+    new_pcb->process_id = process_num++;
+    stdin->file_ops_table = &std_in_fops;
+    stdout->file_ops_table = &std_out_fops;
+    new_pcb->file_desc_array[0] = *stdin;   //SET EQUAL TO STDIN
+    new_pcb->file_desc_array[1] = *stdout;  //SET EQUAL TO STDOUT
+    new_pcb->next_open_index = 2;
+    return new_pcb;
 }
+// 128 MB in virtual + 4MB - 4B
+void _execute_context_switch(){
+    tss.ss0 = KERNEL_DS; // switch stack context
+    tss.esp0 = _8_MB - _4_BYTES - (_8_KB * cur_pcb_ptr->process_id);
+    int user_esp = _128_MB + _4MB_PAGE - _4_BYTES; // maps to the esp of user space
+    asm volatile (
+        "push %0;" /* push user_ds */
+        "push %1;" /* push user_esp */
+        "push %%eflags;"
+        "push %%cs;"
+        "push %%eip;"
+        "iret;"
+        :
+        :"r" (USER_DS), "r" (user_esp)
+        :
+    );
+}
+
 
 /** sys_read
  *  

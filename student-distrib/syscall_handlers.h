@@ -4,11 +4,18 @@
 #include "filesys.h"
 #include "paging.h"
 #include "PCB.h"
+#include "x86_desc.h"
 
 #define MAX_INTERRUPT_FREQUENCY     1024   
 #define MAX_NAME_LENGTH             32
 #define PROGRAM_IMAGE               0X08048000
-
+#define _8_MB                       8388608
+#define _8_KB                       8192
+#define ELF_ONE                     0x7F
+#define ELF_TWO                     0x45
+#define ELF_THREE                   0x4C
+#define ELF_FOUR                    0x46
+#define _4_BYTES                    0x4
 int32_t sys_halt(int8_t status);
 
 
@@ -19,8 +26,8 @@ int32_t _execute_parse_args(int8_t* command, char * program_name, char * argumen
 int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf);
 int32_t _execute_setup_program_paging();
 int32_t _execute_user_program_loader();
-pcb_t * _execute_create_PCB(){
-int32_t _execute_context_switch();
+pcb_t * _execute_create_PCB();
+void _execute_context_switch();
 
 
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes);
@@ -56,6 +63,6 @@ int32_t _sys_close_directory(int32_t fd);
 
 
 
-// int32_t _sys_dummy_read_write(int32_t fd, void* buf, int32_t nbytes);
-// int32_t _sys_dummy_open(const int8_t* filename);
-// int32_t _sys_dummy_close(int32_t fd);
+int32_t _sys_dummy_read_write(int32_t fd, void* buf, int32_t nbytes);
+int32_t _sys_dummy_open(const int8_t* filename);
+int32_t _sys_dummy_close(int32_t fd);

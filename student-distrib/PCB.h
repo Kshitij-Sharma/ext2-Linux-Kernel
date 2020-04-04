@@ -18,7 +18,8 @@ typedef struct pcb_struct{
   uint32_t parent_pcb;
   uint32_t process_id; // which number process is it
   uint32_t next_open_index;
-  
+  uint32_t ebp;
+  uint32_t esp;
   // current PCB
   // something for registers (esp ebp eip) -- just need one of these
   // PID: index of child process in parent process FD array
@@ -26,7 +27,7 @@ typedef struct pcb_struct{
   // start and end of program (?)
 } pcb_t;
 
-typedef struct file_ops_struct {
+typedef struct file_ops_struct{
    int32_t (*read)  (int32_t fd, void* buf, int32_t nbytes);
    int32_t (*write) (int32_t fd, void* buf, int32_t nbytes);
    int32_t (*open)  (const int8_t* filename);

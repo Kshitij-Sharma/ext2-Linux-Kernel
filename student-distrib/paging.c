@@ -26,14 +26,14 @@ void paging_init(){
 
 	page_directory[0] =  (uint32_t) page_table;
 	page_directory[0] |=  (READ_WRITE | PRESENT);
+	page_table[VIDEO_OFFSET] |=  (READ_WRITE | PRESENT);
 
 	/* loading at 4MB physical address */
 	page_directory[1] =  (KERNEL_START | PAGE_SIZE | READ_WRITE | PRESENT) | GLOBAL_BIT;
-	page_table[VIDEO_OFFSET] |=  (READ_WRITE | PRESENT);
 
 
     asm volatile(
-                 "movl %0, %%eax;" 			/* clear eax*/
+                 "movl %0, %%eax;" 			/* move page_directory into eax*/
                  "movl %%eax, %%cr3;" 		/* sets the page directory pointer */
                  "movl %%cr4, %%eax;"
                  "orl $0x00000010, %%eax;" 	/* mask used to set bit to 1 */
@@ -76,7 +76,7 @@ void program_paging(uint32_t physical_address){
 	/* maps spot in virtual memory to appropriate physical memory */
 	page_directory[SYS_VIRTUAL_MEM] = physical_address;
 	/* assigns approriate attributes to the page */
-	page_directory[SYS_VIRTUAL_MEM] |= _4MB_PAGE | USER | PRESENT;
+	page_directory[SYS_VIRTUAL_MEM] |= PAGE_SIZE | USER | PRESENT;
 }
 
 
