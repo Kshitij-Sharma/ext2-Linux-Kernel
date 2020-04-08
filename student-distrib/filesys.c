@@ -45,6 +45,7 @@ int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry){
     if(!strncmp((int8_t*) fname, (int8_t*) (boot_block -> dir_entries)[i].file_name, FILENAME_LEN))
       return read_dentry_by_index(i, dentry);
   }
+  
   return -1;
 }
 

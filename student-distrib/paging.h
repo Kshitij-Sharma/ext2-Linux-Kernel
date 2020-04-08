@@ -24,7 +24,7 @@
 /* CONSTANTS FOR PROGRAM PAGING */
 #define SYS_VIRTUAL_MEM     0x20 // 128MB equates to x8000000, however page directory goes in 4MB increments,
                                  // so we do x8000000 / x400000 = x20
-#define PROGRAM_IMAGE               0X08048000
+#define PROGRAM_IMAGE       0x08048000
 
 
 // testing globals

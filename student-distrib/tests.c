@@ -186,6 +186,8 @@ int test_idt_div_zero(int test_arg){
 	TEST_HEADER;
 	/* attempts to divide by zero */
 	int zero, arg;
+	int * test = 0;
+	zero = *test;
 	zero = 0;
 	arg = test_arg/zero;
 	arg &= 0x0;				// clear arg for warning removal
@@ -693,7 +695,7 @@ int test_execute_helpers(){
     memset(prog_name, '\0', 32);
 	char arg[128];
 	memset(arg, '\0', 128);
-	char buf[30] = {' ', ' ', ' ', ' ','l','s',' ',' ',' ','a','p','p','l','e','s',' ', ' '};
+	char buf[30] = {' ', ' ', ' ', ' ',' ','s',' ',' ',' ','a','p','p','l','e','s',' ', ' '};
 	_execute_parse_args(buf, prog_name, arg);
 	printf("Program name is:%s\nArgs are:%s\n", prog_name, arg);
 
@@ -701,6 +703,14 @@ int test_execute_helpers(){
 
 	return (i==0) ? PASS : FAIL;
 
+}
+
+int test_execute(){
+	TEST_HEADER;
+	char buf[30] = {'s','h','e','l','l', ' ', ' ', ' ',' ','a','p','p','l','e','s',' ', ' '};
+	sys_execute(buf);
+
+	return PASS;
 }
 
 /* Checkpoint 3 tests */
@@ -739,7 +749,7 @@ void launch_tests(){
 	// TEST_OUTPUT("test_sys_write_terminal_overflow", test_sys_write_terminal_overflow());
 
 	/* tests for files */
-	TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
+	// TEST_OUTPUT("test_file_read_open_non_text", test_file_read_open_non_text());
 	// TEST_OUTPUT("test_file_read_open_text_long", test_file_read_open_text_long());
 	// TEST_OUTPUT("test_file_read_open_text", test_file_read_open_text());
 
@@ -753,7 +763,8 @@ void launch_tests(){
 
 	/* CP3 Tests */
 	// TEST_OUTPUT("test_system_call", test_system_call());
-	TEST_OUTPUT("test_execute_helpers", test_execute_helpers());
+	// TEST_OUTPUT("test_execute_helpers", test_execute_helpers());
+	TEST_OUTPUT("test_execute", test_execute());
 
 	/* CP4 Tests */
 	/* CP5 Tests */

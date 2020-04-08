@@ -76,7 +76,7 @@ void program_paging(uint32_t physical_address){
 	/* maps spot in virtual memory to appropriate physical memory */
 	page_directory[SYS_VIRTUAL_MEM] = physical_address;
 	/* assigns approriate attributes to the page */
-	page_directory[SYS_VIRTUAL_MEM] |= PAGE_SIZE | USER | PRESENT;
+	page_directory[SYS_VIRTUAL_MEM] |= PAGE_SIZE | USER | PRESENT | READ_WRITE;
 }
 
 

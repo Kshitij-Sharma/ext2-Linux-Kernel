@@ -1,17 +1,18 @@
 #include "syscall_handlers.h"
 
 pcb_t * cur_pcb_ptr = NULL;
-
 // rtc fops table
 file_ops_t rtc_fops = {_sys_read_rtc, _sys_write_rtc, _sys_open_rtc, _sys_close_rtc};
-//stdin fops table
-file_ops_t std_in_fops = {_sys_read_terminal, _sys_dummy_read_write, _sys_dummy_open, _sys_dummy_close};
-//stdout fops table
-file_ops_t std_out_fops = {_sys_dummy_read_write, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
 //file fops table
 file_ops_t file_fops = {_sys_read_file, _sys_write_file, _sys_open_file, _sys_close_file};
 //directory fops table
 file_ops_t dir_fops = {_sys_read_directory, _sys_write_directory, _sys_open_directory, _sys_close_directory};
+//stdin fops table
+file_ops_t std_in_fops = {_sys_read_terminal, _sys_dummy_read_write, _sys_dummy_open, _sys_dummy_close};
+//stdout fops table
+file_ops_t std_out_fops = {_sys_dummy_read_write, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
+int8_t buf_test[_4KB_];
+
 
 /** sys_halt
  *  
@@ -36,10 +37,10 @@ int32_t sys_halt (int8_t status){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_execute (const int8_t* command){
-    printf("execute called\n");
     int8_t tempret;
     int8_t prog_name[32];
     int8_t arg[128];
+    // int8_t* cmd = command;
 
     memset(prog_name, '\0', 32);
     memset(arg, '\0', 128);
@@ -47,9 +48,8 @@ int32_t sys_execute (const int8_t* command){
     tempret = _execute_parse_args(command, prog_name, arg);
     if(tempret == -1)   return -1;
     
-    int8_t* buf;
-    tempret = _execute_executable_check(prog_name, buf);
-    if(tempret == -1)   return -1;
+    // int8_t buf[_4KB_];
+    tempret = _execute_executable_check(prog_name, buf_test);
 
     tempret = _execute_setup_program_paging();
     if(tempret == -1)   return -1;
@@ -78,20 +78,22 @@ int32_t sys_execute (const int8_t* command){
     return 0;
 }
 
-int32_t _execute_parse_args(int8_t* command, int8_t* prog_name, int8_t* arg){
-    if(command == NULL || prog_name == NULL || arg == NULL)  return -1;
+int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* arg){
+    int i = 0;
 
+    if(command == NULL || prog_name == NULL || arg == NULL)  return -1;
+    
     /* skips spaces in front of program name */
-    while (*command == ' ' && *command != '\0') command++;
+    while (command[i] == ' ' && command[i] != '\0') i++;
     if (*command == '\0') return -1; // -1 implies bad command name
     /* copies name of program into prog_name buffer */
-    while (*command != ' ' && *command != '\0') memcpy(prog_name++, command++, 1);
+    while (command[i] != ' ' && command[i] != '\0') memcpy(prog_name++, command + (i++), 1);
     /* skips spaces in front of argument name */
-    while (*command == ' ' && *command != '\0') command++;
+    while (command[i] == ' ' && command[i] != '\0') i++;
 
     if (*command == '\0') return -2; // -2 implies no arg
     /* copies arguments into arg buffer */
-    while (*command != ' ' && *command != '\0') memcpy(arg++, command++, 1);
+    while (command[i] != ' ' && command[i] != '\0') memcpy(arg++, command + (i++), 1);
 
     return 0;
 }
@@ -110,7 +112,8 @@ int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf){
     /* fills buf with 40 bytes of program info, we use read_dentry/data b/c we don't want to move our pointer forward */
     ret = read_dentry_by_name(prog_name, &prog_dentry);
     if(prog_dentry.file_type != REGULAR_FILE || ret == -1)   return -1;
-    read_data(prog_dentry.inode, 0, (uint8_t *) buf, HEADER_INFO);
+    read_data(prog_dentry.inode, 0, (uint8_t *) buf, _4KB_);
+    // read_data(prog_dentry.inode, 0, (uint8_t *) buf, HEADER_INFO);
  
     /* checks "ELF" */ 
     ret = strncmp((const int8_t*) elf, (const int8_t*) buf, EXECUTABLE_CHECK);
@@ -129,21 +132,19 @@ int32_t _execute_setup_program_paging(){
 int32_t _execute_user_program_loader(int8_t * prog_name){
     // put the contents of the file into memory location 0x8048000
     int32_t fd = _sys_open_file(prog_name);
-    int out = _sys_read_file(fd, PROGRAM_IMAGE, _4KB_);
+    memset((void *) PROGRAM_IMAGE, 0, _4KB_);
+    int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
     return (out == -1) ? -1 : 0;
 }
 
 pcb_t * _execute_create_PCB(){
-    file_desc_t * stdin;
-    file_desc_t * stdout;
-    pcb_t* new_pcb = _8_MB - (_8_KB * (process_num+1));
+
+    pcb_t * new_pcb =  (pcb_t*) ((int)_8_MB - ((int)_8_KB * (process_num+1)));
     
     new_pcb->parent_pcb = cur_pcb_ptr;
     new_pcb->process_id = process_num++;
-    stdin->file_ops_table = &std_in_fops;
-    stdout->file_ops_table = &std_out_fops;
-    new_pcb->file_desc_array[0] = *stdin;   //SET EQUAL TO STDIN
-    new_pcb->file_desc_array[1] = *stdout;  //SET EQUAL TO STDOUT
+    new_pcb->file_desc_array[0] = &(file_desc_t){&std_in_fops, 0, 0, 1};   //SET EQUAL TO STDIN
+    new_pcb->file_desc_array[1] = &(file_desc_t){&std_out_fops, 0, 1, 1};  //SET EQUAL TO STDOUT
     new_pcb->next_open_index = 2;
     return new_pcb;
 }
@@ -151,16 +152,19 @@ pcb_t * _execute_create_PCB(){
 void _execute_context_switch(){
     tss.ss0 = KERNEL_DS; // switch stack context
     tss.esp0 = _8_MB - _4_BYTES - (_8_KB * cur_pcb_ptr->process_id);
-    int user_esp = _128_MB + _4MB_PAGE - _4_BYTES; // maps to the esp of user space
+    uint32_t user_esp = _128_MB + _4MB_PAGE - _4_BYTES; // maps to the esp of user space
+    uint32_t eip = 0;
+    eip += (((uint8_t) buf_test[27]) << 24) | (((uint8_t)buf_test[26]) << 16) | ((uint8_t)(buf_test[25]) << 8) | ((uint8_t)buf_test[24]);
+
     asm volatile (
         "push %0;" /* push user_ds */
         "push %1;" /* push user_esp */
-        "push %%eflags;"
+        "pushfl;"   /* push EFLAGS */ 
         "push %%cs;"
-        "push %%eip;"
+        "push %2;" /* push eip value stored in esp */
         "iret;"
         :
-        :"r" (USER_DS), "r" (user_esp)
+        :"r" (USER_DS), "r" (user_esp), "r" (eip)
         :
     );
 }
@@ -175,7 +179,7 @@ void _execute_context_switch(){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
-    printf("read called\n");
+    _sys_read_terminal(fd, buf, nbytes);
     return 0;
 }
 
@@ -188,7 +192,7 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
-    printf("write called\n");
+    _sys_write_terminal(fd, buf, nbytes);
     return 0;
 }
 
@@ -335,7 +339,7 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
  * Outputs: 0 @ directory end
  * Side Effects: 
  */
-int32_t _sys_write_terminal (int32_t fd, void* buf, int32_t nbytes){
+int32_t _sys_write_terminal (int32_t fd, const void* buf, int32_t nbytes){
     int i, bytes_written;
     char write_string[nbytes];
     int enter_flag = 0;
