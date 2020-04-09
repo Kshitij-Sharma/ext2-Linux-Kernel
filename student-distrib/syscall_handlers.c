@@ -24,6 +24,16 @@ int8_t buf_test[_4KB_];
  */
 int32_t sys_halt (int8_t status){
     printf("halt called\n");
+    cur_pcb_ptr = cur_pcb_ptr->parent_pcb;
+    process_num--;
+    /* disable old program's page HERE */
+    _execute_setup_program_paging();
+    
+    /** set cur pcb to be parent of curr pcb
+     * change page to parent's page
+     *  "disable" old program's page
+     *  decrement process_num
+     * context switch
     return 0; 
 }
 
@@ -50,6 +60,7 @@ int32_t sys_execute (const int8_t* command){
     
     // int8_t buf[_4KB_];
     tempret = _execute_executable_check(prog_name, buf_test);
+    if(tempret == -1)   return -1;
 
     tempret = _execute_setup_program_paging();
     if(tempret == -1)   return -1;
@@ -85,13 +96,13 @@ int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* ar
     
     /* skips spaces in front of program name */
     while (command[i] == ' ' && command[i] != '\0') i++;
-    if (*command == '\0') return -1; // -1 implies bad command name
+    if (command[i] == '\0') return -1; // -1 implies bad command name
     /* copies name of program into prog_name buffer */
     while (command[i] != ' ' && command[i] != '\0') memcpy(prog_name++, command + (i++), 1);
     /* skips spaces in front of argument name */
     while (command[i] == ' ' && command[i] != '\0') i++;
 
-    if (*command == '\0') return -2; // -2 implies no arg
+    if (command[i] == '\0') return -2; // -2 implies no arg
     /* copies arguments into arg buffer */
     while (command[i] != ' ' && command[i] != '\0') memcpy(arg++, command + (i++), 1);
 
@@ -124,13 +135,15 @@ int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf){
   }
 
 int32_t _execute_setup_program_paging(){
+    /* sets up paging for the current program */
     program_paging((process_num * _4MB_PAGE) + USER_START);
+    /* flushes TLB before moving to new program */
     flush_tlb();
     return 0;
 }
 
 int32_t _execute_user_program_loader(int8_t * prog_name){
-    // put the contents of the file into memory location 0x8048000
+    /* loads contents of file into program image in virtual memory */
     int32_t fd = _sys_open_file(prog_name);
     memset((void *) PROGRAM_IMAGE, 0, _4KB_);
     int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
@@ -141,21 +154,27 @@ pcb_t * _execute_create_PCB(){
 
     pcb_t * new_pcb =  (pcb_t*) ((int)_8_MB - ((int)_8_KB * (process_num+1)));
     
-    new_pcb->parent_pcb = cur_pcb_ptr;
-    new_pcb->process_id = process_num++;
+    new_pcb->parent_pcb = cur_pcb_ptr;      // sets the parent of PCB for this process
+    new_pcb->process_id = process_num++;    // gives our process a PID
+    /* first 2 file descriptors in PCB are stdin/stdout */
     new_pcb->file_desc_array[0] = &(file_desc_t){&std_in_fops, 0, 0, 1};   //SET EQUAL TO STDIN
     new_pcb->file_desc_array[1] = &(file_desc_t){&std_out_fops, 0, 1, 1};  //SET EQUAL TO STDOUT
+    /* next open location to place a file */
     new_pcb->next_open_index = 2;
     return new_pcb;
 }
 // 128 MB in virtual + 4MB - 4B
 void _execute_context_switch(){
+    /* switch TSS context (stack segment and esp) */
     tss.ss0 = KERNEL_DS; // switch stack context
     tss.esp0 = _8_MB - _4_BYTES - (_8_KB * cur_pcb_ptr->process_id);
+    /* maps the esp of user space */
     uint32_t user_esp = _128_MB + _4MB_PAGE - _4_BYTES; // maps to the esp of user space
+    /* gets the eip from the executable header */
     uint32_t eip = 0;
     eip += (((uint8_t) buf_test[27]) << 24) | (((uint8_t)buf_test[26]) << 16) | ((uint8_t)(buf_test[25]) << 8) | ((uint8_t)buf_test[24]);
-
+    cur_pcb_ptr->eip = eip;
+    /* performs context stack in assembly */
     asm volatile (
         "push %0;" /* push user_ds */
         "push %1;" /* push user_esp */

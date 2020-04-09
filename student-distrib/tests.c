@@ -709,7 +709,6 @@ int test_execute(){
 	TEST_HEADER;
 	char buf[30] = {'s','h','e','l','l', ' ', ' ', ' ',' ','a','p','p','l','e','s',' ', ' '};
 	sys_execute(buf);
-
 	return PASS;
 }
 
