@@ -183,10 +183,8 @@ void keyboard_interrupt()
     if(keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
     // if(sys_read_flag)
     // {
-        if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1){
-            keyboard_buffer[keyboard_buffer_idx] = output_char;
-            keyboard_buffer_idx++;
-        }
+        if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1)
+            keyboard_buffer[keyboard_buffer_idx++] = output_char;
         if(pressed == ENTER_PRESSED){
             keyboard_buffer[keyboard_buffer_idx] = output_char;
             sys_read_flag = 0;

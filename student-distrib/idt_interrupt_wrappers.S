@@ -57,8 +57,8 @@ rtc_interrupt_asm:
 */  
 system_call_asm:
 
-        pushal 
-
+       pushal
+        
         /* error check parameter */
         cmp $0, %eax
         jle error_ret
@@ -80,10 +80,11 @@ system_call_asm:
         pop %ebx
         pop %ecx
         pop %edx
+        movl %eax, (sys_call_eax)
         jmp cont
 
         error_ret:
-        movl $-1, %eax
+        movl $-1, (sys_call_eax)
 
         cont:
         /* send EOI signal */
@@ -92,6 +93,8 @@ system_call_asm:
         popl %ebx
 
         popal
+        movl (sys_call_eax), %eax
+
         /* Return control to user stack */
         iret
 
@@ -108,3 +111,5 @@ sys_call_table:
         .long   sys_sigreturn
         
 
+sys_call_eax:
+        .long

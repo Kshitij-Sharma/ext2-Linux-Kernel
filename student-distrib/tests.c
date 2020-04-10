@@ -671,18 +671,14 @@ int test_file_read_open_text_long(){
 int test_directory_read(){
 	TEST_HEADER;
 	char buf[32*17];
-	int i;
+	int i = 1;
 
-
-	for (i = 0; i < boot_block->entries; i++){
-		_sys_read_directory(i, buf, 32);
+	while (i != 0){
+		i =_sys_read_directory(i, buf, 32);
+		if (i != 0)
+			printf("%s\n",buf);
 	}
-	// _sys_read_directory(0, buf, 32*17);
 
-	for (i = 0; i < 32*17; i++) {
-		if(buf[i] != '\0')	putc(buf[i]);
-		if((i+1) % 32 == 0)		printf("\n");
-	}
 
 	return PASS;
 }
@@ -707,7 +703,7 @@ int test_execute_helpers(){
 
 int test_execute(){
 	TEST_HEADER;
-	char buf[30] = {'s','h','e','l','l', ' ', ' ', ' ',' ','a','p','p','l','e','s',' ', ' '};
+	char buf[30] = {'s','h','e','l','l', ' ', ' ',' ','a','p','p','l','e','s',' ', ' '};
 	sys_execute(buf);
 	return PASS;
 }
@@ -753,7 +749,7 @@ void launch_tests(){
 	// TEST_OUTPUT("test_file_read_open_text", test_file_read_open_text());
 
 	// /* tests for directory */
-	// TEST_OUTPUT("test_directory_read", test_directory_read());
+	TEST_OUTPUT("test_directory_read", test_directory_read());
 
 	/* tests for RTC */
 	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());

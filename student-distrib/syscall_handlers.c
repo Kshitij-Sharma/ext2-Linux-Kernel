@@ -8,10 +8,13 @@ file_ops_t file_fops = {_sys_read_file, _sys_write_file, _sys_open_file, _sys_cl
 //directory fops table
 file_ops_t dir_fops = {_sys_read_directory, _sys_write_directory, _sys_open_directory, _sys_close_directory};
 //stdin fops table
-file_ops_t std_in_fops = {_sys_read_terminal, _sys_dummy_read_write, _sys_dummy_open, _sys_dummy_close};
+file_ops_t std_in_fops = {_sys_read_terminal, _sys_dummy_write, _sys_dummy_open, _sys_dummy_close};
 //stdout fops table
-file_ops_t std_out_fops = {_sys_dummy_read_write, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
+file_ops_t std_out_fops = {_sys_dummy_read, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
+
+
 int8_t buf_test[_4KB_];
+int read_dir_flag = 0;
 
 
 /** sys_halt
@@ -24,17 +27,17 @@ int8_t buf_test[_4KB_];
  */
 int32_t sys_halt (int8_t status){
     printf("halt called\n");
-    cur_pcb_ptr = cur_pcb_ptr->parent_pcb;
-    process_num--;
-    /* disable old program's page HERE */
-    _execute_setup_program_paging();
+    // cur_pcb_ptr = cur_pcb_ptr->parent_pcb;
+    // process_num--;
+    // /* disable old program's page HERE */
+    // _execute_setup_program_paging();
+    return 0;
     
-    /** set cur pcb to be parent of curr pcb
+    /** set cur pcb to be parent of cur pcb
      * change page to parent's page
      *  "disable" old program's page
      *  decrement process_num
-     * context switch
-    return 0; 
+     * context switch */
 }
 
 
@@ -54,7 +57,7 @@ int32_t sys_execute (const int8_t* command){
 
     memset(prog_name, '\0', 32);
     memset(arg, '\0', 128);
-    
+    tempret = 0;
     tempret = _execute_parse_args(command, prog_name, arg);
     if(tempret == -1)   return -1;
     
@@ -95,10 +98,11 @@ int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* ar
     if(command == NULL || prog_name == NULL || arg == NULL)  return -1;
     
     /* skips spaces in front of program name */
-    while (command[i] == ' ' && command[i] != '\0') i++;
-    if (command[i] == '\0') return -1; // -1 implies bad command name
+    while (command[i] == ' ' && command[i] != '\0' && command[i] != '\n') i++;
+    if (command[i] == '\0' || command[i] == '\n') return -1; // -1 implies bad command name
+
     /* copies name of program into prog_name buffer */
-    while (command[i] != ' ' && command[i] != '\0') memcpy(prog_name++, command + (i++), 1);
+    while (command[i] != ' ' && command[i] != '\0' && command[i] != '\n') memcpy(prog_name++, command + (i++), 1);
     /* skips spaces in front of argument name */
     while (command[i] == ' ' && command[i] != '\0') i++;
 
@@ -156,9 +160,10 @@ pcb_t * _execute_create_PCB(){
     
     new_pcb->parent_pcb = cur_pcb_ptr;      // sets the parent of PCB for this process
     new_pcb->process_id = process_num++;    // gives our process a PID
+
     /* first 2 file descriptors in PCB are stdin/stdout */
-    new_pcb->file_desc_array[0] = &(file_desc_t){&std_in_fops, 0, 0, 1};   //SET EQUAL TO STDIN
-    new_pcb->file_desc_array[1] = &(file_desc_t){&std_out_fops, 0, 1, 1};  //SET EQUAL TO STDOUT
+    new_pcb->file_desc_array[0] = (file_desc_t){&std_in_fops, 0, 0, 1};   //SET EQUAL TO STDIN
+    new_pcb->file_desc_array[1] = (file_desc_t){&std_out_fops, 0, 0, 1};  //SET EQUAL TO STDOUT
     /* next open location to place a file */
     new_pcb->next_open_index = 2;
     return new_pcb;
@@ -198,7 +203,16 @@ void _execute_context_switch(){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
-    _sys_read_terminal(fd, buf, nbytes);
+    // return _sys_read_terminal(fd, buf, nbytes);
+    /* checking bounds of the arguments */
+    if(nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)     return -1;
+    /* checking bounds of the file descriptor array */
+    if(fd >= cur_pcb_ptr->next_open_index)                          return -1;
+    if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
+    
+    /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
+    uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
+    return cur_pcb_ptr->file_desc_array[fd].file_ops_table->read(this_inode, buf, nbytes);
     return 0;
 }
 
@@ -211,7 +225,16 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
-    _sys_write_terminal(fd, buf, nbytes);
+    // return _sys_write_terminal(fd, buf, nbytes);
+    /* checking bounds of the arguments */
+    if(nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)     return -1;
+    /* checking bounds of the file descriptor array */
+    if(fd >= cur_pcb_ptr->next_open_index)                          return -1;
+    if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
+    
+    /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
+    uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
+    return cur_pcb_ptr->file_desc_array[fd].file_ops_table->write(this_inode, buf, nbytes);
     return 0;
 }
 
@@ -223,9 +246,50 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
  * Side Effects: None
  * NOT YET IMPLEMENTED
  */
-int32_t sys_open (const int8_t* filename){
-    printf("open called\n");
-    return 0;
+int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
+    // checks for valid filename
+    int8_t file[32];
+    int i;
+    int ret_val;
+    for (i = 0; i < 32; i++)
+    { 
+        if(filename[i] == '\0')        break;
+        file[i] = filename[i];
+    }
+    file[i] = '\0';
+
+    /* find the dentry for the file */
+    dentry_t this_dentry; 
+    this_dentry.inode = 0;
+    this_dentry.file_type = 0;
+    ret_val = read_dentry_by_name(file, &this_dentry);
+    if(ret_val == -1)           return -1;
+    
+    /* figures out which type of file it is */
+    file_ops_t* this_fops;
+    uint32_t this_inode;
+    switch(this_dentry.file_type)
+    {
+        case 0:
+            this_fops = &rtc_fops;
+            this_inode = _sys_open_rtc(file); // returns 0
+            break;
+        case 1:
+            this_fops = &dir_fops;
+            this_inode = _sys_open_directory(file); // returns 0
+            break;
+        case 2:
+            this_fops = &file_fops;
+            this_inode = _sys_open_file(file); // returns inode
+            break;
+        default:
+            return -1;
+    }
+    /* assign the appropriate file descriptor to the PCB */
+    int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index++;
+    cur_pcb_ptr->file_desc_array[cur_pcb_idx] = (file_desc_t){this_fops, this_inode, 0, 1}; 
+    
+    return cur_pcb_idx; // index in the file descriptor array
 }
 
 /** sys_halt
@@ -237,8 +301,13 @@ int32_t sys_open (const int8_t* filename){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_close (int32_t fd){
-    printf("close called\n");
-    return 0;
+    if(fd < 0 || fd > MAX_FD_IDX)                                    return -1;
+    if(fd >= cur_pcb_ptr->next_open_index)                           return -1;
+    if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
+
+    cur_pcb_ptr->file_desc_array[fd].flags = 0;
+    cur_pcb_ptr->next_open_index--;
+    return cur_pcb_ptr->file_desc_array[fd].file_ops_table->close(fd);
 }
 
 /** sys_halt
@@ -332,7 +401,6 @@ int32_t _sys_close_terminal(int32_t fd){
  * Side Effects: none
  */
 int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
-    
     /* check edge cases */
     if(NULL == buf || nbytes < 0)       return -1;
     if(nbytes == 0)                     return 0;
@@ -358,7 +426,7 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
  * Outputs: 0 @ directory end
  * Side Effects: 
  */
-int32_t _sys_write_terminal (int32_t fd, const void* buf, int32_t nbytes){
+int32_t _sys_write_terminal(int32_t fd, const void* buf, int32_t nbytes){
     int i, bytes_written;
     char write_string[nbytes];
     int enter_flag = 0;
@@ -383,7 +451,7 @@ int32_t _sys_write_terminal (int32_t fd, const void* buf, int32_t nbytes){
             putc(write_string[i]);
             bytes_written++;
         }                 
-        if (write_string[i] == '\n') enter_flag = 1;
+        if(write_string[i] == '\n') enter_flag = 1;
     }
     if (!enter_flag) putc('\n');
 
@@ -425,7 +493,7 @@ int32_t _sys_close_rtc(int32_t fd){
  * Outputs: 0 @ directory end
  * Side Effects: sets RTC rate
  */
-int32_t _sys_write_rtc(int32_t fd, void* buf, int32_t nbytes){
+int32_t _sys_write_rtc(int32_t fd, const void* buf, int32_t nbytes){
     // sets the RTC rate to 2Hz
     char prev;
     int rate;
@@ -539,7 +607,7 @@ int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
  * Side Effects: sets RTC rate
  */
 
-int32_t _sys_write_file (int32_t fd, void* buf, int32_t nbytes){
+int32_t _sys_write_file (int32_t fd, const void* buf, int32_t nbytes){
     return -1;
 }
 
@@ -577,10 +645,31 @@ int32_t _sys_close_directory(int32_t fd){
  */
 int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
     dentry_t curr_dentry;
-    read_dentry_by_index(fd, &curr_dentry);
-    strncpy((int8_t*) ((fd * FILENAME_LEN) + buf), 
+    if (read_dir_flag == boot_block->entries){
+        read_dir_flag = 0;
+        return 0;
+    }
+    // fd = cur_pcb_ptr->file_desc_array[fd].inode;
+
+    // uint32_t i;
+    // uint32_t idx = -1;
+    // /* finds the index associated with the file to read the dentries */    
+    // for(i = 0; i < boot_block->entries; i++){
+    //     if((uint32_t)(boot_block->dir_entries[i].inode) == (uint32_t)fd)
+    //     {   
+    //         idx = i;
+    //     }
+    // }
+    // /* if file not found, return -1*/
+    // if (idx == -1) return 0;
+
+
+    // (read_dir_flag++ * FILENAME_LEN) + 
+    read_dentry_by_index(read_dir_flag++, &curr_dentry);
+    strncpy((int8_t*) (buf), 
             (int8_t*) curr_dentry.file_name, FILENAME_LEN);
-    return 0;
+    // printf("%s\n", curr_dentry.file_name);
+    return FILENAME_LEN;
 }
 /** sys_write_directory
  *  
@@ -590,7 +679,7 @@ int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
  * Side Effects: sets RTC rate
  */
 
-int32_t _sys_write_directory (int32_t fd, void* buf, int32_t nbytes){
+int32_t _sys_write_directory (int32_t fd, const void* buf, int32_t nbytes){
     return -1;
 }
 
@@ -616,7 +705,10 @@ int32_t _sys_write_directory (int32_t fd, void* buf, int32_t nbytes){
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int32_t _sys_dummy_read_write(int32_t fd, void* buf, int32_t nbytes){
+int32_t _sys_dummy_read(int32_t fd, void* buf, int32_t nbytes){
+    return -1;
+}
+int32_t _sys_dummy_write(int32_t fd, const void* buf, int32_t nbytes){
     return -1;
 }
 int32_t _sys_dummy_open(const int8_t* filename){
