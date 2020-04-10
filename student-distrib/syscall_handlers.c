@@ -26,6 +26,7 @@ int read_dir_flag = 0;
  * NOT YET IMPLEMENTED
  */
 int32_t sys_halt (int8_t status){
+    if (process_num == 1)   return -1;
     printf("halt called\n");
     // cur_pcb_ptr = cur_pcb_ptr->parent_pcb;
     // process_num--;
@@ -34,10 +35,10 @@ int32_t sys_halt (int8_t status){
     return 0;
     
     /** set cur pcb to be parent of cur pcb
-     * change page to parent's page
+     *  change page to parent's page
      *  "disable" old program's page
      *  decrement process_num
-     * context switch */
+     *  context switch */
 }
 
 
@@ -649,26 +650,9 @@ int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
         read_dir_flag = 0;
         return 0;
     }
-    // fd = cur_pcb_ptr->file_desc_array[fd].inode;
-
-    // uint32_t i;
-    // uint32_t idx = -1;
-    // /* finds the index associated with the file to read the dentries */    
-    // for(i = 0; i < boot_block->entries; i++){
-    //     if((uint32_t)(boot_block->dir_entries[i].inode) == (uint32_t)fd)
-    //     {   
-    //         idx = i;
-    //     }
-    // }
-    // /* if file not found, return -1*/
-    // if (idx == -1) return 0;
-
-
-    // (read_dir_flag++ * FILENAME_LEN) + 
     read_dentry_by_index(read_dir_flag++, &curr_dentry);
     strncpy((int8_t*) (buf), 
             (int8_t*) curr_dentry.file_name, FILENAME_LEN);
-    // printf("%s\n", curr_dentry.file_name);
     return FILENAME_LEN;
 }
 /** sys_write_directory
