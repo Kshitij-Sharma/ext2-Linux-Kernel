@@ -254,6 +254,7 @@ char * error_messages[NUM_EXCEPTIONS] = {
 void exception_handler(int index)
 {
     cli();
+    error_flag = 1;
     printf("EXCEPTION: %s \n EXCEPTION #: %d \n", error_messages[index], index); // prints out which exception was triggered
     while(1); // holds the program in an indefinite loop due to the exception
     sti();

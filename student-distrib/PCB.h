@@ -24,8 +24,9 @@ typedef struct pcb_t{
   struct pcb_t* parent_pcb;
   uint32_t process_id; // which number process is it
   uint32_t next_open_index;
-  uint32_t eip;
+  uint32_t ebp;
   uint32_t esp;
+  uint32_t eip;
   // current PCB
   // something for registers (esp ebp eip) -- just need one of these
   // PID: index of child process in parent process FD array

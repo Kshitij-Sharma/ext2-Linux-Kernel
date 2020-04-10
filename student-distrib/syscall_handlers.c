@@ -26,12 +26,25 @@ int read_dir_flag = 0;
  * NOT YET IMPLEMENTED
  */
 int32_t sys_halt (int8_t status){
+    int i;
     if (process_num == 1)   return -1;
-    printf("halt called\n");
-    // cur_pcb_ptr = cur_pcb_ptr->parent_pcb;
-    // process_num--;
+    for (i = 0; i < FILE_DESC_ARR_SIZE; i++) sys_close(i);
+    cur_pcb_ptr = cur_pcb_ptr->parent_pcb;
+    process_num--;
+    program_paging(((process_num-1) * _4MB_PAGE) + USER_START);
+    /* flushes TLB before moving to new program */
+    flush_tlb();    tss.ss0 = KERNEL_DS; // switch stack context
+    tss.esp0 = cur_pcb_ptr->esp;
     // /* disable old program's page HERE */
-    // _execute_setup_program_paging();
+    asm volatile (
+        "mov %0, %%esp;" /* push user_ds */
+        "mov %1, %%ebp;" /* push user_esp */
+        "mov %2, %%eax;"   /* push EFLAGS */ 
+        "jmp return_from_prog;"
+        :
+        :"r" (cur_pcb_ptr->esp), "r" (cur_pcb_ptr->ebp), "r" ((uint32_t) status)
+        :
+    );
     return 0;
     
     /** set cur pcb to be parent of cur pcb
@@ -54,8 +67,16 @@ int32_t sys_execute (const int8_t* command){
     int8_t tempret;
     int8_t prog_name[32];
     int8_t arg[128];
+    uint32_t return_value = 0;
     // int8_t* cmd = command;
-
+    error_flag = 0;
+    if (cur_pcb_ptr != NULL){
+         asm volatile (
+        "mov %%esp, %%eax;" /* push user_ds */
+        "mov %%ebp, %%ebx;"
+        :"=a" (cur_pcb_ptr->esp), "=b" (cur_pcb_ptr->ebp)
+        );
+    }
     memset(prog_name, '\0', 32);
     memset(arg, '\0', 128);
     tempret = 0;
@@ -74,6 +95,18 @@ int32_t sys_execute (const int8_t* command){
 
     cur_pcb_ptr = _execute_create_PCB();
     _execute_context_switch();
+    
+    asm volatile (
+        "return_from_prog:;" /* push user_ds */
+        "leave;"
+        "ret;"
+        :"=a" (return_value)
+        );
+
+    if (error_flag){
+        return_value = ERROR_VAL;
+    }
+    return return_value;
     /** Execute:
      * - user level tasks share a common mapping for kernel page
      * - only one page needed for each tasks' use memory
@@ -90,7 +123,6 @@ int32_t sys_execute (const int8_t* command){
      *  - needs to correctly  
      *  - finds addr of first instruction
     */
-    return 0;
 }
 
 int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* arg){

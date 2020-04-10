@@ -23,4 +23,6 @@ extern void SIMD_floating_point();
 void exception_handler(int index);
 int RTC_ON_FLAG;
 volatile int RTC_READ_FLAG;
+uint32_t error_flag;
+
 

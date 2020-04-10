@@ -12,9 +12,11 @@
 #define ELF_TWO                     0x45
 #define ELF_THREE                   0x4C
 #define ELF_FOUR                    0x46
+#define ERROR_VAL                   256
+
+
 
 int32_t sys_halt(int8_t status);
-
 int32_t sys_execute(const int8_t* command);
 int32_t _execute_parse_args(const int8_t* command, char * program_name, char * argument);
 int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf);
