@@ -1,4 +1,7 @@
+#ifndef _IDT_HANDLERS
+#define _IDT_HANDLERS
 #include "lib.h"
+#include "syscall_handlers.h"
 // #include "syscall_handlers.h"
 
 
@@ -24,5 +27,7 @@ void exception_handler(int index);
 int RTC_ON_FLAG;
 volatile int RTC_READ_FLAG;
 uint32_t error_flag;
+uint32_t ctrl_l_flag;
+#endif
 
 

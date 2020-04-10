@@ -1,5 +1,15 @@
+#include "idt_handlers.h"
 #include "syscall_handlers.h"
+// #include "lib.h"
+/**
+ * To Do:
+ * 3. bug log
+ * */
 
+
+
+
+/***********************PCB related structures and variables***********************/
 pcb_t * cur_pcb_ptr = NULL;
 // rtc fops table
 file_ops_t rtc_fops = {_sys_read_rtc, _sys_write_rtc, _sys_open_rtc, _sys_close_rtc};
@@ -18,24 +28,36 @@ int read_dir_flag = 0;
 
 
 /** sys_halt
- *  
- * Halt system call
- * Inputs: int8_t status
+ * Halt System Call 
+ * 
+ * Inputs: int8_t status of program
  * Outputs: int32_t
- * Side Effects: None
- * NOT YET IMPLEMENTED
+ * Side Effects: halts current process, resetting program paging, adjusts tss, and returns to the parent prograam, 
+ * 
  */
 int32_t sys_halt (int8_t status){
     int i;
-    if (process_num == 1)   return -1;
+    
+    /* closes all file sin PCB */
     for (i = 0; i < FILE_DESC_ARR_SIZE; i++) sys_close(i);
-    cur_pcb_ptr = cur_pcb_ptr->parent_pcb;
+
+    /* decrements current process number */
     process_num--;
+    
+    /* sets pcb to be the parent's pcb*/
+    cur_pcb_ptr = cur_pcb_ptr->parent_pcb;
+
+    /* sets program paging to previous process */
     program_paging(((process_num-1) * _4MB_PAGE) + USER_START);
+
     /* flushes TLB before moving to new program */
-    flush_tlb();    tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 = cur_pcb_ptr->esp;
-    // /* disable old program's page HERE */
+    flush_tlb();    
+    tss.ss0 = KERNEL_DS; // switch stack context
+    tss.esp0 = (uint32_t)(USER_START - (process_num) * _8_KB - _4_BYTES);
+
+    /* cant close shell! */
+    if (process_num == 0)   sys_execute("shell");
+    /* returns to previous program's execution */
     asm volatile (
         "mov %0, %%esp;" /* push user_ds */
         "mov %1, %%ebp;" /* push user_esp */
@@ -46,30 +68,26 @@ int32_t sys_halt (int8_t status){
         :
     );
     return 0;
-    
-    /** set cur pcb to be parent of cur pcb
-     *  change page to parent's page
-     *  "disable" old program's page
-     *  decrement process_num
-     *  context switch */
+
 }
 
 
-/** sys_halt
- *  
- * Halt system call
- * Inputs: int8_t status
- * Outputs: int32_t
- * Side Effects: None
- * NOT YET IMPLEMENTED
+/** sys_execute
+ * Execute System Call 
+ * 
+ * Inputs: int8_t command
+ * Outputs: int32_t --> 0 on success, failure if otherwise
+ * Side Effects: executes a program by: parsing arguments, checking executable, setting up paging for the program and loading it into memory, switching contexts to user program
  */
 int32_t sys_execute (const int8_t* command){
     int8_t tempret;
-    int8_t prog_name[32];
-    int8_t arg[128];
+    int8_t prog_name[MAX_NAME_LENGTH];
+    int8_t arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0;
-    // int8_t* cmd = command;
+    tempret = 0;
     error_flag = 0;
+
+    /* saves the old base and stack pointer prior to execution to return to later*/
     if (cur_pcb_ptr != NULL){
          asm volatile (
         "mov %%esp, %%eax;" /* push user_ds */
@@ -77,65 +95,65 @@ int32_t sys_execute (const int8_t* command){
         :"=a" (cur_pcb_ptr->esp), "=b" (cur_pcb_ptr->ebp)
         );
     }
-    memset(prog_name, '\0', 32);
-    memset(arg, '\0', 128);
-    tempret = 0;
+
+    /* parses arguments passed into command, stores them in prog_name and arg */
+    memset(prog_name, '\0', MAX_NAME_LENGTH);
+    memset(arg, '\0', KEYBOARD_BUFFER_SIZE);
     tempret = _execute_parse_args(command, prog_name, arg);
     if(tempret == -1)   return -1;
     
-    // int8_t buf[_4KB_];
+    /* checks that the file is an executable*/
     tempret = _execute_executable_check(prog_name, buf_test);
     if(tempret == -1)   return -1;
 
+    /* sets up paging scheme for current program */
     tempret = _execute_setup_program_paging();
     if(tempret == -1)   return -1;
 
+    /* loads the user program */
     tempret = _execute_user_program_loader(prog_name);
     if(tempret == -1)   return -1;
 
+    /* creates PCB for process */
     cur_pcb_ptr = _execute_create_PCB();
+    /* switches context to user program */
     _execute_context_switch();
     
+    /* place for a program to return to while being halted */
     asm volatile (
         "return_from_prog:;" /* push user_ds */
         "leave;"
         "ret;"
         :"=a" (return_value)
         );
-
+    
+    /* checks if there's an error*/
     if (error_flag){
         return_value = ERROR_VAL;
     }
     return return_value;
-    /** Execute:
-     * - user level tasks share a common mapping for kernel page
-     * - only one page needed for each tasks' use memory
-     * 1. parse arguments (DONE)
-     * 2. check if executable (DONE)
-     * 3. set up paging for the program
-     *  - all user programs 128MB in virtual mem
-     *  - physical memory for programs start at 8MB + (process no * 4MB)
-     *  - flush TLB after page stop
-     * 4. program loader
-     *  - checks ELF constant (done in executable check)
-     *  - copies file contents to correct location
-     *      - fs driver should copy a program image from random 4kB disk block in the file system into contiguous physical mem
-     *  - needs to correctly  
-     *  - finds addr of first instruction
-    */
 }
 
+/** _execute_parse_args
+ * Execute System Call Helper 
+ * 
+ * Inputs: command, name of program, arguments 
+ * Outputs: 0 on success, -1 on failure
+ * Side Effects: parses the command line arguments for the program
+ */
 int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* arg){
     int i = 0;
-
+    int j;
     if(command == NULL || prog_name == NULL || arg == NULL)  return -1;
     
     /* skips spaces in front of program name */
     while (command[i] == ' ' && command[i] != '\0' && command[i] != '\n') i++;
     if (command[i] == '\0' || command[i] == '\n') return -1; // -1 implies bad command name
-
-    /* copies name of program into prog_name buffer */
-    while (command[i] != ' ' && command[i] != '\0' && command[i] != '\n') memcpy(prog_name++, command + (i++), 1);
+    j = i;
+    /* copies name of program into prog_name buffer -- only 32 chars */
+    while (command[i] != ' ' && command[i] != '\0' && command[i] != '\n' && (i -j) < 32) memcpy(prog_name++, command + (i++), 1);
+    /* if there are still chars left in the program name, skip over them */
+    while (command[i] != ' ' && command[i] != '\0' && command[i] != '\n') i++; 
     /* skips spaces in front of argument name */
     while (command[i] == ' ' && command[i] != '\0') i++;
 
@@ -146,6 +164,13 @@ int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* ar
     return 0;
 }
 
+/** _execute_executable_check
+ * Execute System Call Helper 
+ * 
+ * Inputs: program mane and a buffer to fill with the header information (for later use) 
+ * Outputs: 0 on success, -1 on failure
+ * Side Effects: checks that the file is an executable via ELF constant
+ * */
 int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf){
     int ret;
     dentry_t prog_dentry;
@@ -169,8 +194,15 @@ int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf){
     /* checks return value */
     return (ret == 0) ? 0 : -1;
 
-  }
+}
 
+/** _execute_setup_program_paging
+ * Execute System Call Helper 
+ * 
+ * Inputs: command, name of program, arguments 
+ * Outputs: 0 on success, -1 on failure
+ * Side Effects: allocates the appropriate paging attributes for the virtual memory at which the program will be
+ */
 int32_t _execute_setup_program_paging(){
     /* sets up paging for the current program */
     program_paging((process_num * _4MB_PAGE) + USER_START);
@@ -179,6 +211,13 @@ int32_t _execute_setup_program_paging(){
     return 0;
 }
 
+/** _execute_user_program_loader
+ * Execute System Call Helper 
+ * 
+ * Inputs: name of program
+ * Outputs: 0 on success, -1 on failure
+ * Side Effects: opens the program and reads teh program into its space in memory
+ */
 int32_t _execute_user_program_loader(int8_t * prog_name){
     /* loads contents of file into program image in virtual memory */
     int32_t fd = _sys_open_file(prog_name);
@@ -187,8 +226,16 @@ int32_t _execute_user_program_loader(int8_t * prog_name){
     return (out == -1) ? -1 : 0;
 }
 
+/** _execute_create_PCB
+ * Execute System Call Helper 
+ * 
+ * Inputs: none  
+ * Outputs: new PCB for the program
+ * Side Effects: creates the PCB for this program and stores appropriate information
+ */
 pcb_t * _execute_create_PCB(){
 
+    /* creates the PCB for this at the right location */ 
     pcb_t * new_pcb =  (pcb_t*) ((int)_8_MB - ((int)_8_KB * (process_num+1)));
     
     new_pcb->parent_pcb = cur_pcb_ptr;      // sets the parent of PCB for this process
@@ -197,11 +244,19 @@ pcb_t * _execute_create_PCB(){
     /* first 2 file descriptors in PCB are stdin/stdout */
     new_pcb->file_desc_array[0] = (file_desc_t){&std_in_fops, 0, 0, 1};   //SET EQUAL TO STDIN
     new_pcb->file_desc_array[1] = (file_desc_t){&std_out_fops, 0, 0, 1};  //SET EQUAL TO STDOUT
+    
     /* next open location to place a file */
     new_pcb->next_open_index = 2;
     return new_pcb;
 }
-// 128 MB in virtual + 4MB - 4B
+
+/** _execute_context_switch
+ * Execute System Call Helper 
+ * 
+ * Inputs: none 
+ * Outputs: none
+ * Side Effects: switches context to the user program
+ */
 void _execute_context_switch(){
     /* switch TSS context (stack segment and esp) */
     tss.ss0 = KERNEL_DS; // switch stack context
@@ -210,7 +265,8 @@ void _execute_context_switch(){
     uint32_t user_esp = _128_MB + _4MB_PAGE - _4_BYTES; // maps to the esp of user space
     /* gets the eip from the executable header */
     uint32_t eip = 0;
-    eip += (((uint8_t) buf_test[27]) << 24) | (((uint8_t)buf_test[26]) << 16) | ((uint8_t)(buf_test[25]) << 8) | ((uint8_t)buf_test[24]);
+    // buf_test from 27 to 24 used as specified in the documentation. the 24, 16, and 8 are used to shift the bytes to the correct spot in the eip int
+    eip += (((uint8_t) buf_test[27]) << 24) | (((uint8_t)buf_test[26]) << 16) | ((uint8_t)(buf_test[25]) << 8) | ((uint8_t)buf_test[24]);  
     cur_pcb_ptr->eip = eip;
     /* performs context stack in assembly */
     asm volatile (
@@ -228,12 +284,11 @@ void _execute_context_switch(){
 
 
 /** sys_read
- *  
- * Read system call - reads from terminal, RTC, directory, or file
+ * Read System Call 
+ * 
  * Inputs: file descriptor, buffer (to fill), number of bytes to read
- * Outputs: number of bytes read
- * Side Effects: None
- * NOT YET IMPLEMENTED
+ * Outputs: number of bytes readud 
+ * Side Effects: fills buffer with contents reaud
  */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
     // return _sys_read_terminal(fd, buf, nbytes);
@@ -246,50 +301,52 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->read(this_inode, buf, nbytes);
-    return 0;
+    // return -1;
 }
 
 /** sys_write
- *  
- * Halt system call - write rate to RTC or terminal 
+ * Write System Call 
+ * 
  * Inputs: file descriptor, buffer we write from, number of bytes to write
- * Outputs: int32_t
+ * Outputs: bytes written
  * Side Effects: can change RTC frequency or output stuff to screen
- * NOT YET IMPLEMENTED
  */
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
-    // return _sys_write_terminal(fd, buf, nbytes);
+
     /* checking bounds of the arguments */
     if(nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)     return -1;
     /* checking bounds of the file descriptor array */
     if(fd >= cur_pcb_ptr->next_open_index)                          return -1;
+    /* checks that the file is active */ 
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
     
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->write(this_inode, buf, nbytes);
-    return 0;
 }
 
-/** sys_open
+/** sys_open()
+ * Open System Call
  *  
- * Open system call
- * Inputs: int8_t status
- * Outputs: int32_t
- * Side Effects: None
- * NOT YET IMPLEMENTED
+ * Inputs: int8_t file name
+ * Outputs: current pcb index
+ * Side Effects: opens the file
  */
 int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
-    // checks for valid filename
     int8_t file[32];
     int i;
     int ret_val;
-    for (i = 0; i < 32; i++)
+    /* makes sure nothing past the 7th file can be opened */
+    if(cur_pcb_ptr->next_open_index > MAX_FD_IDX)      return -1;
+    for (i = 0; i < MAX_NAME_LENGTH; i++)
     { 
         if(filename[i] == '\0')        break;
         file[i] = filename[i];
     }
     file[i] = '\0';
+
+    /* assign the appropriate file descriptor to the PCB */
+    int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index++;
 
     /* find the dentry for the file */
     dentry_t this_dentry; 
@@ -301,6 +358,7 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
     /* figures out which type of file it is */
     file_ops_t* this_fops;
     uint32_t this_inode;
+    /* switches based on type of file */
     switch(this_dentry.file_type)
     {
         case 0:
@@ -318,28 +376,29 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
         default:
             return -1;
     }
-    /* assign the appropriate file descriptor to the PCB */
-    int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index++;
+    /* assigns appropriate file descriptor */
     cur_pcb_ptr->file_desc_array[cur_pcb_idx] = (file_desc_t){this_fops, this_inode, 0, 1}; 
     
     return cur_pcb_idx; // index in the file descriptor array
 }
 
-/** sys_halt
- *  
- * Halt system call
- * Inputs: int8_t status
- * Outputs: int32_t
- * Side Effects: None
- * NOT YET IMPLEMENTED
+/** sys_close
+ * Close System Call 
+ * 
+ * Inputs: int32_t file descriptor of an open file
+ * Outputs: return value of close function for the given file
+ * Side Effects: PCB flags cleared
  */
 int32_t sys_close (int32_t fd){
-    if(fd < 0 || fd > MAX_FD_IDX)                                    return -1;
-    if(fd >= cur_pcb_ptr->next_open_index)                           return -1;
+    /* checks bounds and if the file is active */
+    if(fd < MIN_FD_IDX || fd > MAX_FD_IDX)                          return -1;
+    if(fd >= cur_pcb_ptr->next_open_index)                          return -1;
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
 
+    /* marks file as closed in PCB */
     cur_pcb_ptr->file_desc_array[fd].flags = 0;
     cur_pcb_ptr->next_open_index--;
+    /* calls the appropriate system close function */
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->close(fd);
 }
 
@@ -406,21 +465,21 @@ int32_t sys_sigreturn (void){
  *  Terminal 
  **/
 
-/** _sys_open_file
+/** _sys_open_terminal
  *  
- * File helper function for system open
+ * terminal helper function for system open
  * Inputs: same as sys_open
- * Outputs: 0 @ directory end
+ * Outputs: 0
  * Side Effects: 
  */
 int32_t _sys_open_terminal (const int8_t* filename){
     return 0;
 }
-/** _sys_close_file
+/** _sys_close_terminal
  *  
- * File helper function for system close
+ * Terminal helper function for system close
  * Inputs: same as sys_close
- * Outputs: 0 @ directory end
+ * Outputs: 0 
  * Side Effects: 
  */
 int32_t _sys_close_terminal(int32_t fd){
@@ -435,22 +494,30 @@ int32_t _sys_close_terminal(int32_t fd){
  */
 int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
     /* check edge cases */
+    uint32_t retval = 0;
+    int i = 0;
     if(NULL == buf || nbytes < 0)       return -1;
     if(nbytes == 0)                     return 0;
 
     /* clears the keyboard buffer */
     memset(keyboard_buffer, NULL, KEYBOARD_BUFFER_SIZE);
     /* adjusts nbytes if overflow */
-    nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE: nbytes;
+    nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE-1: nbytes;
 
     /* reads data/fills buffer from keyboard */
     sys_read_flag = 1;
     while(sys_read_flag);
     
     /* copies memory from keyboard input to buffer */
-    memcpy(buf, keyboard_buffer, nbytes);
+    while (keyboard_buffer[i] != '\0' && keyboard_buffer[i] != '\n' && keyboard_buffer[i] != NULL && i < nbytes){
+        memcpy(&(((char*) buf)[i]), &(keyboard_buffer[i]), 1);
+        retval++;
+        i++;
+    } 
+    ((char *) buf)[i] = '\n';
+    
 
-    return nbytes;
+    return retval;
 }
 /** _sys_write_terminal
  *  
@@ -486,7 +553,7 @@ int32_t _sys_write_terminal(int32_t fd, const void* buf, int32_t nbytes){
         }                 
         if(write_string[i] == '\n') enter_flag = 1;
     }
-    if (!enter_flag) putc('\n');
+    // if (!enter_flag) putc('\n');
 
     return bytes_written;
 }

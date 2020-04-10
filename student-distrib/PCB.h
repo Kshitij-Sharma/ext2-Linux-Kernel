@@ -2,6 +2,7 @@
 
 #define FILE_DESC_ARR_SIZE  8
 #define MAX_FD_IDX          7
+#define MIN_FD_IDX          2
 
 typedef struct file_ops_struct{
    int32_t (*read)  (int32_t fd, void* buf, int32_t nbytes);

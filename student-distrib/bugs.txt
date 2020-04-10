@@ -65,3 +65,26 @@ BUG LOG
                 BUG: _sys_write_rtc was not changing frequency properyly
                         - Problem: we were passing in the frequency in a void * buffer and ended up casting it to weird type, so the frequency value never made it to the function
                         - SOLUTION: We passed frequency in as an address to an int and cased to (void *) and this solved it                        
+                        
+-----------------------------------Checkpoint 3 Bugs-----------------------------------
+        1. sys_excute
+                BUG: Page fault after typing in more than 50 characters
+                        - We were trying to put everything into a 32 char buffer
+                        - SOLUTION: We had our execute function only read in the first 32 chars of the program name at max
+                BUG: Page fault when running execute
+                        - The eip wasn't being set properly and was calling a page fault within the context switch
+                        - We had to properly grab the eip from bytes 24 - 27 and parse them to be passed in the assembly linkage
+
+        2. sys_halt
+                BUG: Exiting the base shell caused page faults and general protection faults
+                        - SOLUTION: we added a checker to execute a new shell if all shells were closed
+
+        3. other system calls
+                BUG: Close was trying to close stdin and stdout
+                        - SOLUTION: Added a checker to make sure indicies 0 and 1 in the fd array dont get closed 
+                BUG: Errors in return value from all system calls      
+                        - incorrect assembly linkage was discarding the syscall return value 
+                        - SOLUTION: correctly save EAX in assembly linkage for return value checking
+                BUG: Syserr fail on err_open_lots
+                        - We weren't checking for if more than 6 files were being open
+                        - SOLUTION: Made a case check pcb if the process number was greater than index 7 (8th open file)

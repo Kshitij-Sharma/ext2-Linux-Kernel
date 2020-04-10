@@ -1,5 +1,7 @@
 
 #include "idt_handlers.h"
+#include "syscall_handlers.h"
+
 
 #define ENTER_PRESSED               0x1C
 #define LEFT_SHIFT_PRESSED          0X2A
@@ -157,7 +159,11 @@ void keyboard_interrupt()
     /* if we are releasing a key we don't do anything */
     /* ctrl+L clears screen */
     if (control_on && pressed == L_SCANCODE){
+        // ctrl_l_flag = 1;
+        // while (ctrl_l_flag);
         clear();
+        sys_read_flag = 0;
+        // printf("391OS>");
         return;
     }
     /* if tilde, we want to halt RTC spazzing */
@@ -170,12 +176,14 @@ void keyboard_interrupt()
         output_char = scancode_to_char[pressed*2+1];
     
     // don't let caps lock affect shift
-    else if ((caps_lock_on && !shift_on) 
+    else if ((caps_lock_on && !shift_on && pressed >= BACKSPACE) 
             && (pressed >= LETTER_START && pressed <= LETTER_END)
             && !(pressed >= CAPS_IGNORE_START && pressed <= CAPS_IGNORE_END) 
             && !(pressed >= IGNORE_BRACKET && pressed <= LEFT_CONTROL_PRESSED))
                 output_char = scancode_to_char[pressed*2+1];
     
+    else if ((caps_lock_on && shift_on && pressed < BACKSPACE))
+                output_char = scancode_to_char[pressed*2+1];
     
     else        output_char = scancode_to_char[pressed*2]; // else print out the lowercase or unshifted version of the scancode char
     
@@ -256,7 +264,8 @@ void exception_handler(int index)
     cli();
     error_flag = 1;
     printf("EXCEPTION: %s \n EXCEPTION #: %d \n", error_messages[index], index); // prints out which exception was triggered
-    while(1); // holds the program in an indefinite loop due to the exception
+    // sys_halt(index);
+    sys_halt(index);
     sti();
     return;
 }

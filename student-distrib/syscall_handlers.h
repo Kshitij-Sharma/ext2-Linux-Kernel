@@ -1,3 +1,5 @@
+#ifndef _SYSCALL_HANDLERS
+#define _SYSCALL_HANDLERS
 #include "lib.h"
 #include "idt_handlers.h"
 #include "rtc.h"
@@ -16,7 +18,7 @@
 
 
 
-int32_t sys_halt(int8_t status);
+extern int32_t sys_halt(int8_t status);
 int32_t sys_execute(const int8_t* command);
 int32_t _execute_parse_args(const int8_t* command, char * program_name, char * argument);
 int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf);
@@ -42,7 +44,7 @@ int32_t _sys_read_rtc (int32_t fd, void* buf, int32_t nbytes);
 int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes);
 
 /* helper functions for sys read */
-int32_t _sys_write_terminal (int32_t fd, const void* buf, int32_t nbytes);
+extern int32_t _sys_write_terminal (int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_write_file (int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_write_rtc (int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_write_directory (int32_t fd, const void* buf, int32_t nbytes);
@@ -61,3 +63,4 @@ int32_t _sys_dummy_write(int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_dummy_read(int32_t fd, void* buf, int32_t nbytes);
 int32_t _sys_dummy_open(const int8_t* filename);
 int32_t _sys_dummy_close(int32_t fd);
+#endif

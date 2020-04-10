@@ -1,4 +1,5 @@
 #include "idt.h"
+
 /* idt_init()
         INPUTS: none
         OUTPUTS: none

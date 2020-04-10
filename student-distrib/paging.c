@@ -66,11 +66,11 @@ void paging_init(){
 }
 
 /*
-		paging_program()
-		Description: Sets up paging for program execute
-		Inputs: None
-		Outputs: None
-		Side Effects: maybe?
+	program_paging()
+	Description: Sets up paging for program execute
+	Inputs: None
+	Outputs: None
+	Side Effects: none
 	*/
 void program_paging(uint32_t physical_address){
 	/* maps spot in virtual memory to appropriate physical memory */

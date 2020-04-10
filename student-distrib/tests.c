@@ -749,7 +749,7 @@ void launch_tests(){
 	// TEST_OUTPUT("test_file_read_open_text", test_file_read_open_text());
 
 	// /* tests for directory */
-	TEST_OUTPUT("test_directory_read", test_directory_read());
+	// TEST_OUTPUT("test_directory_read", test_directory_read());
 
 	/* tests for RTC */
 	// TEST_OUTPUT("test_sys_write_rtc", test_sys_write_rtc());
@@ -759,7 +759,7 @@ void launch_tests(){
 	/* CP3 Tests */
 	// TEST_OUTPUT("test_system_call", test_system_call());
 	// TEST_OUTPUT("test_execute_helpers", test_execute_helpers());
-	TEST_OUTPUT("test_execute", test_execute());
+	// TEST_OUTPUT("test_execute", test_execute());
 
 	/* CP4 Tests */
 	/* CP5 Tests */

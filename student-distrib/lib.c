@@ -2,6 +2,7 @@
  * vim:ts=4 noexpandtab */
 
 #include "lib.h"
+// #include "syscall_handlers.h"
 
 #define VIDEO       0xB8000
 #define NUM_COLS    80
