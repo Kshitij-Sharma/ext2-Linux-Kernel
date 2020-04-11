@@ -294,8 +294,7 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
     // return _sys_read_terminal(fd, buf, nbytes);
     /* checking bounds of the arguments */
     if(nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)     return -1;
-    /* checking bounds of the file descriptor array */
-    if(fd >= cur_pcb_ptr->next_open_index)                          return -1;
+    /* checks that the file is active */
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
     
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
@@ -315,8 +314,6 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 
     /* checking bounds of the arguments */
     if(nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)     return -1;
-    /* checking bounds of the file descriptor array */
-    if(fd >= cur_pcb_ptr->next_open_index)                          return -1;
     /* checks that the file is active */ 
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
     
@@ -336,8 +333,20 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
     int8_t file[32];
     int i;
     int ret_val;
+    /* assign the appropriate file descriptor to the PCB */
+    for(i = 2; i <= MAX_FD_IDX; i++)
+    {
+        if(cur_pcb_ptr->file_desc_array[i].flags == 1)  continue;
+        else{                                         
+            cur_pcb_ptr->next_open_index = i;
+            break;
+        } 
+    }
+    /* if the PCB is full, we fail this */
+    if(i > MAX_FD_IDX)                             return -1;
+    int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index;
     /* makes sure nothing past the 7th file can be opened */
-    if(cur_pcb_ptr->next_open_index > MAX_FD_IDX)      return -1;
+    //if(cur_pcb_ptr->next_open_index > MAX_FD_IDX)      return -1;
     for (i = 0; i < MAX_NAME_LENGTH; i++)
     { 
         if(filename[i] == '\0')        break;
@@ -345,9 +354,7 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
     }
     file[i] = '\0';
 
-    /* assign the appropriate file descriptor to the PCB */
-    int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index++;
-
+    
     /* find the dentry for the file */
     dentry_t this_dentry; 
     this_dentry.inode = 0;
@@ -392,12 +399,11 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
 int32_t sys_close (int32_t fd){
     /* checks bounds and if the file is active */
     if(fd < MIN_FD_IDX || fd > MAX_FD_IDX)                          return -1;
-    if(fd >= cur_pcb_ptr->next_open_index)                          return -1;
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
 
     /* marks file as closed in PCB */
     cur_pcb_ptr->file_desc_array[fd].flags = 0;
-    cur_pcb_ptr->next_open_index--;
+    cur_pcb_ptr->next_open_index = fd;
     /* calls the appropriate system close function */
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->close(fd);
 }
