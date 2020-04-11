@@ -1,13 +1,5 @@
 #include "idt_handlers.h"
 #include "syscall_handlers.h"
-// #include "lib.h"
-/**
- * To Do:
- * 3. bug log
- * */
-
-
-
 
 /***********************PCB related structures and variables***********************/
 pcb_t * cur_pcb_ptr = NULL;
@@ -23,7 +15,7 @@ file_ops_t std_in_fops = {_sys_read_terminal, _sys_dummy_write, _sys_dummy_open,
 file_ops_t std_out_fops = {_sys_dummy_read, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
 
 
-int8_t buf_test[_4KB_];
+int8_t buf_executable_header[_4KB_];
 int read_dir_flag = 0;
 
 
@@ -103,7 +95,7 @@ int32_t sys_execute (const int8_t* command){
     if(tempret == -1)   return -1;
     
     /* checks that the file is an executable*/
-    tempret = _execute_executable_check(prog_name, buf_test);
+    tempret = _execute_executable_check(prog_name, buf_executable_header);
     if(tempret == -1)   return -1;
 
     /* sets up paging scheme for current program */
@@ -265,8 +257,8 @@ void _execute_context_switch(){
     uint32_t user_esp = _128_MB + _4MB_PAGE - _4_BYTES; // maps to the esp of user space
     /* gets the eip from the executable header */
     uint32_t eip = 0;
-    // buf_test from 27 to 24 used as specified in the documentation. the 24, 16, and 8 are used to shift the bytes to the correct spot in the eip int
-    eip += (((uint8_t) buf_test[27]) << 24) | (((uint8_t)buf_test[26]) << 16) | ((uint8_t)(buf_test[25]) << 8) | ((uint8_t)buf_test[24]);  
+    // buf_executable_header from 27 to 24 used as specified in the documentation. the 24, 16, and 8 are used to shift the bytes to the correct spot in the eip int
+    eip += (((uint8_t) buf_executable_header[27]) << 24) | (((uint8_t)buf_executable_header[26]) << 16) | ((uint8_t)(buf_executable_header[25]) << 8) | ((uint8_t)buf_executable_header[24]);  
     cur_pcb_ptr->eip = eip;
     /* performs context stack in assembly */
     asm volatile (
@@ -773,42 +765,48 @@ int32_t _sys_write_directory (int32_t fd, const void* buf, int32_t nbytes){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/** _sys_dummy_read(int32_t fd, void* buf, int32_t nbytes)
+ *  
+ * Dummy function for stdout
+ * Inputs: same as sys_read
+ * Outputs: -1 
+ * Side Effects: none
+ */
 int32_t _sys_dummy_read(int32_t fd, void* buf, int32_t nbytes){
     return -1;
 }
+
+/** _sys_dummy_write(int32_t fd, void* buf, int32_t nbytes)
+ *  
+ * Dummy function for stdin
+ * Inputs: same as sys_write
+ * Outputs: -1 
+ * Side Effects: none
+ */
 int32_t _sys_dummy_write(int32_t fd, const void* buf, int32_t nbytes){
     return -1;
 }
+
+/** _sys_dummy_open(const int8_t* filename)
+ *  
+ * Dummy function for stdin/stdout
+ * Inputs: same as sys_open
+ * Outputs: -1 
+ * Side Effects: none
+ */
 int32_t _sys_dummy_open(const int8_t* filename){
     return -1;
 }
+
+/** _sys_dummy_close(int32_t fd)
+ *  
+ * Dummy function for stdin/stdout
+ * Inputs: same as sys_close
+ * Outputs: -1 
+ * Side Effects: none
+ */
 int32_t _sys_dummy_close(int32_t fd){
     return -1;
 }
-/* @TODO:
-figure out the cursor _
-move on and help kshitij 
-dont go back up the line if you hit enter on it
-dont delete all the blanks, just go to text
-*/
+

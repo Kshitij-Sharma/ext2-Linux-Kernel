@@ -218,7 +218,7 @@ void rtc_interrupt()
     if (RTC_ON_FLAG)                 printf("A");
     if (RTC_READ_FLAG) 
     {
-        printf("RTC INTERRUPT\n");
+        // printf("RTC INTERRUPT\n");
         RTC_READ_FLAG ^= RTC_READ_FLAG;   
     }            
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
