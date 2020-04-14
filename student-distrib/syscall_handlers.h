@@ -8,12 +8,7 @@
 #include "PCB.h"
 #include "x86_desc.h"
 
-#define MAX_INTERRUPT_FREQUENCY     1024   
-#define MAX_NAME_LENGTH             32
-#define ELF_ONE                     0x7F
-#define ELF_TWO                     0x45
-#define ELF_THREE                   0x4C
-#define ELF_FOUR                    0x46
+#define MAX_INTERRUPT_FREQUENCY     1024 
 #define ERROR_VAL                   256
 
 

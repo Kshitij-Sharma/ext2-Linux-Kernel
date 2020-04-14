@@ -7,25 +7,33 @@
 #include "lib.h"
 #include "multiboot.h"
 
-// for boot block
+/* for boot block */
 #define BOOT_RESERVED    52
 #define DIR_ENTRIES      63
 #define FILENAME_LEN     32
 #define DENTRY_RESERVED  24
 
-// for index nodes
+/* for index nodes */
 #define INODE_SIZE       1023 //[(4KB - 4B)/4B)] because first 4B holds length
 #define _4KB_            4096
 
-// for data blocks
-// #define DATA_BLOCK_HEAD  (_4KB_ + (DIR_ENTRIES * _4KB_))
-
-// file type macros
+/* file type macros */
 #define RTC_FILE          0
 #define DIRECTORY         1
 #define REGULAR_FILE      2
+
+
+/* executable information */
 #define HEADER_INFO       40
 #define EXECUTABLE_CHECK  4
+#define ELF_ONE                     0x7F
+#define ELF_TWO                     0x45
+#define ELF_THREE                   0x4C
+#define ELF_FOUR                    0x46
+#define ELF_BYTE_ONE                27
+#define ELF_BYTE_TWO                26
+#define ELF_BYTE_THREE              25
+#define ELF_BYTE_FOUR               24
 
 
 typedef int32_t bytes_offset;       

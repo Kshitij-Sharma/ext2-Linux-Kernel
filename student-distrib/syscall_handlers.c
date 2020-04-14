@@ -57,7 +57,6 @@ int32_t sys_halt (int8_t status){
         "jmp return_from_prog;"
         :
         :"r" (cur_pcb_ptr->esp), "r" (cur_pcb_ptr->ebp), "r" ((uint32_t) status)
-        :
     );
     return 0;
 
@@ -73,7 +72,7 @@ int32_t sys_halt (int8_t status){
  */
 int32_t sys_execute (const int8_t* command){
     int8_t tempret;
-    int8_t prog_name[MAX_NAME_LENGTH];
+    int8_t prog_name[FILENAME_LEN];
     int8_t arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0;
     tempret = 0;
@@ -89,7 +88,7 @@ int32_t sys_execute (const int8_t* command){
     }
 
     /* parses arguments passed into command, stores them in prog_name and arg */
-    memset(prog_name, '\0', MAX_NAME_LENGTH);
+    memset(prog_name, '\0', FILENAME_LEN);
     memset(arg, '\0', KEYBOARD_BUFFER_SIZE);
     tempret = _execute_parse_args(command, prog_name, arg);
     if(tempret == -1)   return -1;
@@ -143,7 +142,7 @@ int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* ar
     if (command[i] == '\0' || command[i] == '\n') return -1; // -1 implies bad command name
     j = i;
     /* copies name of program into prog_name buffer -- only 32 chars */
-    while (command[i] != ' ' && command[i] != '\0' && command[i] != '\n' && (i -j) < 32) memcpy(prog_name++, command + (i++), 1);
+    while (command[i] != ' ' && command[i] != '\0' && command[i] != '\n' && (i -j) < FILENAME_LEN) memcpy(prog_name++, command + (i++), 1);
     /* if there are still chars left in the program name, skip over them */
     while (command[i] != ' ' && command[i] != '\0' && command[i] != '\n') i++; 
     /* skips spaces in front of argument name */
@@ -258,7 +257,10 @@ void _execute_context_switch(){
     /* gets the eip from the executable header */
     uint32_t eip = 0;
     // buf_executable_header from 27 to 24 used as specified in the documentation. the 24, 16, and 8 are used to shift the bytes to the correct spot in the eip int
-    eip += (((uint8_t) buf_executable_header[27]) << 24) | (((uint8_t)buf_executable_header[26]) << 16) | ((uint8_t)(buf_executable_header[25]) << 8) | ((uint8_t)buf_executable_header[24]);  
+    eip +=  (((uint8_t) buf_executable_header[ELF_BYTE_ONE]) << 24) 
+            | (((uint8_t)buf_executable_header[ELF_BYTE_TWO]) << 16) 
+            | ((uint8_t)(buf_executable_header[ELF_BYTE_THREE]) << 8) 
+            | ((uint8_t)buf_executable_header[ELF_BYTE_FOUR]);  
     cur_pcb_ptr->eip = eip;
     /* performs context stack in assembly */
     asm volatile (
@@ -270,7 +272,6 @@ void _execute_context_switch(){
         "iret;"
         :
         :"r" (USER_DS), "r" (user_esp), "r" (eip)
-        :
     );
 }
 
@@ -322,7 +323,7 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
  * Side Effects: opens the file
  */
 int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
-    int8_t file[32];
+    int8_t file[FILENAME_LEN];
     int i;
     int ret_val;
     /* assign the appropriate file descriptor to the PCB */
@@ -339,7 +340,7 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
     int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index;
     /* makes sure nothing past the 7th file can be opened */
     //if(cur_pcb_ptr->next_open_index > MAX_FD_IDX)      return -1;
-    for (i = 0; i < MAX_NAME_LENGTH; i++)
+    for (i = 0; i < FILENAME_LEN; i++)
     { 
         if(filename[i] == '\0')        break;
         file[i] = filename[i];
@@ -360,15 +361,15 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
     /* switches based on type of file */
     switch(this_dentry.file_type)
     {
-        case 0:
+        case RTC_FILE:
             this_fops = &rtc_fops;
             this_inode = _sys_open_rtc(file); // returns 0
             break;
-        case 1:
+        case DIRECTORY:
             this_fops = &dir_fops;
             this_inode = _sys_open_directory(file); // returns 0
             break;
-        case 2:
+        case REGULAR_FILE:
             this_fops = &file_fops;
             this_inode = _sys_open_file(file); // returns inode
             break;
@@ -436,7 +437,7 @@ int32_t sys_vidmap (int8_t** screen_start){
  */
 int32_t sys_set_handler (int32_t signum, void* handler_address){
     printf("set handler called\n");
-    return 0;
+    return -1;
 }
 
 /** sys_halt
@@ -449,7 +450,7 @@ int32_t sys_set_handler (int32_t signum, void* handler_address){
  */
 int32_t sys_sigreturn (void){
     printf("sigreturn called\n");
-    return 0;
+    return -1;
 }
 
 
