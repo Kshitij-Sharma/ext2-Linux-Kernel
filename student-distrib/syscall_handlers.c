@@ -506,7 +506,6 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
     nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE-1: nbytes;
 
     /* reads data/fills buffer from keyboard */
-    // sti();
     sys_read_flag = 1;
     while(sys_read_flag);
     
@@ -695,6 +694,7 @@ int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
     data_read = read_data(fd, current_offset, buf, nbytes);
     /* moves forward in file corresponding to how many bytes are read */
     if(data_read > 0)                       current_offset += data_read;
+    data_bytes_read = current_offset;
     if (cur_pcb_ptr != NULL) cur_pcb_ptr->offset_array[cur_pcb_ptr->cur_file_idx] = current_offset;
     /* checks that we have read ALL bytes requested */
     // if(data_read != nbytes)                 return -1;
@@ -746,14 +746,18 @@ int32_t _sys_close_directory(int32_t fd){
  */
 int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
     dentry_t cur_dentry;
+    int bytes_read = 0;
     if (read_dir_flag == boot_block->entries){
         read_dir_flag = 0;
         return 0;
     }
     read_dentry_by_index(read_dir_flag++, &cur_dentry); 
-    strncpy((int8_t*) (buf), 
-            (int8_t*) cur_dentry.file_name, FILENAME_LEN);
-    return FILENAME_LEN;
+    while(cur_dentry.file_name[bytes_read] != '\0' && bytes_read < FILENAME_LEN){    
+        memcpy((void *) &(((char*) buf)[bytes_read]), (void*) &cur_dentry.file_name[bytes_read], 1);
+        bytes_read++;
+    }
+
+    return bytes_read;
 }
 /** sys_write_directory
  *  
