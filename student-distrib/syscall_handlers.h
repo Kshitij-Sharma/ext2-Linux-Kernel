@@ -12,7 +12,8 @@
 #define ERROR_VAL                   256
 
 
-
+int8_t arg[KEYBOARD_BUFFER_SIZE];
+uint32_t num_arg_bytes;
 extern int32_t sys_halt(int8_t status);
 int32_t sys_execute(const int8_t* command);
 int32_t _execute_parse_args(const int8_t* command, char * program_name, char * argument);

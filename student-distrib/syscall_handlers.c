@@ -73,7 +73,7 @@ int32_t sys_halt (int8_t status){
 int32_t sys_execute (const int8_t* command){
     int8_t tempret;
     int8_t prog_name[FILENAME_LEN];
-    int8_t arg[KEYBOARD_BUFFER_SIZE];
+    
     uint32_t return_value = 0;
     tempret = 0;
     error_flag = 0;
@@ -133,7 +133,7 @@ int32_t sys_execute (const int8_t* command){
  * Side Effects: parses the command line arguments for the program
  */
 int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* arg){
-    int i = 0;
+    int i = 0, k = 0;
     int j;
     if(command == NULL || prog_name == NULL || arg == NULL)  return -1;
     
@@ -150,8 +150,8 @@ int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* ar
 
     if (command[i] == '\0') return -2; // -2 implies no arg
     /* copies arguments into arg buffer */
-    while (command[i] != ' ' && command[i] != '\0') memcpy(arg++, command + (i++), 1);
-
+    while (command[i] != '\0') memcpy(&(arg[k]), &(command[i++]), 1);
+    num_arg_bytes = k;
     return 0;
 }
 
@@ -410,7 +410,8 @@ int32_t sys_close (int32_t fd){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_getargs(int8_t* buf, int32_t nbytes){
-    printf("getargs called\n");
+    if (buf == NULL || nbytes <= 0 || num_arg_bytes > nbytes) return -1;
+    strcpy(buf, arg);
     return 0;
 }
 
