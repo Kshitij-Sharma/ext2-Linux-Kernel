@@ -22,9 +22,12 @@ typedef struct file_descriptor_struct{
 
 typedef struct pcb_t{
   file_desc_t file_desc_array[FILE_DESC_ARR_SIZE];    // files opened (children)
+  int8_t arg_array[KEYBOARD_BUFFER_SIZE];
+  uint32_t offset_array[MAX_FD_IDX+1];
+  uint32_t cur_file_idx;
+  uint32_t arg_size;
   struct pcb_t* parent_pcb;
   uint32_t process_id; // which number process is it
-  uint32_t next_open_index;
   uint32_t ebp;
   uint32_t esp;
   uint32_t eip;

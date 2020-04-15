@@ -89,8 +89,8 @@ int32_t sys_execute (const int8_t* command){
 
     /* parses arguments passed into command, stores them in prog_name and arg */
     memset(prog_name, '\0', FILENAME_LEN);
-    memset(arg, '\0', KEYBOARD_BUFFER_SIZE);
-    tempret = _execute_parse_args(command, prog_name, arg);
+    memset(input_arg, '\0', KEYBOARD_BUFFER_SIZE);
+    tempret = _execute_parse_args(command, prog_name, input_arg);
     if(tempret == -1)   return -1;
     
     /* checks that the file is an executable*/
@@ -150,7 +150,7 @@ int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* ar
 
     if (command[i] == '\0') return -2; // -2 implies no arg
     /* copies arguments into arg buffer */
-    while (command[i] != '\0') memcpy(&(arg[k]), &(command[i++]), 1);
+    while (command[i] != '\0') memcpy(&(arg[k++]), &(command[i++]), 1);
     num_arg_bytes = k;
     return 0;
 }
@@ -213,7 +213,9 @@ int32_t _execute_user_program_loader(int8_t * prog_name){
     /* loads contents of file into program image in virtual memory */
     int32_t fd = _sys_open_file(prog_name);
     memset((void *) PROGRAM_IMAGE, 0, _4KB_);
+    execute_flag = 1;
     int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
+    execute_flag = 0;
     return (out == -1) ? -1 : 0;
 }
 
@@ -225,7 +227,6 @@ int32_t _execute_user_program_loader(int8_t * prog_name){
  * Side Effects: creates the PCB for this program and stores appropriate information
  */
 pcb_t * _execute_create_PCB(){
-
     /* creates the PCB for this at the right location */ 
     pcb_t * new_pcb =  (pcb_t*) ((int)_8_MB - ((int)_8_KB * (process_num+1)));
     
@@ -237,7 +238,9 @@ pcb_t * _execute_create_PCB(){
     new_pcb->file_desc_array[1] = (file_desc_t){&std_out_fops, 0, 0, 1};  //SET EQUAL TO STDOUT
     
     /* next open location to place a file */
-    new_pcb->next_open_index = 2;
+    new_pcb->arg_size = num_arg_bytes;
+    memcpy(new_pcb->arg_array, input_arg, KEYBOARD_BUFFER_SIZE);
+    memset(new_pcb->offset_array, 0, _4_BYTES*(MAX_FD_IDX+1));
     return new_pcb;
 }
 
@@ -289,7 +292,7 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
     if(nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)     return -1;
     /* checks that the file is active */
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
-    
+    cur_pcb_ptr->cur_file_idx = fd;
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->read(this_inode, buf, nbytes);
@@ -309,7 +312,7 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
     if(nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)     return -1;
     /* checks that the file is active */ 
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
-    
+    // cur_pcb_ptr->cur_file_idx = fd;
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->write(this_inode, buf, nbytes);
@@ -326,20 +329,19 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
     int8_t file[FILENAME_LEN];
     int i;
     int ret_val;
+    int32_t cur_pcb_idx = 0;
     /* assign the appropriate file descriptor to the PCB */
     for(i = 2; i <= MAX_FD_IDX; i++)
     {
         if(cur_pcb_ptr->file_desc_array[i].flags == 1)  continue;
         else{                                         
-            cur_pcb_ptr->next_open_index = i;
+           cur_pcb_idx = i;
             break;
         } 
     }
     /* if the PCB is full, we fail this */
     if(i > MAX_FD_IDX)                             return -1;
-    int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index;
     /* makes sure nothing past the 7th file can be opened */
-    //if(cur_pcb_ptr->next_open_index > MAX_FD_IDX)      return -1;
     for (i = 0; i < FILENAME_LEN; i++)
     { 
         if(filename[i] == '\0')        break;
@@ -396,7 +398,6 @@ int32_t sys_close (int32_t fd){
 
     /* marks file as closed in PCB */
     cur_pcb_ptr->file_desc_array[fd].flags = 0;
-    cur_pcb_ptr->next_open_index = fd;
     /* calls the appropriate system close function */
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->close(fd);
 }
@@ -410,8 +411,8 @@ int32_t sys_close (int32_t fd){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_getargs(int8_t* buf, int32_t nbytes){
-    if (buf == NULL || nbytes <= 0 || num_arg_bytes > nbytes) return -1;
-    strcpy(buf, arg);
+    if (buf == NULL || nbytes <= 0 || cur_pcb_ptr == NULL || cur_pcb_ptr->arg_size > nbytes - 1 || cur_pcb_ptr->arg_size <= 0) return -1;
+    strcpy(buf, cur_pcb_ptr->arg_array);
     return 0;
 }
 
@@ -505,6 +506,7 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
     nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE-1: nbytes;
 
     /* reads data/fills buffer from keyboard */
+    // sti();
     sys_read_flag = 1;
     while(sys_read_flag);
     
@@ -517,7 +519,7 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
     ((char *) buf)[i] = '\n';
     
 
-    return retval;
+    return retval+1;
 }
 /** _sys_write_terminal
  *  
@@ -547,13 +549,10 @@ int32_t _sys_write_terminal(int32_t fd, const void* buf, int32_t nbytes){
         /* writes non null characters */   
         if(write_string[i] != NULL)
         {
-            if (enter_flag)  continue;
             putc(write_string[i]);
             bytes_written++;
         }                 
-        if(write_string[i] == '\n') enter_flag = 1;
     }
-    // if (!enter_flag) putc('\n');
 
     return bytes_written;
 }
@@ -689,12 +688,15 @@ int32_t _sys_close_file(int32_t fd){
  */
 int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
     int32_t data_read;
+    int32_t current_offset = data_bytes_read;
+    if (cur_pcb_ptr != NULL && execute_flag == 0) current_offset = cur_pcb_ptr->offset_array[cur_pcb_ptr->cur_file_idx];
     /* condition checks */
     if(nbytes <= 0 || buf == NULL || fd < 0) return -1;
     /* does the data read */
-    data_read = read_data(fd, data_bytes_read, buf, nbytes);
+    data_read = read_data(fd, current_offset, buf, nbytes);
     /* moves forward in file corresponding to how many bytes are read */
-    if(data_read > 0)                       data_bytes_read += data_read;
+    if(data_read > 0)                       current_offset += data_read;
+    if (cur_pcb_ptr != NULL) cur_pcb_ptr->offset_array[cur_pcb_ptr->cur_file_idx] = current_offset;
     /* checks that we have read ALL bytes requested */
     // if(data_read != nbytes)                 return -1;
     return data_read;
@@ -744,14 +746,14 @@ int32_t _sys_close_directory(int32_t fd){
  * Side Effects: Buffer holds a filename from the directory every 32 bytes
  */
 int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
-    dentry_t curr_dentry;
+    dentry_t cur_dentry;
     if (read_dir_flag == boot_block->entries){
         read_dir_flag = 0;
         return 0;
     }
-    read_dentry_by_index(read_dir_flag++, &curr_dentry);
+    read_dentry_by_index(read_dir_flag++, &cur_dentry); 
     strncpy((int8_t*) (buf), 
-            (int8_t*) curr_dentry.file_name, FILENAME_LEN);
+            (int8_t*) cur_dentry.file_name, FILENAME_LEN);
     return FILENAME_LEN;
 }
 /** sys_write_directory

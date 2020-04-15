@@ -101,7 +101,7 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length
   int data_block_num = offset / _4KB_;
   /* parameter checks  */
   if (inode < 0 || inode >= DIR_ENTRIES || buf == NULL 
-      || length < 0)
+      || length < 0 )
     return -1;
 
   /* clear buf */
@@ -117,6 +117,7 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length
   /* copies data from data blocks to buf */
   while(length != 0)
   {
+    if (bytes_read + offset > inode_head[inode].length) break;
     //do read
     memcpy(buf++, data_cur, 1);
     /* move forward */
