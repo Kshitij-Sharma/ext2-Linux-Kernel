@@ -531,7 +531,6 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
 int32_t _sys_write_terminal(int32_t fd, const void* buf, int32_t nbytes){
     int i, bytes_written;
     char write_string[nbytes];
-    int enter_flag = 0;
 
     /* check edge cases */
     if(NULL == buf || nbytes < 0)       return -1;
