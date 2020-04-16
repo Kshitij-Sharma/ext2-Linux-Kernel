@@ -76,7 +76,7 @@ uint8_t* data_blocks;
 int32_t filesys_init(module_t *offset);
 
 /* Read the directory entry by given name */
-int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry);
+int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry);
 
 /* Read the directory enty by given index */
 int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry);

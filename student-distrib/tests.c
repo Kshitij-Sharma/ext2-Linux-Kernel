@@ -577,7 +577,7 @@ int test_file_read_open_text(){
 	char buf[200];
 	int32_t i, ret, filename;
 	/* opens frame0.txt */
-	filename = _sys_open_file("frame0.txt");
+	filename = _sys_open_file((uint8_t *) "frame0.txt");
 	/* reads file */
 	ret = _sys_read_file(filename, buf, 187);
 	/* checks that read was successful */
@@ -606,7 +606,7 @@ int test_file_read_open_non_text(){
 
 	/* opens frame0.txt */
 	// filename = _sys_open_file("ls");
-	filename = _sys_open_file("grep");
+	filename = _sys_open_file((uint8_t *)"grep");
 	
 	/* reads file */
 	// ret = _sys_read_file(filename, buf, 5349);
@@ -641,7 +641,7 @@ int test_file_read_open_text_long(){
 	int32_t i, ret, filename;
 	/* opens frame0.txt */
 	// filename = _sys_open_file("verylargetextwithverylongname.txt");
-	filename = _sys_open_file("fish");
+	filename = _sys_open_file((uint8_t *) "fish");
 	
 	// if(filename == -1)				assertion_failure();
 	/* reads file */

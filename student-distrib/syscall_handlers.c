@@ -174,7 +174,7 @@ int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf){
     memset((void *)buf, '\0', EXECUTABLE_CHECK);
     
     /* fills buf with 40 bytes of program info, we use read_dentry/data b/c we don't want to move our pointer forward */
-    ret = read_dentry_by_name(prog_name, &prog_dentry);
+    ret = read_dentry_by_name((uint8_t *) prog_name, &prog_dentry);
     if(prog_dentry.file_type != REGULAR_FILE || ret == -1)   return -1;
     read_data(prog_dentry.inode, 0, (uint8_t *) buf, _4KB_);
     // read_data(prog_dentry.inode, 0, (uint8_t *) buf, HEADER_INFO);
@@ -211,7 +211,7 @@ int32_t _execute_setup_program_paging(){
  */
 int32_t _execute_user_program_loader(int8_t * prog_name){
     /* loads contents of file into program image in virtual memory */
-    int32_t fd = _sys_open_file(prog_name);
+    int32_t fd = _sys_open_file((uint8_t *) prog_name);
     memset((void *) PROGRAM_IMAGE, 0, _4KB_);
     int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
     return (out == -1) ? -1 : 0;
@@ -324,8 +324,8 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
  * Outputs: current pcb index
  * Side Effects: opens the file
  */
-int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
-    int8_t file[FILENAME_LEN];
+int32_t sys_open (const uint8_t* filename){ // terminal, rtc, file, directory
+    uint8_t file[FILENAME_LEN];
     int i;
     int ret_val;
     /* assign the appropriate file descriptor to the PCB */
@@ -427,9 +427,10 @@ int32_t sys_getargs(int8_t* buf, int32_t nbytes){
  */
 int32_t sys_vidmap (uint8_t** screen_start){
     /* makes sure that screen_start pointer is within the program loading block between 128 MB and 132 MB */
-    if(!(((uint32_t) screen_start >= USER_START) && ((uint32_t) screen_start < USER_END) && screen_start == NULL)) return -1;
+    if ((uint32_t) screen_start < USER_START || (uint32_t) screen_start >= USER_END || (uint32_t) screen_start == NULL) return -1;
+    // if((!(((uint32_t) screen_start >= USER_START) && ((uint32_t) screen_start < USER_END)) && screen_start == NULL)) return -1;
     vidmap_paging();
-    flush_tlb(); // memory gets changed 
+    flush_tlb(); // need to flush as page table gets set to a new virtual address 
     (*screen_start) = (uint8_t*) _132_MB; //132 MB is where we have defined video memory to start
     return 0;
 }
@@ -478,7 +479,7 @@ int32_t sys_sigreturn (void){
  * Outputs: 0
  * Side Effects: 
  */
-int32_t _sys_open_terminal (const int8_t* filename){
+int32_t _sys_open_terminal (const uint8_t* filename){
     return 0;
 }
 /** _sys_close_terminal
@@ -572,7 +573,7 @@ int32_t _sys_write_terminal(int32_t fd, const void* buf, int32_t nbytes){
  * Outputs: 0 @ directory end
  * Side Effects: 
  */
-int32_t _sys_open_rtc (const int8_t* filename){
+int32_t _sys_open_rtc (const uint8_t* filename){
     int freq = 2;
     _sys_write_rtc(NULL, (void *) freq, 0); // sets the RTC frequency to 2Hz
     return 0;
@@ -610,7 +611,7 @@ int32_t _sys_write_rtc(int32_t fd, const void* buf, int32_t nbytes){
         frequency = MAX_INTERRUPT_FREQUENCY;
     }
     rate = (log_base_two(FREQ_CONVERSION_CONST/frequency)/log_base_two(2)) + 1;
-    if (rate <= 2) rate = 3;
+    if (rate < MIN_RATE) rate = MIN_RATE;
 
     // MAGIC NUMBER: 0x0F sets rate selector bits in register A
     outb(RTC_STATUS_REGISTER_A, RTC_CMD_PORT);          // set index to register A, disable NMI
@@ -647,13 +648,13 @@ int32_t _sys_read_rtc (int32_t fd, void* buf, int32_t nbytes){
  * Outputs: 0 @ directory end
  * Side Effects: 
  */
-int32_t _sys_open_file (const int8_t* filename){ 
+int32_t _sys_open_file (const uint8_t* filename){ 
     // dentry_t * this_file; // ***************ADD RETURN VAL CHECKING *****************
     // this_file->inode = -1;
-    int8_t file[32];
+    uint8_t file[FILENAME_LEN];
     int i;
     int ret_val;
-    for (i = 0; i < 32; i++)
+    for (i = 0; i < FILENAME_LEN; i++)
     { 
         if(filename[i] == '\0')        break;
         file[i] = filename[i];
@@ -724,7 +725,7 @@ int32_t _sys_write_file (int32_t fd, const void* buf, int32_t nbytes){
  * Outputs: 0 @ directory end
  * Side Effects: 
  */
-int32_t _sys_open_directory (const int8_t* filename){
+int32_t _sys_open_directory (const uint8_t* filename){
     return 0;
 }
 /** _sys_close_directory
@@ -798,7 +799,7 @@ int32_t _sys_dummy_write(int32_t fd, const void* buf, int32_t nbytes){
  * Outputs: -1 
  * Side Effects: none
  */
-int32_t _sys_dummy_open(const int8_t* filename){
+int32_t _sys_dummy_open(const uint8_t* filename){
     return -1;
 }
 

@@ -31,7 +31,7 @@ int32_t filesys_init(module_t *offset){
     Outputs: None
     Return Value: 
 */
-int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry){
+int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry){
   // checks for invalid parameters as well as an empty string for the name
   if((dentry == NULL) || (fname == NULL) || (fname[0] == (uint8_t) '\0'))
     return -1;

@@ -10,13 +10,14 @@
 
 #define MAX_INTERRUPT_FREQUENCY     1024 
 #define ERROR_VAL                   256
+#define MIN_RATE                    3
 
 
 int8_t input_arg[KEYBOARD_BUFFER_SIZE];
 uint32_t num_arg_bytes;
 int8_t execute_flag;
-extern int32_t sys_halt(int8_t status);
-int32_t sys_execute(const int8_t* command);
+extern int32_t sys_halt(int8_t status); // uint
+int32_t sys_execute(const int8_t* command); // uint
 int32_t _execute_parse_args(const int8_t* command, char * program_name, char * argument);
 int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf);
 int32_t _execute_setup_program_paging();
@@ -27,9 +28,9 @@ void _execute_context_switch();
 
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes);
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes);
-int32_t sys_open (const int8_t* filename);
+int32_t sys_open (const uint8_t* filename); // uint
 int32_t sys_close (int32_t fd);
-int32_t sys_getargs(int8_t* buf, int32_t nbytes);
+int32_t sys_getargs(int8_t* buf, int32_t nbytes); // uint
 int32_t sys_vidmap (uint8_t** screen_start);
 int32_t sys_set_handler (int32_t signum, void* handler_address);
 int32_t sys_sigreturn (void);
@@ -46,10 +47,10 @@ int32_t _sys_write_file (int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_write_rtc (int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_write_directory (int32_t fd, const void* buf, int32_t nbytes);
 
-int32_t _sys_open_terminal (const int8_t* filename);
-int32_t _sys_open_file (const int8_t* filename);
-int32_t _sys_open_rtc (const int8_t* filename);
-int32_t _sys_open_directory (const int8_t* filename);
+int32_t _sys_open_terminal (const uint8_t* filename);// uint
+int32_t _sys_open_file (const uint8_t* filename); // uint
+int32_t _sys_open_rtc (const uint8_t* filename);// uint
+int32_t _sys_open_directory (const uint8_t* filename); // uint
 
 int32_t _sys_close_terminal(int32_t fd);
 int32_t _sys_close_file(int32_t fd);
@@ -58,6 +59,6 @@ int32_t _sys_close_directory(int32_t fd);
 
 int32_t _sys_dummy_write(int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_dummy_read(int32_t fd, void* buf, int32_t nbytes);
-int32_t _sys_dummy_open(const int8_t* filename);
+int32_t _sys_dummy_open(const uint8_t* filename);
 int32_t _sys_dummy_close(int32_t fd);
 #endif
