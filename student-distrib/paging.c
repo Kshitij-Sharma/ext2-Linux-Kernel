@@ -92,6 +92,3 @@ void program_paging(uint32_t physical_address){
     //then set up the page table
     page_table_vidmap[VIDEO_OFFSET] = VIDEO | (READ_WRITE | PRESENT | USER);
  }
-
-
-

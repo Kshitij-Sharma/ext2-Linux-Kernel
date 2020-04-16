@@ -16,7 +16,8 @@
 #define VIDEO_OFFSET        0xB8
 #define VIDEO               0xB8000
 #define KERNEL_START        0x400000 // starting at 4MB
-#define USER_START          (KERNEL_START + _4MB_PAGE) // 8MB
+#define USER_START          _128_MB // 8MB
+#define USER_END            _132_MB
 #define PRESENT             0x1
 #define READ_WRITE          0x2
 #define USER                0x4

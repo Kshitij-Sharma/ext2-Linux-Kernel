@@ -1,9 +1,6 @@
 #include "idt_handlers.h"
 #include "syscall_handlers.h"
-/** grep doesnt work properly
-*fish is not recognized
-*rtc is not recognized
-*/
+
 /***********************PCB related structures and variables***********************/
 pcb_t * cur_pcb_ptr = NULL;
 // rtc fops table
@@ -43,12 +40,12 @@ int32_t sys_halt (int8_t status){
     cur_pcb_ptr = cur_pcb_ptr->parent_pcb;
 
     /* sets program paging to previous process */
-    program_paging(((process_num-1) * _4MB_PAGE) + USER_START);
+    program_paging(((process_num-1) * _4MB_PAGE) + _8_MB);
 
     /* flushes TLB before moving to new program */
     flush_tlb();    
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 = (uint32_t)(USER_START - (process_num) * _8_KB - _4_BYTES);
+    tss.esp0 = (uint32_t)(_8_MB - (process_num) * _8_KB - _4_BYTES);
 
     /* cant close shell! */
     if (process_num == 0)   sys_execute("shell");
@@ -76,7 +73,7 @@ int32_t sys_halt (int8_t status){
 int32_t sys_execute (const int8_t* command){
     int8_t tempret;
     int8_t prog_name[FILENAME_LEN];
-    
+    int8_t arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0;
     tempret = 0;
     error_flag = 0;
@@ -92,8 +89,8 @@ int32_t sys_execute (const int8_t* command){
 
     /* parses arguments passed into command, stores them in prog_name and arg */
     memset(prog_name, '\0', FILENAME_LEN);
-    memset(input_arg, '\0', KEYBOARD_BUFFER_SIZE);
-    tempret = _execute_parse_args(command, prog_name, input_arg);
+    memset(arg, '\0', KEYBOARD_BUFFER_SIZE);
+    tempret = _execute_parse_args(command, prog_name, arg);
     if(tempret == -1)   return -1;
     
     /* checks that the file is an executable*/
@@ -109,7 +106,8 @@ int32_t sys_execute (const int8_t* command){
     if(tempret == -1)   return -1;
 
     /* creates PCB for process */
-    cur_pcb_ptr = _execute_create_PCB();
+    cur_pcb_ptr = _execute_create_PCB(arg);
+    
     /* switches context to user program */
     _execute_context_switch();
     
@@ -136,8 +134,7 @@ int32_t sys_execute (const int8_t* command){
  * Side Effects: parses the command line arguments for the program
  */
 int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* arg){
-    int i = 0, k = 0;
-    int j;
+    int i = 0, j, k =0;
     if(command == NULL || prog_name == NULL || arg == NULL)  return -1;
     
     /* skips spaces in front of program name */
@@ -153,8 +150,8 @@ int32_t _execute_parse_args(const int8_t* command, int8_t* prog_name, int8_t* ar
 
     if (command[i] == '\0') return -2; // -2 implies no arg
     /* copies arguments into arg buffer */
-    while (command[i] != '\0') memcpy(&(arg[k++]), &(command[i++]), 1);
-    num_arg_bytes = k;
+    while (command[i] != '\0') memcpy(&(arg[k++]), command + (i++), 1);
+
     return 0;
 }
 
@@ -199,7 +196,7 @@ int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf){
  */
 int32_t _execute_setup_program_paging(){
     /* sets up paging for the current program */
-    program_paging((process_num * _4MB_PAGE) + USER_START);
+    program_paging((process_num * _4MB_PAGE) + _8_MB);
     /* flushes TLB before moving to new program */
     flush_tlb();
     return 0;
@@ -215,16 +212,8 @@ int32_t _execute_setup_program_paging(){
 int32_t _execute_user_program_loader(int8_t * prog_name){
     /* loads contents of file into program image in virtual memory */
     int32_t fd = _sys_open_file(prog_name);
-    // dentry_t this_dentry;
-    // this_dentry.inode = 0;
-    // this_dentry.file_type = 0;
-    // read_dentry_by_name(prog_name, &this_dentry);
-    // boot_block->inodes[this_dentry.inode]
-
-    memset((void *) PROGRAM_IMAGE, 0, _4KB_PAGE);
-    execute_flag = 1;
-    int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_PAGE);
-    execute_flag = 0;
+    memset((void *) PROGRAM_IMAGE, 0, _4KB_);
+    int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
     return (out == -1) ? -1 : 0;
 }
 
@@ -235,7 +224,8 @@ int32_t _execute_user_program_loader(int8_t * prog_name){
  * Outputs: new PCB for the program
  * Side Effects: creates the PCB for this program and stores appropriate information
  */
-pcb_t * _execute_create_PCB(){
+pcb_t * _execute_create_PCB(char * argument){
+
     /* creates the PCB for this at the right location */ 
     pcb_t * new_pcb =  (pcb_t*) ((int)_8_MB - ((int)_8_KB * (process_num+1)));
     
@@ -247,9 +237,9 @@ pcb_t * _execute_create_PCB(){
     new_pcb->file_desc_array[1] = (file_desc_t){&std_out_fops, 0, 0, 1};  //SET EQUAL TO STDOUT
     
     /* next open location to place a file */
-    new_pcb->arg_size = num_arg_bytes;
-    memcpy(new_pcb->arg_array, input_arg, KEYBOARD_BUFFER_SIZE);
-    memset(new_pcb->offset_array, 0, _4_BYTES*(MAX_FD_IDX+1));
+    new_pcb->next_open_index = 2;
+    memset(new_pcb->argument_array, '\0', KEYBOARD_BUFFER_SIZE);
+    memcpy(new_pcb->argument_array, argument, strlen(argument));
     return new_pcb;
 }
 
@@ -293,7 +283,7 @@ void _execute_context_switch(){
  * 
  * Inputs: file descriptor, buffer (to fill), number of bytes to read
  * Outputs: number of bytes readud 
- * Side Effects: fills buffer with contents read
+ * Side Effects: fills buffer with contents reaud
  */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
     // return _sys_read_terminal(fd, buf, nbytes);
@@ -301,7 +291,7 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
     if(nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)     return -1;
     /* checks that the file is active */
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
-    cur_pcb_ptr->cur_file_idx = fd;
+    
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->read(this_inode, buf, nbytes);
@@ -321,7 +311,7 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
     if(nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)     return -1;
     /* checks that the file is active */ 
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
-    // cur_pcb_ptr->cur_file_idx = fd;
+    
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->write(this_inode, buf, nbytes);
@@ -334,23 +324,24 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
  * Outputs: current pcb index
  * Side Effects: opens the file
  */
-int32_t sys_open (const uint8_t* filename){ // terminal, rtc, file, directory
-    uint8_t file[FILENAME_LEN];
+int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
+    int8_t file[FILENAME_LEN];
     int i;
     int ret_val;
-    int32_t cur_pcb_idx = 0;
     /* assign the appropriate file descriptor to the PCB */
     for(i = 2; i <= MAX_FD_IDX; i++)
     {
         if(cur_pcb_ptr->file_desc_array[i].flags == 1)  continue;
         else{                                         
-           cur_pcb_idx = i;
+            cur_pcb_ptr->next_open_index = i;
             break;
         } 
     }
     /* if the PCB is full, we fail this */
     if(i > MAX_FD_IDX)                             return -1;
+    int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index;
     /* makes sure nothing past the 7th file can be opened */
+    //if(cur_pcb_ptr->next_open_index > MAX_FD_IDX)      return -1;
     for (i = 0; i < FILENAME_LEN; i++)
     { 
         if(filename[i] == '\0')        break;
@@ -363,7 +354,7 @@ int32_t sys_open (const uint8_t* filename){ // terminal, rtc, file, directory
     dentry_t this_dentry; 
     this_dentry.inode = 0;
     this_dentry.file_type = 0;
-    ret_val = read_dentry_by_name((int8_t *) file, &this_dentry);
+    ret_val = read_dentry_by_name(file, &this_dentry);
     if(ret_val == -1)           return -1;
     
     /* figures out which type of file it is */
@@ -374,15 +365,15 @@ int32_t sys_open (const uint8_t* filename){ // terminal, rtc, file, directory
     {
         case RTC_FILE:
             this_fops = &rtc_fops;
-            this_inode = _sys_open_rtc((int8_t *)file); // returns 0
+            this_inode = _sys_open_rtc(file); // returns 0
             break;
         case DIRECTORY:
             this_fops = &dir_fops;
-            this_inode = _sys_open_directory((int8_t *)file); // returns 0
+            this_inode = _sys_open_directory(file); // returns 0
             break;
         case REGULAR_FILE:
             this_fops = &file_fops;
-            this_inode = _sys_open_file((int8_t *)file); // returns inode
+            this_inode = _sys_open_file(file); // returns inode
             break;
         default:
             return -1;
@@ -407,6 +398,7 @@ int32_t sys_close (int32_t fd){
 
     /* marks file as closed in PCB */
     cur_pcb_ptr->file_desc_array[fd].flags = 0;
+    cur_pcb_ptr->next_open_index = fd;
     /* calls the appropriate system close function */
     return cur_pcb_ptr->file_desc_array[fd].file_ops_table->close(fd);
 }
@@ -420,24 +412,25 @@ int32_t sys_close (int32_t fd){
  * NOT YET IMPLEMENTED
  */
 int32_t sys_getargs(int8_t* buf, int32_t nbytes){
-    if (buf == NULL || nbytes <= 0 || cur_pcb_ptr == NULL || cur_pcb_ptr->arg_size > nbytes - 1 || cur_pcb_ptr->arg_size <= 0) return -1;
-    strcpy(buf, cur_pcb_ptr->arg_array);
+    memset(buf, '\0', KEYBOARD_BUFFER_SIZE);
+    memcpy(buf, cur_pcb_ptr->argument_array, strlen(cur_pcb_ptr->argument_array));
     return 0;
 }
 
-/** sys_vidmap()
+/** sys_halt
  *  
- * Sets the video memory location to the location passed in
- * Inputs: screen_start, a pointer to the address of video memory
- * Outputs: 0 for sucess, -1 for failure
- * Side Effects: sets the address mapped by screen start to start of video memory
+ * Halt system call
+ * Inputs: int8_t status
+ * Outputs: int32_t
+ * Side Effects: None
+ * NOT YET IMPLEMENTED
  */
-int32_t sys_vidmap(uint8_t** screen_start){
-    /* makes sure to check screen_start is pointing to user program block */
-    // if(!(((uint32_t) screen_start >= _128_MB) && ((uint32_t) screen_start < _132_MB) && screen_start == NULL)) return -1;
+int32_t sys_vidmap (uint8_t** screen_start){
+    /* makes sure that screen_start pointer is within the program loading block between 128 MB and 132 MB */
+    if(!(((uint32_t) screen_start >= USER_START) && ((uint32_t) screen_start < USER_END) && screen_start == NULL)) return -1;
     vidmap_paging();
-    flush_tlb();  // since memory location is changed in page table we need to flush tlb
-    (*screen_start) = (uint8_t*) VIDEO_START;
+    flush_tlb(); // memory gets changed 
+    (*screen_start) = (uint8_t*) _132_MB; //132 MB is where we have defined video memory to start
     return 0;
 }
 
@@ -530,7 +523,7 @@ int32_t _sys_read_terminal (int32_t fd, void* buf, int32_t nbytes){
     ((char *) buf)[i] = '\n';
     
 
-    return retval+1;
+    return retval + 1;
 }
 /** _sys_write_terminal
  *  
@@ -563,7 +556,6 @@ int32_t _sys_write_terminal(int32_t fd, const void* buf, int32_t nbytes){
             bytes_written++;
         }                 
     }
-
     return bytes_written;
 }
 
@@ -698,16 +690,12 @@ int32_t _sys_close_file(int32_t fd){
  */
 int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
     int32_t data_read;
-    int32_t current_offset = data_bytes_read;
-    if (cur_pcb_ptr != NULL && execute_flag == 0) current_offset = cur_pcb_ptr->offset_array[cur_pcb_ptr->cur_file_idx];
     /* condition checks */
     if(nbytes <= 0 || buf == NULL || fd < 0) return -1;
     /* does the data read */
-    data_read = read_data(fd, current_offset, buf, nbytes);
+    data_read = read_data(fd, data_bytes_read, buf, nbytes);
     /* moves forward in file corresponding to how many bytes are read */
-    if(data_read > 0)                       current_offset += data_read;
-    data_bytes_read = current_offset;
-    if (cur_pcb_ptr != NULL) cur_pcb_ptr->offset_array[cur_pcb_ptr->cur_file_idx] = current_offset;
+    if(data_read > 0)                       data_bytes_read += data_read;
     /* checks that we have read ALL bytes requested */
     // if(data_read != nbytes)                 return -1;
     return data_read;
@@ -757,19 +745,15 @@ int32_t _sys_close_directory(int32_t fd){
  * Side Effects: Buffer holds a filename from the directory every 32 bytes
  */
 int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes){
-    dentry_t cur_dentry;
-    int bytes_read = 0;
+    dentry_t curr_dentry;
     if (read_dir_flag == boot_block->entries){
         read_dir_flag = 0;
         return 0;
     }
-    read_dentry_by_index(read_dir_flag++, &cur_dentry); 
-    while(cur_dentry.file_name[bytes_read] != '\0' && bytes_read < FILENAME_LEN){    
-        memcpy((void *) &(((char*) buf)[bytes_read]), (void*) &cur_dentry.file_name[bytes_read], 1);
-        bytes_read++;
-    }
-
-    return bytes_read;
+    read_dentry_by_index(read_dir_flag++, &curr_dentry);
+    strncpy((int8_t*) (buf), 
+            (int8_t*) curr_dentry.file_name, FILENAME_LEN);
+    return FILENAME_LEN;
 }
 /** sys_write_directory
  *  
