@@ -79,5 +79,19 @@ void program_paging(uint32_t physical_address){
 	page_directory[SYS_VIRTUAL_MEM] |= PAGE_SIZE | USER | PRESENT | READ_WRITE;
 }
 
+/*
+	vidmap_paging()
+	Description: Sets up paging for video memory defined at 132 MB
+	Inputs: None
+	Outputs: None
+	Side Effects: None
+ */
+ void vidmap_paging()
+ {
+    page_directory[VIDEO_START / KERNEL_START] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT| USER);
+    //then set up the page table
+    page_table_vidmap[VIDEO_OFFSET] = VIDEO | (READ_WRITE | PRESENT | USER);
+ }
+
 
 

@@ -1,6 +1,9 @@
 #include "idt_handlers.h"
 #include "syscall_handlers.h"
-
+/** grep doesnt work properly
+*fish is not recognized
+*rtc is not recognized
+*/
 /***********************PCB related structures and variables***********************/
 pcb_t * cur_pcb_ptr = NULL;
 // rtc fops table
@@ -212,9 +215,15 @@ int32_t _execute_setup_program_paging(){
 int32_t _execute_user_program_loader(int8_t * prog_name){
     /* loads contents of file into program image in virtual memory */
     int32_t fd = _sys_open_file(prog_name);
-    memset((void *) PROGRAM_IMAGE, 0, _4KB_);
+    // dentry_t this_dentry;
+    // this_dentry.inode = 0;
+    // this_dentry.file_type = 0;
+    // read_dentry_by_name(prog_name, &this_dentry);
+    // boot_block->inodes[this_dentry.inode]
+
+    memset((void *) PROGRAM_IMAGE, 0, _4KB_PAGE);
     execute_flag = 1;
-    int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
+    int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_PAGE);
     execute_flag = 0;
     return (out == -1) ? -1 : 0;
 }
@@ -284,7 +293,7 @@ void _execute_context_switch(){
  * 
  * Inputs: file descriptor, buffer (to fill), number of bytes to read
  * Outputs: number of bytes readud 
- * Side Effects: fills buffer with contents reaud
+ * Side Effects: fills buffer with contents read
  */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
     // return _sys_read_terminal(fd, buf, nbytes);
@@ -325,8 +334,8 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
  * Outputs: current pcb index
  * Side Effects: opens the file
  */
-int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
-    int8_t file[FILENAME_LEN];
+int32_t sys_open (const uint8_t* filename){ // terminal, rtc, file, directory
+    uint8_t file[FILENAME_LEN];
     int i;
     int ret_val;
     int32_t cur_pcb_idx = 0;
@@ -354,7 +363,7 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
     dentry_t this_dentry; 
     this_dentry.inode = 0;
     this_dentry.file_type = 0;
-    ret_val = read_dentry_by_name(file, &this_dentry);
+    ret_val = read_dentry_by_name((int8_t *) file, &this_dentry);
     if(ret_val == -1)           return -1;
     
     /* figures out which type of file it is */
@@ -365,15 +374,15 @@ int32_t sys_open (const int8_t* filename){ // terminal, rtc, file, directory
     {
         case RTC_FILE:
             this_fops = &rtc_fops;
-            this_inode = _sys_open_rtc(file); // returns 0
+            this_inode = _sys_open_rtc((int8_t *)file); // returns 0
             break;
         case DIRECTORY:
             this_fops = &dir_fops;
-            this_inode = _sys_open_directory(file); // returns 0
+            this_inode = _sys_open_directory((int8_t *)file); // returns 0
             break;
         case REGULAR_FILE:
             this_fops = &file_fops;
-            this_inode = _sys_open_file(file); // returns inode
+            this_inode = _sys_open_file((int8_t *)file); // returns inode
             break;
         default:
             return -1;
@@ -416,16 +425,19 @@ int32_t sys_getargs(int8_t* buf, int32_t nbytes){
     return 0;
 }
 
-/** sys_halt
+/** sys_vidmap()
  *  
- * Halt system call
- * Inputs: int8_t status
- * Outputs: int32_t
- * Side Effects: None
- * NOT YET IMPLEMENTED
+ * Sets the video memory location to the location passed in
+ * Inputs: screen_start, a pointer to the address of video memory
+ * Outputs: 0 for sucess, -1 for failure
+ * Side Effects: sets the address mapped by screen start to start of video memory
  */
-int32_t sys_vidmap (int8_t** screen_start){
-    printf("vidmap called\n");
+int32_t sys_vidmap(uint8_t** screen_start){
+    /* makes sure to check screen_start is pointing to user program block */
+    // if(!(((uint32_t) screen_start >= _128_MB) && ((uint32_t) screen_start < _132_MB) && screen_start == NULL)) return -1;
+    vidmap_paging();
+    flush_tlb();  // since memory location is changed in page table we need to flush tlb
+    (*screen_start) = (uint8_t*) VIDEO_START;
     return 0;
 }
 

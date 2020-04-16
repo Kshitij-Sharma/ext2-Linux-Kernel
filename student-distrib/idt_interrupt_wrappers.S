@@ -69,17 +69,17 @@ system_call_asm:
         
         
         /* push params */
-        push %edx
-        push %ecx
-        push %ebx
+        pushl %edx
+        pushl %ecx
+        pushl %ebx
 
         /* jump to function */
         call     *sys_call_table(,%eax,4)
 
         /* pop params */
-        pop %ebx
-        pop %ecx
-        pop %edx
+        popl %ebx
+        popl %ecx
+        popl %edx
         movl %eax, (sys_call_eax)
         jmp cont
 

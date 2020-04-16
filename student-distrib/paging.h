@@ -4,6 +4,7 @@
 #define _4MB_PAGE                   4194304
 #define _4KB_PAGE                   4096
 #define _128_MB                     _4MB_PAGE*32
+#define _132_MB                     0x84000000
 #define _8_MB                       _4MB_PAGE*2
 #define _8_KB                       _4KB_PAGE*2
 #define _4_BYTES                    0x4
@@ -11,6 +12,7 @@
 /* CONSTANTS FOR GENERAL PAGING SETUP */
 #define NUMBER_OF_ENTRIES   1024
 #define SIZE_OF_PAGE        _4KB_PAGE
+#define VIDEO_START         _132_MB
 #define VIDEO_OFFSET        0xB8
 #define VIDEO               0xB8000
 #define KERNEL_START        0x400000 // starting at 4MB
@@ -38,10 +40,12 @@
 
 uint32_t page_directory [NUMBER_OF_ENTRIES] __attribute__((aligned (SIZE_OF_PAGE)));
 uint32_t page_table [NUMBER_OF_ENTRIES] __attribute__((aligned (SIZE_OF_PAGE)));
+uint32_t page_table_vidmap [NUMBER_OF_ENTRIES] __attribute__((aligned (SIZE_OF_PAGE)));
 
 /*function prototype needed to initialize paging */
 void paging_init();
 void flush_tlb();
 void program_paging();
+void vidmap_paging();
 int process_num;
 
