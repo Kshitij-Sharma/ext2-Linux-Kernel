@@ -163,6 +163,9 @@ void keyboard_interrupt()
         // while (ctrl_l_flag);
         clear();
         sys_read_flag = 0;
+        echo_flag = 1;
+        keyboard_buffer_idx = 0;
+        memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
         // printf("391OS>");
         return;
     }
@@ -189,17 +192,14 @@ void keyboard_interrupt()
     
     /* interaction with _sys_read_terminal */
     if(keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
-    // if(sys_read_flag)
-    // {
-        if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1)
-            keyboard_buffer[keyboard_buffer_idx++] = output_char;
-        if(pressed == ENTER_PRESSED){
-            keyboard_buffer[keyboard_buffer_idx] = output_char;
-            sys_read_flag = 0;
-            keyboard_buffer_idx = 0;
-            echo_flag = 1;
-        }
-    // }
+    if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1)
+        keyboard_buffer[keyboard_buffer_idx++] = output_char;
+    if(pressed == ENTER_PRESSED){
+        keyboard_buffer[keyboard_buffer_idx] = output_char;
+        sys_read_flag = 0;
+        keyboard_buffer_idx = 0;
+        echo_flag = 1;
+    }
     if (echo_flag == 1) putc(output_char);
     wraparound();
     scroll_down();
