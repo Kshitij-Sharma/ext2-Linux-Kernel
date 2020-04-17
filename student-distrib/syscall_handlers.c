@@ -210,11 +210,15 @@ int32_t _execute_setup_program_paging(){
  */
 int32_t _execute_user_program_loader(int8_t * prog_name){
     /* loads contents of file into program image in virtual memory */
-    int32_t fd = _sys_open_file((uint8_t *) prog_name);
-    // memset((void *) PROGRAM_IMAGE, 0, _4KB_);
+    int32_t inode = _sys_open_file((uint8_t *) prog_name); // inode
+    int32_t out;
+
     memset((void *) PROGRAM_IMAGE, 0, _4KB_*10); // changed for fish -- make dynamic based on file size
     // int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
-    int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_*10);
+
+    out = read_data(inode, 0, (void *) PROGRAM_IMAGE, _4KB_*10);
+    /* moves forward in file corresponding to how many bytes are read */
+
     return (out == -1) ? -1 : 0;
 }
 
@@ -294,8 +298,8 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes){
     if(cur_pcb_ptr->file_desc_array[fd].flags == 0)                 return -1;
     
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
-    uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
-    return cur_pcb_ptr->file_desc_array[fd].file_ops_table->read(this_inode, buf, nbytes);
+    // uint32_t this_inode = cur_pcb_ptr->file_desc_array[fd].inode;
+    return cur_pcb_ptr->file_desc_array[fd].file_ops_table->read(fd, buf, nbytes);
     // return -1;
 }
 
@@ -692,14 +696,14 @@ int32_t _sys_close_file(int32_t fd){
  */
 int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes){
     int32_t data_read;
+    int32_t offset = cur_pcb_ptr->file_desc_array[fd].file_position;
     /* condition checks */
     if(nbytes <= 0 || buf == NULL || fd < 0) return -1;
     /* does the data read */
-    data_read = read_data(fd, data_bytes_read, buf, nbytes);
+    data_read = read_data(cur_pcb_ptr->file_desc_array[fd].inode, offset, buf, nbytes);
     /* moves forward in file corresponding to how many bytes are read */
-    if(data_read > 0)                       data_bytes_read += data_read;
+    if(data_read > 0)                       cur_pcb_ptr->file_desc_array[fd].file_position += data_read;
     /* checks that we have read ALL bytes requested */
-    // if(data_read != nbytes)                 return -1;
     return data_read;
 }
 /** sys_write_file

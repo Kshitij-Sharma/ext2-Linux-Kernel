@@ -106,7 +106,7 @@ int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length
     return -1;
 
   /* clear buf */
-  memset(buf, NULL, length);
+  memset(buf, '\0', length);
 
   /* get to the proper inode */
   file_cur = &(inode_head[inode]);
