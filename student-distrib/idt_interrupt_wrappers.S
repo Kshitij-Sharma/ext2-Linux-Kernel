@@ -69,17 +69,17 @@ system_call_asm:
         
         
         /* push params */
-        pushl %edx
-        pushl %ecx
-        pushl %ebx
+        ; pushl %edx
+        ; pushl %ecx
+        ; pushl %ebx
 
         /* jump to function */
         call     *sys_call_table(,%eax,4)
 
         /* pop params */
-        popl %ebx
-        popl %ecx
-        popl %edx
+        ; popl %ebx
+        ; popl %ecx
+        ; popl %edx
         movl %eax, (sys_call_eax)
         jmp cont
 
@@ -88,11 +88,14 @@ system_call_asm:
 
         cont:
         /* send EOI signal */
-        pushl $IRQ_RTC
-        call send_eoi               /* sends the EOI */
-        popl %ebx
+        ; pushl $IRQ_RTC
+        ; call send_eoi               /* sends the EOI */
+        ; popl %eax
 
         popal
+        ; movl $0, %ebx
+        ; movl $0, %ecx
+        ; movl $0, %edx
         movl (sys_call_eax), %eax
 
         /* Return control to user stack */

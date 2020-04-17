@@ -29,7 +29,6 @@ int read_dir_flag = 0;
  */
 int32_t sys_halt (int8_t status){
     int i;
-    
     /* closes all file sin PCB */
     for (i = 0; i < FILE_DESC_ARR_SIZE; i++) sys_close(i);
 
@@ -51,9 +50,9 @@ int32_t sys_halt (int8_t status){
     if (process_num == 0)   sys_execute("shell");
     /* returns to previous program's execution */
     asm volatile (
-        "mov %0, %%esp;" /* push user_ds */
-        "mov %1, %%ebp;" /* push user_esp */
-        "mov %2, %%eax;"   /* push EFLAGS */ 
+        "mov %0, %%esp;" /* store esp*/
+        "mov %1, %%ebp;" /* store ebp */
+        "mov %2, %%eax;"   /* store return value */ 
         "jmp return_from_prog;"
         :
         :"r" (cur_pcb_ptr->esp), "r" (cur_pcb_ptr->ebp), "r" ((uint32_t) status)
@@ -212,8 +211,10 @@ int32_t _execute_setup_program_paging(){
 int32_t _execute_user_program_loader(int8_t * prog_name){
     /* loads contents of file into program image in virtual memory */
     int32_t fd = _sys_open_file((uint8_t *) prog_name);
-    memset((void *) PROGRAM_IMAGE, 0, _4KB_);
-    int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
+    // memset((void *) PROGRAM_IMAGE, 0, _4KB_);
+    memset((void *) PROGRAM_IMAGE, 0, _4KB_*10); // changed for fish -- make dynamic based on file size
+    // int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
+    int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_*10);
     return (out == -1) ? -1 : 0;
 }
 
@@ -253,9 +254,9 @@ pcb_t * _execute_create_PCB(char * argument){
 void _execute_context_switch(){
     /* switch TSS context (stack segment and esp) */
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 = _8_MB - _4_BYTES - (_8_KB * cur_pcb_ptr->process_id);
+    tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr->process_id);
     /* maps the esp of user space */
-    uint32_t user_esp = _128_MB + _4MB_PAGE - _4_BYTES; // maps to the esp of user space
+    uint32_t user_esp = _132_MB; // maps to the esp of user space
     /* gets the eip from the executable header */
     uint32_t eip = 0;
     // buf_executable_header from 27 to 24 used as specified in the documentation. the 24, 16, and 8 are used to shift the bytes to the correct spot in the eip int
@@ -431,7 +432,7 @@ int32_t sys_vidmap (uint8_t** screen_start){
     // if((!(((uint32_t) screen_start >= USER_START) && ((uint32_t) screen_start < USER_END)) && screen_start == NULL)) return -1;
     vidmap_paging();
     flush_tlb(); // need to flush as page table gets set to a new virtual address 
-    (*screen_start) = (uint8_t*) _132_MB; //132 MB is where we have defined video memory to start
+    (*screen_start) = (uint8_t *) _132_MB; //132 MB is where we have defined video memory to start
     return 0;
 }
 

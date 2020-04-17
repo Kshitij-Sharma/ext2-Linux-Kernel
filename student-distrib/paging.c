@@ -20,8 +20,8 @@ void paging_init(){
 			* Write Enabled: It can be both read from and written to
 			* Not Present: The page table is not present (Based on the 0th bit)
 			*/
- 		page_directory[i] = READ_WRITE;
-		page_table[i] = (i * SIZE_OF_PAGE) | READ_WRITE; // attributes: supervisor level, read/write, not present.
+ 		page_directory[i] = READ_WRITE & ~PRESENT;
+		page_table[i] = (i * SIZE_OF_PAGE) | (READ_WRITE & ~PRESENT); // attributes: supervisor level, read/write, not present.
  	}
 
 	page_directory[0] =  (uint32_t) page_table;
@@ -88,7 +88,7 @@ void program_paging(uint32_t physical_address){
  */
  void vidmap_paging()
  {
-    page_directory[VIDEO_START / KERNEL_START] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT| USER);
+    page_directory[VIDEO_START / _4MB_PAGE] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT| USER);
     //then set up the page table
     page_table_vidmap[VIDEO_OFFSET] = VIDEO | (READ_WRITE | PRESENT | USER);
  }

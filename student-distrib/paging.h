@@ -1,13 +1,13 @@
 #include "lib.h"
 
 /* CONSTANTS FOR EASY SIZE ACCESS */
-#define _4MB_PAGE                   4194304
+#define _4MB_PAGE                   4194304 
 #define _4KB_PAGE                   4096
-#define _128_MB                     _4MB_PAGE*32
-#define _132_MB                     0x84000000
-#define _8_MB                       _4MB_PAGE*2
-#define _8_KB                       _4KB_PAGE*2
-#define _4_BYTES                    0x4
+#define _128_MB                     134217728
+#define _132_MB                     138412032
+#define _8_MB                       8388608
+#define _8_KB                       8192
+#define _4_BYTES                    4
 
 /* CONSTANTS FOR GENERAL PAGING SETUP */
 #define NUMBER_OF_ENTRIES   1024
