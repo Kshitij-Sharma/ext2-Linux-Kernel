@@ -22,6 +22,7 @@ void paging_init(){
 			*/
  		page_directory[i] = READ_WRITE & ~PRESENT;
 		page_table[i] = (i * SIZE_OF_PAGE) | (READ_WRITE & ~PRESENT); // attributes: supervisor level, read/write, not present.
+		page_table_vidmap[i] = READ_WRITE & ~PRESENT;
  	}
 
 	page_directory[0] =  (uint32_t) page_table;
@@ -88,7 +89,8 @@ void program_paging(uint32_t physical_address){
  */
  void vidmap_paging()
  {
-    page_directory[VIDEO_START / _4MB_PAGE] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT| USER);
+    page_directory[VIDEO_START / _4MB_PAGE] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT | USER);
     //then set up the page table
-    page_table_vidmap[VIDEO_OFFSET] = VIDEO | (READ_WRITE | PRESENT | USER);
+    page_table_vidmap[0] = VIDEO;
+	page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
  }

@@ -422,13 +422,12 @@ int32_t sys_getargs(int8_t* buf, int32_t nbytes){
     return 0;
 }
 
-/** sys_halt
+/** sys_vidmap
  *  
- * Halt system call
- * Inputs: int8_t status
- * Outputs: int32_t
- * Side Effects: None
- * NOT YET IMPLEMENTED
+ * Returns the pointer to the start of video memory to user
+ * Inputs: uint8_t** screen_start, pointer to address of video mem
+ * Outputs: 0 for success, -1 for failure
+ * Side Effects: Address that screen_start points to gets modified to start of video mem (132 MB)
  */
 int32_t sys_vidmap (uint8_t** screen_start){
     /* makes sure that screen_start pointer is within the program loading block between 128 MB and 132 MB */
@@ -604,8 +603,10 @@ int32_t _sys_write_rtc(int32_t fd, const void* buf, int32_t nbytes){
     // sets the RTC rate to 2Hz
     char prev;
     int rate;
-    
-    int32_t frequency = (int32_t) buf;
+    int frequency;
+    if (nbytes != _4_BYTES || buf == NULL) return -1;
+    frequency = *((int32_t *)buf);
+
     /* param check */
     // if (buf == NULL)                    return -1;
     if (power_of_two(frequency) || frequency < 0)              return -1;
@@ -615,6 +616,7 @@ int32_t _sys_write_rtc(int32_t fd, const void* buf, int32_t nbytes){
     if (frequency > MAX_INTERRUPT_FREQUENCY){
         frequency = MAX_INTERRUPT_FREQUENCY;
     }
+    // frequency = 16;
     rate = (log_base_two(FREQ_CONVERSION_CONST/frequency)/log_base_two(2)) + 1;
     if (rate < MIN_RATE) rate = MIN_RATE;
 
