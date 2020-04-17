@@ -159,14 +159,14 @@ void keyboard_interrupt()
     /* if we are releasing a key we don't do anything */
     /* ctrl+L clears screen */
     if (control_on && pressed == L_SCANCODE){
-        // ctrl_l_flag = 1;
-        // while (ctrl_l_flag);
+        memset(temp_kbd_buf, '\0', KEYBOARD_BUFFER_SIZE);
+        memcpy(temp_kbd_buf, keyboard_buffer, keyboard_buffer_idx);
         clear();
         sys_read_flag = 0;
         echo_flag = 1;
-        keyboard_buffer_idx = 0;
-        memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
-        // printf("391OS>");
+        re_echo_flag = 1;
+        // keyboard_buffer_idx = 0;
+        // memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
         return;
     }
     /* if tilde, we want to halt RTC spazzing */
