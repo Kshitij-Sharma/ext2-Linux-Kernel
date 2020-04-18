@@ -28,6 +28,10 @@
 #define LEFT_ARROW_RELEASED         0XCB
 #define RIGHT_ARROW_PRESSED         0x4D
 #define RIGHT_ARROW_RELEASED        0XCD
+#define UP_ARROW_PRESSED            0x48
+#define UP_ARROW_RELEASED           0xC8
+#define DOWN_ARROW_PRESSED          0x50
+#define DOWN_ARROW_RELEASED         0xD0
 
 /* enter, left control, 1a 1b*/
 
@@ -119,6 +123,25 @@ void keyboard_interrupt()
     char output_char;
     pressed = inb(0x60);
     // printf("%x",pressed);
+    if (pressed == UP_ARROW_PRESSED && shell_flag == 1){
+        if (last_buf[0] != '\0'){
+            memcpy(keyboard_buffer, last_buf, last_buf_index);
+            int temp_idx = keyboard_buffer_idx + 1;
+            while (temp_idx-- > 1) backspace();
+            _sys_write_terminal(0, keyboard_buffer, last_buf_index);
+            keyboard_buffer_idx = last_buf_index;
+        }
+        // return;
+    }
+    if (pressed == DOWN_ARROW_PRESSED && shell_flag == 1){
+        memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
+        memcpy(keyboard_buffer, current_buf, current_buf_index);
+        keyboard_buffer_idx++;
+        while (keyboard_buffer_idx-- > 1) backspace();
+        _sys_write_terminal(0, keyboard_buffer, current_buf_index);
+        keyboard_buffer_idx = current_buf_index;
+        // return;
+    }
     /* backspace */
     if (pressed == BACKSPACE){
         backspace();
@@ -223,11 +246,20 @@ void keyboard_interrupt()
         if (distance_from_right > 0) distance_from_right--;
     }
     if(pressed == ENTER_PRESSED){
-        // keyboard_buffer[keyboard_buffer_idx] = output_char;
+        if (shell_flag == 1){
+            memset(last_buf, '\0', KEYBOARD_BUFFER_SIZE);
+            memcpy(last_buf, keyboard_buffer, keyboard_buffer_idx - 1);
+            last_buf_index = keyboard_buffer_idx - 1;
+        }
         sys_read_flag = 0;
         keyboard_buffer_idx = 0;
         echo_flag = 1;
     }
+        memset(current_buf, '\0', KEYBOARD_BUFFER_SIZE);
+        memcpy(current_buf, keyboard_buffer, keyboard_buffer_idx);
+        // current_buf_index = (keyboard_buffer_idx == 0) ? 0 : keyboard_buffer_idx - 1;
+        current_buf_index = keyboard_buffer_idx;
+
     if (echo_flag == 1) putc(output_char);
     wraparound();
     scroll_down();

@@ -42,6 +42,7 @@ void update_cursor();
 #define KEYBOARD_BUFFER_SIZE    128
 char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
 volatile int sys_read_flag;
+volatile int shell_flag;
 int keyboard_buffer_idx;
 
 /* Userspace address-check functions */

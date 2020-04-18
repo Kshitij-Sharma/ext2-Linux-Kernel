@@ -47,8 +47,8 @@ int32_t sys_halt(int8_t status)
     tss.esp0 = (uint32_t)(_8_MB - (process_num)*_8_KB - _4_BYTES);
 
     /* cant close shell! */
-    if (process_num == 0)
-        sys_execute("shell");
+    if (process_num == 0) sys_execute("shell");
+    shell_flag = 1;
     /* returns to previous program's execution */
     asm volatile(
         "mov %0, %%esp;" /* store esp*/
@@ -91,7 +91,9 @@ int32_t sys_execute(const int8_t *command)
     tempret = _execute_parse_args(command, prog_name, arg);
     if (tempret == -1)
         return -1;
-
+    if (strncmp(prog_name, "shell", 5) == 0) shell_flag = 1;
+    else shell_flag = 0;
+    
     /* checks that the file is an executable*/
     tempret = _execute_executable_check(prog_name, buf_executable_header);
     if (tempret == -1)

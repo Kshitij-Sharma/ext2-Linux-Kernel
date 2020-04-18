@@ -41,6 +41,7 @@ int backward_next = 0;
 //  outb(0x0A, 0x3D4);
 //  outb(0x20, 0x3D5);
 // }
+
 /* void backspace(void);
  * Inputs: void
  * Return Value: none
