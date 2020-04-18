@@ -24,6 +24,7 @@ extern void rtc_interrupt();
 // extern void system_call(int call_number, int first_arg, int second_arg, int third_arg);
 extern void SIMD_floating_point();
 char temp_kbd_buf[KEYBOARD_BUFFER_SIZE];
+int temp_kbd_idx;
 int re_echo_flag;
 
 void exception_handler(int index);

@@ -24,6 +24,11 @@
 #define CAPS_IGNORE_END             0x2B
 #define LETTER_START                0x10
 #define LETTER_END                  0x32
+#define LEFT_ARROW_PRESSED          0x4B
+#define LEFT_ARROW_RELEASED         0XCB
+#define RIGHT_ARROW_PRESSED         0x4D
+#define RIGHT_ARROW_RELEASED        0XCD
+
 /* enter, left control, 1a 1b*/
 
 // #define END_RELEASED              
@@ -34,6 +39,8 @@ int caps_lock_on = 0;
 int control_on = 0;
 int alt_on = 0;
 int echo_flag = 1;
+int distance_from_right = 0;
+int total_chars_in_buf = 0;
 // keyboard_buffer_idx = 0;
 /* scancodes for lowercase letters */
 static char scancode_to_char[NUM_CODES] = {
@@ -111,14 +118,32 @@ void keyboard_interrupt()
     unsigned int pressed;
     char output_char;
     pressed = inb(0x60);
-
+    // printf("%x",pressed);
     /* backspace */
     if (pressed == BACKSPACE){
         backspace();
         if (keyboard_buffer_idx > 0){
+            keyboard_buffer[keyboard_buffer_idx--] = '\0';
+            echo_flag = 1;
+        }
+        return;
+    }
+    if (pressed == LEFT_ARROW_PRESSED){
+        if (keyboard_buffer_idx > 0){
+            distance_from_right += left_arrow();
             keyboard_buffer[keyboard_buffer_idx--] = NULL;
             echo_flag = 1;
         }
+        return;
+    }
+    if (pressed == RIGHT_ARROW_PRESSED && distance_from_right > 0 && keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE - 1){
+        // printf("right: %d\n", distance_from_right);
+        // if (keyboard_buffer[keyboard_buffer_idx - distance_from_right] != '\0' && keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE - 1){
+            // printf("indeed\n");
+        int ret_from_right = right_arrow();
+        distance_from_right -= ret_from_right;
+        keyboard_buffer_idx += ret_from_right;
+        echo_flag = 1;
         return;
     }
     /* caps lock */
@@ -161,12 +186,13 @@ void keyboard_interrupt()
     if (control_on && pressed == L_SCANCODE){
         memset(temp_kbd_buf, '\0', KEYBOARD_BUFFER_SIZE);
         memcpy(temp_kbd_buf, keyboard_buffer, keyboard_buffer_idx);
+        temp_kbd_idx = keyboard_buffer_idx;
         clear();
         sys_read_flag = 0;
         echo_flag = 1;
         re_echo_flag = 1;
-        // keyboard_buffer_idx = 0;
-        // memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
+        keyboard_buffer_idx = 0;
+        memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
         return;
     }
     /* if tilde, we want to halt RTC spazzing */
@@ -192,10 +218,12 @@ void keyboard_interrupt()
     
     /* interaction with _sys_read_terminal */
     if(keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
-    if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1)
+    if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1){
         keyboard_buffer[keyboard_buffer_idx++] = output_char;
+        if (distance_from_right > 0) distance_from_right--;
+    }
     if(pressed == ENTER_PRESSED){
-        keyboard_buffer[keyboard_buffer_idx] = output_char;
+        // keyboard_buffer[keyboard_buffer_idx] = output_char;
         sys_read_flag = 0;
         keyboard_buffer_idx = 0;
         echo_flag = 1;

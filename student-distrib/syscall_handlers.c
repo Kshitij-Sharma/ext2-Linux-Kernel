@@ -110,9 +110,12 @@ int32_t sys_execute(const int8_t *command)
     /* creates PCB for process */
     cur_pcb_ptr = _execute_create_PCB(arg);
 
+    
     /* switches context to user program */
     _execute_context_switch();
 
+    keyboard_buffer_idx = 0;
+    memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
     /* place for a program to return to while being halted */
     asm volatile(
         "return_from_prog:;" /* push user_ds */
@@ -141,6 +144,10 @@ int32_t _execute_parse_args(const int8_t *command, int8_t *prog_name, int8_t *ar
     if (command == NULL || prog_name == NULL || arg == NULL)
         return -1;
 
+    while (command[i] == '\0'){
+        i++;
+        if(i == KEYBOARD_BUFFER_SIZE) return -1;
+    } 
     /* skips spaces in front of program name */
     while (command[i] == ' ' && command[i] != '\0' && command[i] != '\n')
         i++;
@@ -542,10 +549,10 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     if (nbytes == 0)
         return 0;
 
-    memset(keyboard_buffer, NULL, KEYBOARD_BUFFER_SIZE);
+    memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
 
     if (re_echo_flag == 1){
-        memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
+        keyboard_buffer_idx = temp_kbd_idx;
         memcpy(keyboard_buffer, temp_kbd_buf, keyboard_buffer_idx);
         while (i < keyboard_buffer_idx){
             putc(keyboard_buffer[i]);
@@ -565,7 +572,7 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     while (sys_read_flag);
 
     /* copies memory from keyboard input to buffer */
-    while (keyboard_buffer[i] != '\0' && keyboard_buffer[i] != '\n' && keyboard_buffer[i] != NULL && i < nbytes)
+    while (keyboard_buffer[i] != '\0' && keyboard_buffer[i] != '\n' && keyboard_buffer[i] != '\0' && i < nbytes)
     {
         memcpy(&(((char *)buf)[i]), &(keyboard_buffer[i]), 1);
         retval++;
