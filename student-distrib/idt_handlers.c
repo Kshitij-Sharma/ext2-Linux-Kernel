@@ -125,6 +125,11 @@ void keyboard_interrupt()
     // printf("%x",pressed);
     if (pressed == UP_ARROW_PRESSED && shell_flag == 1){
         if (last_buf[0] != '\0'){
+            while (distance_from_right > 0){
+                right_arrow(); 
+                keyboard_cursor_idx++;
+                distance_from_right--;
+            }
             memcpy(keyboard_buffer, last_buf, last_buf_index);
             int temp_idx = keyboard_cursor_idx + 1;
             while (temp_idx-- > 1) backspace();
@@ -135,6 +140,11 @@ void keyboard_interrupt()
         // return;
     }
     if (pressed == DOWN_ARROW_PRESSED && shell_flag == 1){
+        while (distance_from_right > 0){
+                right_arrow(); 
+                keyboard_cursor_idx++;
+                distance_from_right--;
+        }
         memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
         memcpy(keyboard_buffer, current_buf, current_buf_index);
         keyboard_cursor_idx++;
