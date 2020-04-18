@@ -45,10 +45,10 @@ int32_t sys_halt(int8_t status)
     flush_tlb();
     tss.ss0 = KERNEL_DS; // switch stack context
     tss.esp0 = (uint32_t)(_8_MB - (process_num)*_8_KB - _4_BYTES);
+    shell_flag = 1;
 
     /* cant close shell! */
     if (process_num == 0) sys_execute("shell");
-    shell_flag = 1;
     /* returns to previous program's execution */
     asm volatile(
         "mov %0, %%esp;" /* store esp*/
@@ -91,8 +91,6 @@ int32_t sys_execute(const int8_t *command)
     tempret = _execute_parse_args(command, prog_name, arg);
     if (tempret == -1)
         return -1;
-    if (strncmp(prog_name, "shell", 5) == 0) shell_flag = 1;
-    else shell_flag = 0;
     
     /* checks that the file is an executable*/
     tempret = _execute_executable_check(prog_name, buf_executable_header);
@@ -109,6 +107,8 @@ int32_t sys_execute(const int8_t *command)
     if (tempret == -1)
         return -1;
 
+    if (strncmp(prog_name, "shell", 5) == 0) shell_flag = 1;
+    else shell_flag = 0;
     /* creates PCB for process */
     cur_pcb_ptr = _execute_create_PCB(arg);
 
@@ -116,7 +116,7 @@ int32_t sys_execute(const int8_t *command)
     /* switches context to user program */
     _execute_context_switch();
 
-    keyboard_buffer_idx = 0;
+    keyboard_cursor_idx = 0;
     memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
     /* place for a program to return to while being halted */
     asm volatile(
@@ -130,6 +130,7 @@ int32_t sys_execute(const int8_t *command)
     {
         return_value = ERROR_VAL;
     }
+    shell_flag = 1;
     return return_value;
 }
 
@@ -554,9 +555,10 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
 
     if (re_echo_flag == 1){
-        keyboard_buffer_idx = temp_kbd_idx;
-        memcpy(keyboard_buffer, temp_kbd_buf, keyboard_buffer_idx);
-        while (i < keyboard_buffer_idx){
+        keyboard_cursor_idx = temp_kbd_idx;
+        keyboard_buffer_end_idx = keyboard_cursor_idx;
+        memcpy(keyboard_buffer, temp_kbd_buf, keyboard_cursor_idx);
+        while (i < keyboard_cursor_idx){
             putc(keyboard_buffer[i]);
             i++;
         }

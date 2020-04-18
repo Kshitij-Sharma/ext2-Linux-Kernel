@@ -48,7 +48,7 @@ int backward_next = 0;
  * Function: Backspace functionality */
 int right_arrow(void){
     if ((screen_x == NUM_COLS) && (screen_y == NUM_ROWS - 1)) return 0;
-    if (keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE - 1){
+    if (keyboard_cursor_idx == KEYBOARD_BUFFER_SIZE - 1){
         return 0;
     }
     if (screen_x != NUM_COLS){
@@ -97,7 +97,7 @@ int right_arrow(void){
  * Function: Backspace functionality */
 int left_arrow(void){
     if (screen_x == 0 && screen_y == 0) return 0;
-    if (keyboard_buffer_idx == 0){
+    if (keyboard_cursor_idx == 0){
         return 0;
     }
     if (screen_x != 0){
@@ -230,7 +230,7 @@ void wraparound(void) {
  * Function: Backspace functionality */
 void backspace(void){
     if (screen_x == 0 && screen_y == 0) return;
-    if (keyboard_buffer_idx == 0){
+    if (keyboard_cursor_idx == 0){
         return;
     }
     if (screen_x != 0){

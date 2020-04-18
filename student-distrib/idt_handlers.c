@@ -45,7 +45,7 @@ int alt_on = 0;
 int echo_flag = 1;
 int distance_from_right = 0;
 int total_chars_in_buf = 0;
-// keyboard_buffer_idx = 0;
+// keyboard_cursor_idx = 0;
 /* scancodes for lowercase letters */
 static char scancode_to_char[NUM_CODES] = {
     0, 0,
@@ -126,46 +126,49 @@ void keyboard_interrupt()
     if (pressed == UP_ARROW_PRESSED && shell_flag == 1){
         if (last_buf[0] != '\0'){
             memcpy(keyboard_buffer, last_buf, last_buf_index);
-            int temp_idx = keyboard_buffer_idx + 1;
+            int temp_idx = keyboard_cursor_idx + 1;
             while (temp_idx-- > 1) backspace();
             _sys_write_terminal(0, keyboard_buffer, last_buf_index);
-            keyboard_buffer_idx = last_buf_index;
+            keyboard_cursor_idx = last_buf_index;
+            keyboard_buffer_end_idx = keyboard_cursor_idx;
         }
         // return;
     }
     if (pressed == DOWN_ARROW_PRESSED && shell_flag == 1){
         memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
         memcpy(keyboard_buffer, current_buf, current_buf_index);
-        keyboard_buffer_idx++;
-        while (keyboard_buffer_idx-- > 1) backspace();
+        keyboard_cursor_idx++;
+        while (keyboard_cursor_idx-- > 1) backspace();
         _sys_write_terminal(0, keyboard_buffer, current_buf_index);
-        keyboard_buffer_idx = current_buf_index;
+        keyboard_cursor_idx = current_buf_index;
+        keyboard_buffer_end_idx = keyboard_cursor_idx;
         // return;
     }
     /* backspace */
     if (pressed == BACKSPACE){
         backspace();
-        if (keyboard_buffer_idx > 0){
-            keyboard_buffer[keyboard_buffer_idx--] = '\0';
+        if (keyboard_cursor_idx > 0){
+            keyboard_buffer[keyboard_cursor_idx--] = '\0';
+            keyboard_buffer_end_idx--;
             echo_flag = 1;
         }
         return;
     }
     if (pressed == LEFT_ARROW_PRESSED){
-        if (keyboard_buffer_idx > 0){
+        if (keyboard_cursor_idx > 0){
             distance_from_right += left_arrow();
-            keyboard_buffer[keyboard_buffer_idx--] = NULL;
+            keyboard_cursor_idx--;
             echo_flag = 1;
         }
         return;
     }
-    if (pressed == RIGHT_ARROW_PRESSED && distance_from_right > 0 && keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE - 1){
+    if (pressed == RIGHT_ARROW_PRESSED && distance_from_right > 0 && keyboard_cursor_idx < KEYBOARD_BUFFER_SIZE - 1){
         // printf("right: %d\n", distance_from_right);
-        // if (keyboard_buffer[keyboard_buffer_idx - distance_from_right] != '\0' && keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE - 1){
+        // if (keyboard_buffer[keyboard_cursor_idx - distance_from_right] != '\0' && keyboard_cursor_idx < KEYBOARD_BUFFER_SIZE - 1){
             // printf("indeed\n");
         int ret_from_right = right_arrow();
         distance_from_right -= ret_from_right;
-        keyboard_buffer_idx += ret_from_right;
+        keyboard_cursor_idx += ret_from_right;
         echo_flag = 1;
         return;
     }
@@ -208,19 +211,20 @@ void keyboard_interrupt()
     /* ctrl+L clears screen */
     if (control_on && pressed == L_SCANCODE){
         memset(temp_kbd_buf, '\0', KEYBOARD_BUFFER_SIZE);
-        memcpy(temp_kbd_buf, keyboard_buffer, keyboard_buffer_idx);
-        temp_kbd_idx = keyboard_buffer_idx;
+        memcpy(temp_kbd_buf, keyboard_buffer, keyboard_cursor_idx);
+        temp_kbd_idx = keyboard_cursor_idx;
         clear();
         sys_read_flag = 0;
         echo_flag = 1;
         re_echo_flag = 1;
-        keyboard_buffer_idx = 0;
+        keyboard_cursor_idx = 0;
+        keyboard_buffer_end_idx = 0;
         memset(keyboard_buffer, '\0', KEYBOARD_BUFFER_SIZE);
         return;
     }
     /* if tilde, we want to halt RTC spazzing */
-    if (scancode_to_char[pressed*2] == '`')
-        RTC_ON_FLAG = (RTC_ON_FLAG) ? 0 : 1;
+    // if (scancode_to_char[pressed*2] == '`')
+    //     RTC_ON_FLAG = (RTC_ON_FLAG) ? 0 : 1;
     if (pressed >= START_RELEASED || pressed == RIGHT_CONTROL_TAG || pressed > START_IGNORE)
         return;
     /* uses the uppercase character in the scancode if shift ^ caps lock is on*/
@@ -240,25 +244,30 @@ void keyboard_interrupt()
     else        output_char = scancode_to_char[pressed*2]; // else print out the lowercase or unshifted version of the scancode char
     
     /* interaction with _sys_read_terminal */
-    if(keyboard_buffer_idx == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
-    if (keyboard_buffer_idx < KEYBOARD_BUFFER_SIZE-1){
-        keyboard_buffer[keyboard_buffer_idx++] = output_char;
+    if(keyboard_cursor_idx == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
+    if (keyboard_cursor_idx < KEYBOARD_BUFFER_SIZE-1 && pressed != ENTER_PRESSED){
+        keyboard_buffer[keyboard_cursor_idx++] = output_char;
+        keyboard_buffer_end_idx++;
         if (distance_from_right > 0) distance_from_right--;
     }
     if(pressed == ENTER_PRESSED){
+        if (keyboard_buffer_end_idx < KEYBOARD_BUFFER_SIZE) keyboard_buffer[keyboard_buffer_end_idx++] = output_char;
+        keyboard_cursor_idx = keyboard_buffer_end_idx;
         if (shell_flag == 1){
             memset(last_buf, '\0', KEYBOARD_BUFFER_SIZE);
-            memcpy(last_buf, keyboard_buffer, keyboard_buffer_idx - 1);
-            last_buf_index = keyboard_buffer_idx - 1;
+            memcpy(last_buf, keyboard_buffer, keyboard_cursor_idx - 1);
+            last_buf_index = keyboard_cursor_idx - 1;
         }
         sys_read_flag = 0;
-        keyboard_buffer_idx = 0;
+        keyboard_cursor_idx = 0;
+        keyboard_buffer_end_idx = 0;
         echo_flag = 1;
+        distance_from_right = 0;
     }
         memset(current_buf, '\0', KEYBOARD_BUFFER_SIZE);
-        memcpy(current_buf, keyboard_buffer, keyboard_buffer_idx);
-        // current_buf_index = (keyboard_buffer_idx == 0) ? 0 : keyboard_buffer_idx - 1;
-        current_buf_index = keyboard_buffer_idx;
+        memcpy(current_buf, keyboard_buffer, keyboard_cursor_idx);
+        // current_buf_index = (keyboard_cursor_idx == 0) ? 0 : keyboard_cursor_idx - 1;
+        current_buf_index = keyboard_cursor_idx;
 
     if (echo_flag == 1) putc(output_char);
     wraparound();
