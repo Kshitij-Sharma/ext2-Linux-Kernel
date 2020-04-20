@@ -92,3 +92,6 @@ BUG LOG
         1. Filysytem Bugs
                 BUG: Frame0.txt and frame1.txt were being passed in as null
                         fix: fixed context swtiching in execute
+        2. Vidmap
+                BUG: Indexing into wrong page
+                        fix: set page in page table to be 0
