@@ -35,14 +35,14 @@ int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry){
   // checks for invalid parameters as well as an empty string for the name
   if((dentry == NULL) || (fname == NULL) || (fname[0] == (uint8_t) '\0'))
     return -1;
-
+  if(strlen((const int8_t *)fname) > FILENAME_LEN)    return -1;
   // loops through all 63 files and checks for the proper name match
   uint32_t i;
 
   for(i = 0; i < DIR_ENTRIES; i++)
   {
     //using strcmp to check equality between the file names
-    if(!strncmp((int8_t*) fname, (int8_t*) (boot_block -> dir_entries)[i].file_name, strlen((int8_t *) (boot_block -> dir_entries)[i].file_name)))
+    if(!strncmp((int8_t*) fname, (int8_t*) (boot_block -> dir_entries)[i].file_name, FILENAME_LEN))
       return read_dentry_by_index(i, dentry);
   }
   

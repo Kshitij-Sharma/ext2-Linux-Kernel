@@ -32,6 +32,9 @@
 #define UP_ARROW_RELEASED           0xC8
 #define DOWN_ARROW_PRESSED          0x50
 #define DOWN_ARROW_RELEASED         0xD0
+#define FUNCTION_ONE_PRESED         0x3B
+#define FUNCTION_TWO_PRESSED        0x3C
+#define FUNCTION_THREE_PRESSED      0x3D      
 
 /* enter, left control, 1a 1b*/
 
@@ -173,9 +176,6 @@ void keyboard_interrupt()
         return;
     }
     if (pressed == RIGHT_ARROW_PRESSED && distance_from_right > 0 && keyboard_cursor_idx < KEYBOARD_BUFFER_SIZE - 1){
-        // printf("right: %d\n", distance_from_right);
-        // if (keyboard_buffer[keyboard_cursor_idx - distance_from_right] != '\0' && keyboard_cursor_idx < KEYBOARD_BUFFER_SIZE - 1){
-            // printf("indeed\n");
         int ret_from_right = right_arrow();
         distance_from_right -= ret_from_right;
         keyboard_cursor_idx += ret_from_right;
@@ -217,6 +217,19 @@ void keyboard_interrupt()
         alt_on = 0;
         return;
     }
+    // if (alt_on)
+    // {
+    //     switch(pressed){
+    //         case(FUNCTION_ONE_PRESED):
+    //             return /* switch_terminal(1); */
+    //         case(FUNCTION_TWO_PRESSED):
+    //             return /* switch_terminal(2);*/
+    //         case(FUNCTION_THREE_PRESSED):
+    //             return /*switch_terminal(3);*/
+    //         default:
+    //             break;
+    //     }
+    // }
     /* if we are releasing a key we don't do anything */
     /* ctrl+L clears screen */
     if (control_on && pressed == L_SCANCODE){

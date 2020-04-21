@@ -77,7 +77,7 @@ int32_t sys_execute(const int8_t *command)
     tempret = 0;
     error_flag = 0;
     arg_flag = 1;
-    if (process_num > 6) return ERROR_VAL;
+    if (process_num > 5) return -2;
 
     /* saves the old base and stack pointer prior to execution to return to later*/
     if (cur_pcb_ptr != NULL)
@@ -382,15 +382,6 @@ int32_t sys_open(const uint8_t *filename)
     if (i > MAX_FD_IDX)
         return -1;
     int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index;
-    /* makes sure nothing past the 7th file can be opened */
-    //if(cur_pcb_ptr->next_open_index > MAX_FD_IDX)      return -1;
-    // for (i = 0; i < FILENAME_LEN; i++)
-    // {
-    //     if (filename[i] == '\0')
-    //         break;
-    //     file[i] = filename[i];
-    // }
-    // file[i] = '\0';
 
     /* find the dentry for the file */
     dentry_t this_dentry;
