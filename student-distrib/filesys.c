@@ -42,7 +42,7 @@ int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry){
   for(i = 0; i < DIR_ENTRIES; i++)
   {
     //using strcmp to check equality between the file names
-    if(!strncmp((int8_t*) fname, (int8_t*) (boot_block -> dir_entries)[i].file_name, FILENAME_LEN))
+    if(!strncmp((int8_t*) fname, (int8_t*) (boot_block -> dir_entries)[i].file_name, strlen((int8_t *) (boot_block -> dir_entries)[i].file_name)))
       return read_dentry_by_index(i, dentry);
   }
   

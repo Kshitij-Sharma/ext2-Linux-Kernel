@@ -16,6 +16,7 @@ file_ops_t std_out_fops = {_sys_dummy_read, _sys_write_terminal, _sys_dummy_open
 
 int8_t buf_executable_header[_4KB_];
 int read_dir_flag = 0;
+int arg_flag = 1;
 
 /** sys_halt
  * Halt System Call 
@@ -75,6 +76,8 @@ int32_t sys_execute(const int8_t *command)
     uint32_t return_value = 0;
     tempret = 0;
     error_flag = 0;
+    arg_flag = 1;
+    if (process_num > 6) return ERROR_VAL;
 
     /* saves the old base and stack pointer prior to execution to return to later*/
     if (cur_pcb_ptr != NULL)
@@ -91,6 +94,9 @@ int32_t sys_execute(const int8_t *command)
     tempret = _execute_parse_args(command, prog_name, arg);
     if (tempret == -1)
         return -1;
+    if (tempret == -2)
+        arg_flag = 0;
+
     
     /* checks that the file is an executable*/
     tempret = _execute_executable_check(prog_name, buf_executable_header);
@@ -359,7 +365,6 @@ int32_t sys_write(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t sys_open(const uint8_t *filename)
 { // terminal, rtc, file, directory
-    uint8_t file[FILENAME_LEN];
     int i;
     int ret_val;
     /* assign the appropriate file descriptor to the PCB */
@@ -379,19 +384,19 @@ int32_t sys_open(const uint8_t *filename)
     int32_t cur_pcb_idx = cur_pcb_ptr->next_open_index;
     /* makes sure nothing past the 7th file can be opened */
     //if(cur_pcb_ptr->next_open_index > MAX_FD_IDX)      return -1;
-    for (i = 0; i < FILENAME_LEN; i++)
-    {
-        if (filename[i] == '\0')
-            break;
-        file[i] = filename[i];
-    }
-    file[i] = '\0';
+    // for (i = 0; i < FILENAME_LEN; i++)
+    // {
+    //     if (filename[i] == '\0')
+    //         break;
+    //     file[i] = filename[i];
+    // }
+    // file[i] = '\0';
 
     /* find the dentry for the file */
     dentry_t this_dentry;
     this_dentry.inode = 0;
     this_dentry.file_type = 0;
-    ret_val = read_dentry_by_name(file, &this_dentry);
+    ret_val = read_dentry_by_name(filename, &this_dentry);
     if (ret_val == -1)
         return -1;
 
@@ -403,15 +408,15 @@ int32_t sys_open(const uint8_t *filename)
     {
     case RTC_FILE:
         this_fops = &rtc_fops;
-        this_inode = _sys_open_rtc(file); // returns 0
+        this_inode = _sys_open_rtc(filename); // returns 0
         break;
     case DIRECTORY:
         this_fops = &dir_fops;
-        this_inode = _sys_open_directory(file); // returns 0
+        this_inode = _sys_open_directory(filename); // returns 0
         break;
     case REGULAR_FILE:
         this_fops = &file_fops;
-        this_inode = _sys_open_file(file); // returns inode
+        this_inode = _sys_open_file(filename); // returns inode
         break;
     default:
         return -1;
@@ -454,6 +459,7 @@ int32_t sys_close(int32_t fd)
  */
 int32_t sys_getargs(int8_t *buf, int32_t nbytes)
 {
+    if (arg_flag == 0) return -1;
     memset(buf, '\0', KEYBOARD_BUFFER_SIZE);
     memcpy(buf, cur_pcb_ptr->argument_array, strlen(cur_pcb_ptr->argument_array));
     return 0;
