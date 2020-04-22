@@ -41,13 +41,13 @@
 // #define END_RELEASED              
 
 /* flags to deal with shift and caps lock */
-int shift_on = 0; 
-int caps_lock_on = 0;
-int control_on = 0;
-int alt_on = 0;
-int echo_flag = 1;
-int distance_from_right = 0;
-int total_chars_in_buf = 0;
+int shift_on[NUM_TERMINALS] = {0, 0, 0}; 
+int caps_lock_on[NUM_TERMINALS] = {0, 0, 0}; 
+int control_on[NUM_TERMINALS] = {0, 0, 0}; 
+int alt_on[NUM_TERMINALS] = {0, 0, 0}; 
+int echo_flag[NUM_TERMINALS] = {1, 1, 1}; 
+int distance_from_right[NUM_TERMINALS] = {0, 0, 0}; 
+// int total_chars_in_buf[NUM_TERMINALS] = {0, 0, 0}; 
 // keyboard_cursor_idx = 0;
 /* scancodes for lowercase letters */
 static char scancode_to_char[NUM_CODES] = {
@@ -128,10 +128,10 @@ void keyboard_interrupt()
     // printf("%x",pressed);
     if (pressed == UP_ARROW_PRESSED && shell_flag[terminal_id] == 1){
         if (last_buf[terminal_id][0] != '\0'){
-            while (distance_from_right > 0){
+            while (distance_from_right[terminal_id] > 0){
                 right_arrow(); 
                 keyboard_cursor_idx[terminal_id]++;
-                distance_from_right--;
+                distance_from_right[terminal_id]--;
             }
             memcpy(keyboard_buffer[terminal_id], last_buf[terminal_id], last_buf_index[terminal_id]);
             int temp_idx = keyboard_cursor_idx[terminal_id] + 1;
@@ -145,10 +145,10 @@ void keyboard_interrupt()
     /* functionaltiy for down arrow key */
     if (pressed == DOWN_ARROW_PRESSED && shell_flag[terminal_id] == 1){
         /* clears line by moving all the way right and then backspaces all */
-        while (distance_from_right > 0){
+        while (distance_from_right[terminal_id] > 0){
                 right_arrow(); 
                 keyboard_cursor_idx[terminal_id]++;
-                distance_from_right--;
+                distance_from_right[terminal_id]--;
         }
         /* fills keyboard buffer */
         memset(keyboard_buffer[terminal_id], '\0', KEYBOARD_BUFFER_SIZE);
@@ -167,63 +167,63 @@ void keyboard_interrupt()
         if (keyboard_cursor_idx[terminal_id] > 0){
             keyboard_buffer[terminal_id][keyboard_cursor_idx[terminal_id]--] = '\0';
             keyboard_buffer_end_idx[terminal_id]--;
-            echo_flag = 1;
+            echo_flag[terminal_id] = 1;
         }
         return;
     }
     /* left arrow key */
     if (pressed == LEFT_ARROW_PRESSED){
         if (keyboard_cursor_idx[terminal_id] > 0){
-            distance_from_right += left_arrow();
+            distance_from_right[terminal_id] += left_arrow();
             keyboard_cursor_idx[terminal_id]--;
-            echo_flag = 1;
+            echo_flag[terminal_id] = 1;
         }
         return;
     }
     /* right arrow key */
-    if (pressed == RIGHT_ARROW_PRESSED && distance_from_right > 0 && keyboard_cursor_idx[terminal_id] < KEYBOARD_BUFFER_SIZE - 1){
+    if (pressed == RIGHT_ARROW_PRESSED && distance_from_right[terminal_id] > 0 && keyboard_cursor_idx[terminal_id] < KEYBOARD_BUFFER_SIZE - 1){
         int ret_from_right = right_arrow();
-        distance_from_right -= ret_from_right;
+        distance_from_right[terminal_id] -= ret_from_right;
         keyboard_cursor_idx[terminal_id] += ret_from_right;
-        echo_flag = 1;
+        echo_flag[terminal_id] = 1;
         return;
     }
     /* caps lock */
     if (pressed == CAPS_LOCK_PRESSED){
-        caps_lock_on = (caps_lock_on) ? 0 : 1;
+        caps_lock_on[terminal_id] = (caps_lock_on[terminal_id]) ? 0 : 1;
         return;
     }
     /* shift pressed */
     if ((pressed == LEFT_SHIFT_PRESSED) || (pressed == RIGHT_SHIFT_PRESSED)){
-        shift_on = 1;
+        shift_on[terminal_id] = 1;
         return;
     }
     /* shift released */
     if ((pressed == LEFT_SHIFT_RELEASED) || (pressed == RIGHT_SHIFT_RELEASED)){
-        shift_on = 0;
+        shift_on[terminal_id] = 0;
         return;
     }
     /* control pressed */
     if (pressed == LEFT_CONTROL_PRESSED){
-        control_on = 1;
+        control_on[terminal_id] = 1;
         return;
     }
     /* control released */
     if (pressed == LEFT_CONTROL_RELEASED){
-        control_on = 0;
+        control_on[terminal_id] = 0;
         return;
     }
     /* alt pressed */
     if (pressed == LEFT_ALT_PRESSED){
-        alt_on = 1;
+        alt_on[terminal_id] = 1;
         return;
     }
     /* alt released */
     if (pressed == LEFT_ALT_RELEASED){
-        alt_on = 0;
+        alt_on[terminal_id] = 0;
         return;
     }
-    // if (alt_on)
+    // if (alt_on[terminal_id])
     // {
     //     switch(pressed){
     //         case(FUNCTION_ONE_PRESED):
@@ -238,13 +238,13 @@ void keyboard_interrupt()
     // }
     /* if we are releasing a key we don't do anything */
     /* ctrl+L clears screen */  
-    if (control_on && pressed == L_SCANCODE){
+    if (control_on[terminal_id] && pressed == L_SCANCODE){
         memset(temp_kbd_buf[terminal_id], '\0', KEYBOARD_BUFFER_SIZE);
         memcpy(temp_kbd_buf[terminal_id], keyboard_buffer[terminal_id], keyboard_cursor_idx[terminal_id]);
         temp_kbd_idx[terminal_id] = keyboard_cursor_idx[terminal_id];
         clear();
         sys_read_flag[terminal_id] = 0;
-        echo_flag = 1;
+        echo_flag[terminal_id] = 1;
         re_echo_flag[terminal_id] = 1;
         keyboard_cursor_idx[terminal_id] = 0;
         keyboard_buffer_end_idx[terminal_id] = 0;
@@ -257,27 +257,27 @@ void keyboard_interrupt()
     if (pressed >= START_RELEASED || pressed == RIGHT_CONTROL_TAG || pressed > START_IGNORE)
         return;
     /* uses the uppercase character in the scancode if shift ^ caps lock is on*/
-    if (!caps_lock_on && shift_on)     // shift_on ^ caps_lock_on
+    if (!caps_lock_on[terminal_id] && shift_on[terminal_id])     // shift_on ^ caps_lock_on
         output_char = scancode_to_char[pressed*2+1];
     
     // don't let caps lock affect shift
-    else if ((caps_lock_on && !shift_on && pressed >= BACKSPACE) 
+    else if ((caps_lock_on[terminal_id] && !shift_on[terminal_id] && pressed >= BACKSPACE) 
             && (pressed >= LETTER_START && pressed <= LETTER_END)
             && !(pressed >= CAPS_IGNORE_START && pressed <= CAPS_IGNORE_END) 
             && !(pressed >= IGNORE_BRACKET && pressed <= LEFT_CONTROL_PRESSED))
                 output_char = scancode_to_char[pressed*2+1];
     
-    else if ((caps_lock_on && shift_on && pressed < BACKSPACE))
+    else if ((caps_lock_on[terminal_id] && shift_on[terminal_id] && pressed < BACKSPACE))
                 output_char = scancode_to_char[pressed*2+1];
     
     else        output_char = scancode_to_char[pressed*2]; // else print out the lowercase or unshifted version of the scancode char
     
     /* interaction with _sys_read_terminal */
-    if(keyboard_cursor_idx[terminal_id] == KEYBOARD_BUFFER_SIZE-1) echo_flag = 0;
+    if(keyboard_cursor_idx[terminal_id] == KEYBOARD_BUFFER_SIZE-1) echo_flag[terminal_id] = 0;
     if (keyboard_cursor_idx[terminal_id] < KEYBOARD_BUFFER_SIZE-1 && pressed != ENTER_PRESSED){
         keyboard_buffer[terminal_id][keyboard_cursor_idx[terminal_id]++] = output_char;
         keyboard_buffer_end_idx[terminal_id]++;
-        if (distance_from_right > 0) distance_from_right--;
+        if (distance_from_right[terminal_id] > 0) distance_from_right[terminal_id]--;
     }
     if(pressed == ENTER_PRESSED){
         if (keyboard_buffer_end_idx[terminal_id] < KEYBOARD_BUFFER_SIZE) keyboard_buffer[terminal_id][keyboard_buffer_end_idx[terminal_id]++] = output_char;
@@ -290,14 +290,14 @@ void keyboard_interrupt()
         sys_read_flag[terminal_id] = 0;
         keyboard_cursor_idx[terminal_id] = 0;
         keyboard_buffer_end_idx[terminal_id] = 0;
-        echo_flag = 1;
-        distance_from_right = 0;
+        echo_flag[terminal_id] = 1;
+        distance_from_right[terminal_id] = 0;
     }
         memset(current_buf[terminal_id], '\0', KEYBOARD_BUFFER_SIZE);
         memcpy(current_buf[terminal_id], keyboard_buffer[terminal_id], keyboard_cursor_idx[terminal_id]);
         current_buf_index[terminal_id] = keyboard_cursor_idx[terminal_id];
 
-    if (echo_flag == 1) putc(output_char);
+    if (echo_flag[terminal_id] == 1) putc(output_char);
     wraparound();
     scroll_down();
     
