@@ -253,7 +253,7 @@ void keyboard_interrupt()
     }
     /* if tilde, we want to halt RTC spazzing */
     // if (scancode_to_char[pressed*2] == '`')
-    //     RTC_ON_FLAG = (RTC_ON_FLAG) ? 0 : 1;
+    //     RTC_ON_FLAG[terminal_id] = (RTC_ON_FLAG[terminal_id]) ? 0 : 1;
     if (pressed >= START_RELEASED || pressed == RIGHT_CONTROL_TAG || pressed > START_IGNORE)
         return;
     /* uses the uppercase character in the scancode if shift ^ caps lock is on*/
@@ -311,12 +311,12 @@ void keyboard_interrupt()
 void rtc_interrupt() 
 { 
     // printf("RTC HANDLER\n");
-    // if (RTC_ON_FLAG)            test_interrupts();
-    if (RTC_ON_FLAG)                 printf("A");
-    if (RTC_READ_FLAG) 
+    // if (RTC_ON_FLAG[terminal_id])            test_interrupts();
+    if (RTC_ON_FLAG[terminal_id])                 printf("A");
+    if (RTC_READ_FLAG[terminal_id]) 
     {
         // printf("RTC INTERRUPT\n");
-        RTC_READ_FLAG ^= RTC_READ_FLAG;   
+        RTC_READ_FLAG[terminal_id] ^= RTC_READ_FLAG[terminal_id];   
     }            
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 
@@ -359,7 +359,7 @@ char * error_messages[NUM_EXCEPTIONS] = {
 void exception_handler(int index)
 {
     cli();
-    error_flag = 1;
+    error_flag[terminal_id] = 1;
     printf("EXCEPTION: %s \n EXCEPTION #: %d \n", error_messages[index], index); // prints out which exception was triggered
     // sys_halt(index);
     sys_halt(index);

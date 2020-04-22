@@ -427,81 +427,80 @@ int test_sys_write_terminal_overflow(){
 int test_sys_write_rtc(){
 	TEST_HEADER;
 	long long i;
-	int freq;
-	freq = 2;
+	int freq[1] = {2};
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	for(i = 0; i < 450000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
 
-	freq = 4;
+	freq[0] = 4;
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	for(i = 0; i < 450000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
 
-	freq = 8;
+	freq[0] = 8;
 	/* sets RTC frequency after delay */
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	_sys_write_rtc(NULL, (void*) freq, 0);
 	for(i = 0; i < 300000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
 
-	freq = 16;
+	freq[0] = 16;
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	for(i = 0; i < 300000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
 	
-	freq = 32;
+	freq[0] = 32;
 	/* sets RTC frequency after delay */
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	_sys_write_rtc(NULL, (void*) freq, 0);
 	for(i = 0; i < 150000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
 
-	freq = 64;
+	freq[0] = 64;
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	for(i = 0; i < 150000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
 	
-	freq = 128;
+	freq[0] = 128;
 	/* sets RTC frequency after delay */
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	_sys_write_rtc(NULL, (void*) freq, 0);
 	for(i = 0; i < 150000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
 
-	freq = 256;
+	freq[0] = 256;
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	for(i = 0; i < 150000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
 	
 	// for(i = 0; i < 50000; i++);
 	// _sys_write_rtc(NULL, freq, 256);
 	// clear();
-	freq = 512;
-	RTC_ON_FLAG = 1;
+	freq[0] = 512;
+	RTC_ON_FLAG[terminal_id] = 1;
 	_sys_write_rtc(NULL, (void*) freq, 0);
 	for(i = 0; i < 150000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	return PASS;
 }
 
@@ -523,17 +522,17 @@ int test_sys_open_rtc(){
 	clear();
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	for(i = 0; i < 450000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	clear();
 
 	freq = 2;
 	/* sets RTC frequency after delay */
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	_sys_open_rtc(NULL);
 	for(i = 0; i < 450000000; i++);
-	RTC_ON_FLAG = 0;
+	RTC_ON_FLAG[terminal_id] = 0;
 	return PASS;
 }
 
@@ -553,7 +552,7 @@ int test_sys_read_rtc(){
 	freq = 2;
 	/* sets RTC frequency after delay */
 	_sys_write_rtc(NULL, (void*) freq, 4);
-	RTC_ON_FLAG = 1;
+	RTC_ON_FLAG[terminal_id] = 1;
 	for(i = 0; i < 200000000; i++);
 	while (i-- > 0){
 		_sys_read_rtc(0, NULL, 0);

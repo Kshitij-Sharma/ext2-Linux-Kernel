@@ -18,6 +18,7 @@
 #define KB_STATUS_REGISTER      0x64        // read access
 #define KB_CMD_REGISTER         0x64        // write access
 #define NUM_CODES               116
+#define NUM_TERMINALS           3
 
 extern void empty();
 extern void reserved();
@@ -25,10 +26,9 @@ extern void rtc_interrupt();
 extern void SIMD_floating_point();
 
 void exception_handler(int index);
-int RTC_ON_FLAG;
-volatile int RTC_READ_FLAG;
-uint32_t error_flag;
-uint32_t ctrl_l_flag;
+int RTC_ON_FLAG[NUM_TERMINALS];
+volatile int RTC_READ_FLAG[NUM_TERMINALS];
+uint32_t error_flag[NUM_TERMINALS];
 #endif
 
 

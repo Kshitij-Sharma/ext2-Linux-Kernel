@@ -15,9 +15,6 @@
 #define MIN_RATE                    3
 
 
-int8_t input_arg[KEYBOARD_BUFFER_SIZE];
-uint32_t num_arg_bytes;
-int8_t execute_flag;
 extern int32_t sys_halt(int8_t status); // uint
 int32_t sys_execute(const int8_t* command); // uint
 int32_t _execute_parse_args(const int8_t* command, char * program_name, char * argument);

@@ -15,9 +15,9 @@ file_ops_t std_in_fops = {_sys_read_terminal, _sys_dummy_write, _sys_dummy_open,
 //stdout fops table
 file_ops_t std_out_fops = {_sys_dummy_read, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
 
-int8_t buf_executable_header[_4KB_];
-int read_dir_flag = 0;
-int arg_flag = 1;
+int8_t buf_executable_header[NUM_TERMINALS][HEADER_INFO];
+int read_dir_flag[NUM_TERMINALS] = {0, 0, 0};
+int arg_flag[NUM_TERMINALS] = {1, 1, 1};
 
 /** sys_halt
  * Halt System Call 
@@ -76,8 +76,8 @@ int32_t sys_execute(const int8_t *command)
     int8_t arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0;
     tempret = 0;
-    error_flag = 0;
-    arg_flag = 1;
+    error_flag[terminal_id] = 0;
+    arg_flag[terminal_id] = 1;
     if (process_num > 5) return -2;
 
     /* saves the old base and stack pointer prior to execution to return to later*/
@@ -96,11 +96,11 @@ int32_t sys_execute(const int8_t *command)
     if (tempret == -1)
         return -1;
     if (tempret == -2)
-        arg_flag = 0;
+        arg_flag[terminal_id] = 0;
 
     
     /* checks that the file is an executable*/
-    tempret = _execute_executable_check(prog_name, buf_executable_header);
+    tempret = _execute_executable_check(prog_name, buf_executable_header[terminal_id]);
     if (tempret == -1)
         return -1;
 
@@ -133,7 +133,7 @@ int32_t sys_execute(const int8_t *command)
         : "=a"(return_value));
 
     /* checks if there's an error*/
-    if (error_flag)
+    if (error_flag[terminal_id])
     {
         return_value = ERROR_VAL;
     }
@@ -194,8 +194,7 @@ int32_t _execute_executable_check(int8_t *prog_name, int8_t *buf)
 {
     int ret;
     dentry_t prog_dentry;
-    // prog_dentry.file_name = 0;
-    // prog_dentry.file_type = 0;
+  
     /* 4 values @ start signifying executable */
     int8_t elf[4] = {ELF_ONE, ELF_TWO, ELF_THREE, ELF_FOUR};
 
@@ -207,7 +206,6 @@ int32_t _execute_executable_check(int8_t *prog_name, int8_t *buf)
     if (prog_dentry.file_type != REGULAR_FILE || ret == -1)
         return -1;
     read_data(prog_dentry.inode, 0, (uint8_t *)buf, _4KB_);
-    // read_data(prog_dentry.inode, 0, (uint8_t *) buf, HEADER_INFO);
 
     /* checks "ELF" */
     ret = strncmp((const int8_t *)elf, (const int8_t *)buf, EXECUTABLE_CHECK);
@@ -244,11 +242,16 @@ int32_t _execute_user_program_loader(int8_t *prog_name)
     /* loads contents of file into program image in virtual memory */
     int32_t inode = _sys_open_file((uint8_t *)prog_name); // inode
     int32_t out;
+    
+    /* gets size of program */
+    dentry_t this_dentry; 
+    read_dentry_by_name((const uint8_t*)prog_name, &this_dentry);
+    int32_t program_size = (int32_t)inode_head[this_dentry.inode].length;
 
     memset((void *)PROGRAM_IMAGE, 0, _4KB_ * 10); // changed for fish -- make dynamic based on file size
     // int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
 
-    out = read_data(inode, 0, (void *)PROGRAM_IMAGE, _4KB_ * 10);
+    out = read_data(inode, 0, (void *)PROGRAM_IMAGE, program_size);
     /* moves forward in file corresponding to how many bytes are read */
 
     return (out == -1) ? -1 : 0;
@@ -298,7 +301,8 @@ void _execute_context_switch()
     /* gets the eip from the executable header */
     uint32_t eip = 0;
     // buf_executable_header from 27 to 24 used as specified in the documentation. the 24, 16, and 8 are used to shift the bytes to the correct spot in the eip int
-    eip += (((uint8_t)buf_executable_header[ELF_BYTE_ONE]) << 24) | (((uint8_t)buf_executable_header[ELF_BYTE_TWO]) << 16) | ((uint8_t)(buf_executable_header[ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[ELF_BYTE_FOUR]);
+    eip += (((uint8_t)buf_executable_header[terminal_id][ELF_BYTE_ONE]) << 24) | (((uint8_t)buf_executable_header[terminal_id][ELF_BYTE_TWO]) << 16) 
+         | ((uint8_t)(buf_executable_header[terminal_id][ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[terminal_id][ELF_BYTE_FOUR]);
     cur_pcb_ptr[terminal_id]->eip = eip;
     /* performs context stack in assembly */
     asm volatile(
@@ -330,9 +334,7 @@ int32_t sys_read(int32_t fd, void *buf, int32_t nbytes)
         return -1;
 
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
-    // uint32_t this_inode = cur_pcb_ptr[terminal_id]->file_desc_array[fd].inode;
     return cur_pcb_ptr[terminal_id]->file_desc_array[fd].file_ops_table->read(fd, buf, nbytes);
-    // return -1;
 }
 
 /** sys_write
@@ -451,7 +453,7 @@ int32_t sys_close(int32_t fd)
  */
 int32_t sys_getargs(int8_t *buf, int32_t nbytes)
 {
-    if (arg_flag == 0) return -1;
+    if (arg_flag[terminal_id] == 0) return -1;
     memset(buf, '\0', KEYBOARD_BUFFER_SIZE);
     memcpy(buf, cur_pcb_ptr[terminal_id]->argument_array, strlen(cur_pcb_ptr[terminal_id]->argument_array));
     return 0;
@@ -469,7 +471,6 @@ int32_t sys_vidmap(uint8_t **screen_start)
     /* makes sure that screen_start pointer is within the program loading block between 128 MB and 132 MB */
     if ((uint32_t)screen_start < USER_START || (uint32_t)screen_start >= USER_END || (uint32_t)screen_start == NULL)
         return -1;
-    // if((!(((uint32_t) screen_start >= USER_START) && ((uint32_t) screen_start < USER_END)) && screen_start == NULL)) return -1;
     vidmap_paging();
     flush_tlb();                          // need to flush as page table gets set to a new virtual address
     (*screen_start) = (uint8_t *)_132_MB; //132 MB is where we have defined video memory to start
@@ -601,8 +602,6 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes)
         return -1;
     if (nbytes == 0)
         return 0;
-    /* adjusts nbytes if overflow */
-    // nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE : nbytes;
 
     /* put passed in buffer into an appropriately sized buffer */
     memset(write_string, NULL, nbytes);
@@ -667,12 +666,10 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
     frequency = *((int32_t *)buf);
 
     /* param check */
-    // if (buf == NULL)                    return -1;
     if (power_of_two(frequency) || frequency < 0)
         return -1;
 
     // gets frequency from buffer
-    // frequency = (int) buf[0];
     if (frequency > MAX_INTERRUPT_FREQUENCY)
     {
         frequency = MAX_INTERRUPT_FREQUENCY;
@@ -699,9 +696,8 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes)
 {
-    RTC_READ_FLAG = 1; // sets a global flag
-    while (RTC_READ_FLAG)
-        ; // waits for interrupt
+    RTC_READ_FLAG[terminal_id] = 1; // sets a global flag
+    while (RTC_READ_FLAG[terminal_id]); // waits for interrupt
     // printf("read rtc\n");
     return 0;
 }
@@ -824,12 +820,12 @@ int32_t _sys_close_directory(int32_t fd)
 int32_t _sys_read_directory(int32_t fd, void *buf, int32_t nbytes)
 {
     dentry_t curr_dentry;
-    if (read_dir_flag == boot_block->entries)
+    if (read_dir_flag[terminal_id] == boot_block->entries)
     {
-        read_dir_flag = 0;
+        read_dir_flag[terminal_id] = 0;
         return 0;
     }
-    read_dentry_by_index(read_dir_flag++, &curr_dentry);
+    read_dentry_by_index(read_dir_flag[terminal_id]++, &curr_dentry);
     strncpy((int8_t *)(buf),
             (int8_t *)curr_dentry.file_name, FILENAME_LEN);
     return FILENAME_LEN;
