@@ -2,7 +2,8 @@
 * 1. Contains a struct for the boot block
 * 2. Contains an index node for a proper file
 */
-
+#ifndef _FILESYS
+#define _FILESYS
 #include "types.h"
 #include "lib.h"
 #include "multiboot.h"
@@ -83,3 +84,5 @@ int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry);
 
 /* Read data from the files */
 int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length);
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef _IDT_H
+#define _IDT_H
+
 #include "idt_handlers.h"
 #include "x86_desc.h"
 #include "idt_interrupt_wrappers.h"
@@ -17,4 +20,4 @@
 
 void idt_init();
 
-
+#endif

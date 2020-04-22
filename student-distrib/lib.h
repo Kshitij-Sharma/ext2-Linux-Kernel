@@ -6,6 +6,7 @@
 #define _LIB_H
 
 #include "types.h"
+#include "multiprocessing.h"
 // #include "syscall_handlers.h"
 
 int32_t printf(int8_t *format, ...);
@@ -38,13 +39,26 @@ void update_cursor();
 // void disable_cursor();
 // void enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
 
+/* **********START OF KBD VARIABLES*************/
 
 #define KEYBOARD_BUFFER_SIZE    128
-char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
-volatile int sys_read_flag;
-volatile int shell_flag;
-int keyboard_cursor_idx;
-int keyboard_buffer_end_idx;
+#define NUM_TERMINALS           3
+char keyboard_buffer[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];
+volatile int sys_read_flag[NUM_TERMINALS];
+volatile int shell_flag[NUM_TERMINALS];
+int keyboard_cursor_idx[NUM_TERMINALS];
+int keyboard_buffer_end_idx[NUM_TERMINALS];
+
+char temp_kbd_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];    // ctrl-L
+char last_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];        // up arrow: stores previous command
+char current_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];     // down arrow: copy of current command
+int last_buf_index[NUM_TERMINALS];
+int current_buf_index[NUM_TERMINALS];
+
+int temp_kbd_idx[NUM_TERMINALS];                            
+int re_echo_flag[NUM_TERMINALS];                            // flag to see if we need to re display text for control L
+
+/* **********END OF KBD VARIABLES*************/
 
 /* Userspace address-check functions */
 int32_t bad_userspace_addr(const void* addr, int32_t len);

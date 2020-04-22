@@ -1,3 +1,6 @@
+#ifndef _PAGING_H
+#define _PAGING_H
+
 #include "lib.h"
 
 /* CONSTANTS FOR EASY SIZE ACCESS */
@@ -50,3 +53,4 @@ void program_paging();
 void vidmap_paging();
 int process_num;
 
+#endif

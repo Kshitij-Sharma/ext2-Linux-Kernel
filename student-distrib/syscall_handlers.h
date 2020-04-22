@@ -1,11 +1,13 @@
-#ifndef _SYSCALL_HANDLERS
-#define _SYSCALL_HANDLERS
-#include "lib.h"
+#ifndef _SYSCALL_HANDLERS_H
+#define _SYSCALL_HANDLERS_H
+
 #include "idt_handlers.h"
+#include "lib.h"
 #include "rtc.h"
 #include "filesys.h"
 #include "paging.h"
 #include "PCB.h"
+#include "multiprocessing.h"
 #include "x86_desc.h"
 
 #define MAX_INTERRUPT_FREQUENCY     1024 
@@ -61,4 +63,5 @@ int32_t _sys_dummy_write(int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_dummy_read(int32_t fd, void* buf, int32_t nbytes);
 int32_t _sys_dummy_open(const uint8_t* filename);
 int32_t _sys_dummy_close(int32_t fd);
+
 #endif

@@ -1,6 +1,6 @@
 /* lib.c - Some basic library functions (printf, strlen, etc.)
  * vim:ts=4 noexpandtab */
-
+#include "multiprocessing.h"
 #include "lib.h"
 // #include "syscall_handlers.h"
 
@@ -20,11 +20,11 @@
  * Inputs: integer to take log of
  * Outputs: log of number passed in   
  * Side Effects: 
- */static int screen_x;
-static int screen_y;
+ */static int screen_x[NUM_TERMINALS];
+static int screen_y[NUM_TERMINALS];
 static char* video_mem = (char *)VIDEO;
-int forward_next = 0;       // global var used for wraparound/backspace corner case
-int backward_next = 0;
+int forward_next[NUM_TERMINALS] = {0, 0, 0};       // global var used for wraparound/backspace corner case
+int backward_next[NUM_TERMINALS] = {0, 0, 0};
 
 
 // void enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
@@ -47,40 +47,32 @@ int backward_next = 0;
  * Return Value: none
  * Function: Backspace functionality */
 int right_arrow(void){
-    if ((screen_x == NUM_COLS) && (screen_y == NUM_ROWS - 1)) return 0;
-    if (keyboard_cursor_idx == KEYBOARD_BUFFER_SIZE - 1){
+    if ((screen_x[terminal_id] == NUM_COLS) && (screen_y[terminal_id] == NUM_ROWS - 1)) return 0;
+    if (keyboard_cursor_idx[terminal_id] == KEYBOARD_BUFFER_SIZE - 1){
         return 0;
     }
-    if (screen_x != NUM_COLS){
+    if (screen_x[terminal_id] != NUM_COLS){
         // moves cursor back
-        screen_x++;
+        screen_x[terminal_id]++;
         // deletes char at cursor
-        forward_next = screen_x + 1;
-        backward_next = screen_x - 1;
-        if (screen_x == 80) {
-            backward_next = 0;
-            forward_next = 79;
+        forward_next[terminal_id] = screen_x[terminal_id] + 1;
+        backward_next[terminal_id] = screen_x[terminal_id] - 1;
+        if (screen_x[terminal_id] == 80) {
+            backward_next[terminal_id] = 0;
+            forward_next[terminal_id] = 79;
         }
         update_cursor();
         return 1;
     }
     // case where we go up a line
-    if (screen_x == NUM_COLS && screen_y < NUM_ROWS - 1){
-        if (*(uint8_t *)(video_mem + ((NUM_COLS * (screen_y + 1) + NUM_COLS-1) << 1)) == '\n') return 0;
+    if (screen_x[terminal_id] == NUM_COLS && screen_y[terminal_id] < NUM_ROWS - 1){
+        if (*(uint8_t *)(video_mem + ((NUM_COLS * (screen_y[terminal_id] + 1) + NUM_COLS-1) << 1)) == '\n') return 0;
         if (backward_next == 0){
-            screen_x = 0;
-            backward_next = NUM_COLS;
-            forward_next = 1;
+            screen_x[terminal_id] = 0;
+            backward_next[terminal_id] = NUM_COLS;
+            forward_next[terminal_id] = 1;
         }
-        // else{
-        //     screen_x = NUM_COLS-1;
-        //     forward_next = 80;
-        //     backward_next = 78;
-        // }
-        // delete last char in prev row
-        // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
-        // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        screen_y++;
+        screen_y[terminal_id]++;
         // move cursor up
         update_cursor();
         return 1;
@@ -96,40 +88,37 @@ int right_arrow(void){
  * Return Value: none
  * Function: Backspace functionality */
 int left_arrow(void){
-    if (screen_x == 0 && screen_y == 0) return 0;
-    if (keyboard_cursor_idx == 0){
+    if (screen_x[terminal_id] == 0 && screen_y[terminal_id] == 0) return 0;
+    if (keyboard_cursor_idx[terminal_id] == 0){
         return 0;
     }
-    if (screen_x != 0){
+    if (screen_x[terminal_id] != 0){
         // moves cursor back
-        screen_x--;
+        screen_x[terminal_id]--;
         // deletes char at cursor
-        forward_next = screen_x + 1;
-        backward_next = screen_x - 1;
-        if (screen_x == 0) {
-            backward_next = 80;
-            forward_next = 1;
+        forward_next[terminal_id] = screen_x[terminal_id] + 1;
+        backward_next[terminal_id] = screen_x[terminal_id] - 1;
+        if (screen_x[terminal_id] == 0) {
+            backward_next[terminal_id] = 80;
+            forward_next[terminal_id] = 1;
         }
         update_cursor();
         return 1;
     }
     // case where we go up a line
-    if (screen_x == 0 && screen_y != 0){
-        if (*(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + NUM_COLS-1) << 1)) == '\n') return 0;
-        if (backward_next == 80){
-            screen_x = NUM_COLS-1;
-            backward_next = 79;
-            forward_next = 0;
+    if (screen_x[terminal_id] == 0 && screen_y[terminal_id] != 0){
+        if (*(uint8_t *)(video_mem + ((NUM_COLS * (screen_y[terminal_id] - 1) + NUM_COLS-1) << 1)) == '\n') return 0;
+        if (backward_next[terminal_id] == 80){
+            screen_x[terminal_id] = NUM_COLS-1;
+            backward_next[terminal_id] = 79;
+            forward_next[terminal_id] = 0;
         }
         else{
-            screen_x = NUM_COLS-1;
-            forward_next = 80;
-            backward_next = 78;
+            screen_x[terminal_id] = NUM_COLS-1;
+            forward_next[terminal_id] = 80;
+            backward_next[terminal_id] = 78;
         }
-        // delete last char in prev row
-        // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
-        // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        screen_y--;
+        screen_y[terminal_id]--;
         // move cursor up
         update_cursor();
         return 1;
@@ -145,7 +134,7 @@ int left_arrow(void){
  * Function: Moves cursor to screen_x and screen_y  */
 void update_cursor() // *************************MAKE SURE YOU CHECK CONSTANT NAMES, FIX MAGIC NUMBERS, AND COMMENT 
 {
-    uint16_t pos = screen_y * NUM_COLS + screen_x;
+    uint16_t pos = screen_y[terminal_id] * NUM_COLS + screen_x[terminal_id];
  
     outb(HALF_BYTE_MASK, CURSOR_COMMAND_PORT);
     outb((uint8_t) (pos & FULL_BYTE_MASK), CURSOR_DATA_PORT);
@@ -166,8 +155,8 @@ void clear(void) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
-    screen_y = 0;
-    screen_x = 0;
+    screen_y[terminal_id] = 0;
+    screen_x[terminal_id] = 0;
     memset(keyboard_buffer, NULL, KEYBOARD_BUFFER_SIZE);
     update_cursor();
 }
@@ -178,7 +167,7 @@ void clear(void) {
  * Function: Scrolls the page down */
 void scroll_down(void) {
     // printf("%d %d", screen_x, screen_y);
-    if (screen_y >= NUM_ROWS){
+    if (screen_y[terminal_id] >= NUM_ROWS){
         int32_t i;
         /* move text on screen up */
         for (i = NUM_COLS; i < NUM_ROWS * NUM_COLS; i++) {
@@ -190,8 +179,8 @@ void scroll_down(void) {
             *(uint8_t *)(video_mem + (i << 1)) = ' ';
             *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
         }
-        screen_y = NUM_ROWS-1;
-        screen_x = 0;
+        screen_y[terminal_id] = NUM_ROWS-1;
+        screen_x[terminal_id] = 0;
     }
 }
 
@@ -212,15 +201,15 @@ void scroll_down(void) {
  * Function: wraps curos around to next  */
 void wraparound(void) {
     // 
-    if (forward_next == 80){
-        forward_next = 0;
+    if (forward_next[terminal_id] == 80){
+        forward_next[terminal_id] = 0;
     }
-    if (screen_x == NUM_COLS - 1)       forward_next = 80;
-    if(screen_x == 0 && forward_next == 0)
+    if (screen_x[terminal_id] == NUM_COLS - 1)       forward_next[terminal_id] = 80;
+    if(screen_x[terminal_id] == 0 && forward_next[terminal_id] == 0)
     {
-        screen_y++;
-        backward_next = 80;
-        forward_next = 1;
+        screen_y[terminal_id]++;
+        backward_next[terminal_id] = 80;
+        forward_next[terminal_id] = 1;
     }
 }
 
@@ -229,44 +218,44 @@ void wraparound(void) {
  * Return Value: none
  * Function: Backspace functionality */
 void backspace(void){
-    if (screen_x == 0 && screen_y == 0) return;
-    if (keyboard_cursor_idx == 0){
+    if (screen_x[terminal_id] == 0 && screen_y[terminal_id] == 0) return;
+    if (keyboard_cursor_idx[terminal_id] == 0){
         return;
     }
-    if (screen_x != 0){
+    if (screen_x[terminal_id] != 0){
         // moves cursor back
-        screen_x--;
+        screen_x[terminal_id]--;
         // deletes char at cursor
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        forward_next = screen_x + 1;
-        backward_next = screen_x - 1;
-        if (screen_x == 0) {
-            backward_next = 80;
-            forward_next = 1;
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[terminal_id] + screen_x[terminal_id]) << 1)) = ' ';
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[terminal_id] + screen_x[terminal_id]) << 1) + 1) = ATTRIB;
+        forward_next[terminal_id] = screen_x[terminal_id] + 1;
+        backward_next[terminal_id] = screen_x[terminal_id] - 1;
+        if (screen_x[terminal_id] == 0) {
+            backward_next[terminal_id] = 80;
+            forward_next[terminal_id] = 1;
         }
         update_cursor();
         return;
     }
     // case where we go up a line
-    if (screen_x == 0 && screen_y != 0){
-        if (*(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + NUM_COLS-1) << 1)) == '\n') return;
-        if (backward_next == 80){
-            screen_x = NUM_COLS-1;
-            backward_next = 79;
-            forward_next = 0;
+    if (screen_x[terminal_id] == 0 && screen_y[terminal_id] != 0){
+        if (*(uint8_t *)(video_mem + ((NUM_COLS * (screen_y[terminal_id] - 1) + NUM_COLS-1) << 1)) == '\n') return;
+        if (backward_next[terminal_id] == 80){
+            screen_x[terminal_id] = NUM_COLS-1;
+            backward_next[terminal_id] = 79;
+            forward_next[terminal_id] = 0;
         }
         else{
-            screen_x = NUM_COLS-1;
-            forward_next = 80;
-            backward_next = 78;
+            screen_x[terminal_id] = NUM_COLS-1;
+            forward_next[terminal_id] = 80;
+            backward_next[terminal_id] = 78;
         }
         // delete last char in prev row
         // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
         // *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + screen_x) << 1)) = ' ';
-        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y - 1) + screen_x) << 1) + 1) = ATTRIB;
-        screen_y--;
+        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y[terminal_id] - 1) + screen_x[terminal_id]) << 1)) = ' ';
+        *(uint8_t *)(video_mem + ((NUM_COLS * (screen_y[terminal_id] - 1) + screen_x[terminal_id]) << 1) + 1) = ATTRIB;
+        screen_y[terminal_id]--;
         // move cursor up
         update_cursor();
         return;
@@ -440,14 +429,14 @@ int32_t puts(int8_t* s) {
  *  Function: Output a character to the console */
 void putc(uint8_t c) {
     if(c == '\n' || c == '\r') {
-        screen_y++;
-        screen_x = 0;
+        screen_y[terminal_id]++;
+        screen_x[terminal_id] = 0;
     } else {
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        screen_x++;
-        screen_x %= (NUM_COLS);
-        screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[terminal_id] + screen_x[terminal_id]) << 1)) = c;
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y[terminal_id] + screen_x[terminal_id]) << 1) + 1) = ATTRIB;
+        screen_x[terminal_id]++;
+        screen_x[terminal_id] %= (NUM_COLS);
+        screen_y[terminal_id] = (screen_y[terminal_id] + (screen_x[terminal_id] / NUM_COLS)) % NUM_ROWS;
     }
     wraparound();
     scroll_down();

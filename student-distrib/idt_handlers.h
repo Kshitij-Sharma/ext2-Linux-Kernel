@@ -1,5 +1,6 @@
 #ifndef _IDT_HANDLERS
 #define _IDT_HANDLERS
+
 #include "lib.h"
 #include "syscall_handlers.h"
 #include "i8259.h"
@@ -17,20 +18,11 @@
 #define KB_STATUS_REGISTER      0x64        // read access
 #define KB_CMD_REGISTER         0x64        // write access
 #define NUM_CODES               116
-// extern void keyboard_interrupt();
+
 extern void empty();
 extern void reserved();
 extern void rtc_interrupt();
-// extern void system_call(int call_number, int first_arg, int second_arg, int third_arg);
 extern void SIMD_floating_point();
-char temp_kbd_buf[KEYBOARD_BUFFER_SIZE];
-char last_buf[KEYBOARD_BUFFER_SIZE];
-char current_buf[KEYBOARD_BUFFER_SIZE];
-int last_buf_index;
-int current_buf_index;
-
-int temp_kbd_idx;
-int re_echo_flag;
 
 void exception_handler(int index);
 int RTC_ON_FLAG;
