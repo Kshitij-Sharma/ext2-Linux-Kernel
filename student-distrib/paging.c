@@ -25,10 +25,16 @@ void paging_init(){
 		page_table_vidmap[i] = READ_WRITE & ~PRESENT;
  	}
 
+	/* the 0th page directory entry has a page table, since we break it down to 4KB pages */
 	page_directory[0] =  (uint32_t) page_table;
 	page_directory[0] |=  (READ_WRITE | PRESENT);
+	
+	/* sets up 4KB pages for video memory */
 	page_table[VIDEO_OFFSET] |=  (READ_WRITE | PRESENT);
-
+	page_table[TERMINAL_ONE_BUFFER_OFFSET] |=  (READ_WRITE | PRESENT);
+	page_table[TERMINAL_TWO_BUFFER_OFFSET] |=  (READ_WRITE | PRESENT);
+	page_table[TERMINAL_THREE_BUFFER_OFFSET] |=  (READ_WRITE | PRESENT);
+	
 	/* loading at 4MB physical address */
 	page_directory[1] =  (KERNEL_START | PAGE_SIZE | READ_WRITE | PRESENT) | GLOBAL_BIT;
 
@@ -94,3 +100,6 @@ void program_paging(uint32_t physical_address){
     page_table_vidmap[0] = VIDEO;
 	page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
  }
+
+
+

@@ -13,19 +13,27 @@
 #define _4_BYTES                    4
 
 /* CONSTANTS FOR GENERAL PAGING SETUP */
-#define NUMBER_OF_ENTRIES   1024
-#define SIZE_OF_PAGE        _4KB_PAGE
-#define VIDEO_START         _132_MB
-#define VIDEO_OFFSET        0xB8
-#define VIDEO               0xB8000
-#define KERNEL_START        0x400000 // starting at 4MB
-#define USER_START          _128_MB // 8MB
-#define USER_END            _132_MB
-#define PRESENT             0x1
-#define READ_WRITE          0x2
-#define USER                0x4
-#define GLOBAL_BIT          0x100
-#define PAGE_SIZE           0x80
+#define NUMBER_OF_ENTRIES       1024
+#define SIZE_OF_PAGE            _4KB_PAGE
+#define KERNEL_START            0x400000    // starting at 4MB
+#define USER_START              _128_MB     // 8MB
+#define USER_END                _132_MB
+#define PRESENT                 0x1
+#define READ_WRITE              0x2
+#define USER                    0x4
+#define GLOBAL_BIT              0x100
+#define PAGE_SIZE               0x80
+/* CONSTANTS FOR VIDEO MEMORY PAGING  */
+#define VIDEO_START                     _132_MB
+#define VIDEO                           0xB8000
+#define VIDEO_OFFSET                    (VIDEO >> 12)
+#define TERMINAL_ONE_BUFFER             (VIDEO + _4KB_PAGE) //page_table[0]
+#define TERMINAL_ONE_BUFFER_OFFSET      (VIDEO_OFFSET + 1)
+#define TERMINAL_TWO_BUFFER             (VIDEO + (_4KB_PAGE*2)) 
+#define TERMINAL_TWO_BUFFER_OFFSET      (VIDEO_OFFSET + 2)
+#define TERMINAL_THREE_BUFFER           (VIDEO + (_4KB_PAGE*3)) 
+#define TERMINAL_THREE_BUFFER_OFFSET    (VIDEO_OFFSET + 3)
+
 
 /* CONSTANTS FOR PROGRAM PAGING */
 #define SYS_VIRTUAL_MEM     0x20 // 128MB equates to x8000000, however page directory goes in 4MB increments,

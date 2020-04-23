@@ -2,9 +2,17 @@
 #include "multiprocessing.h"
 #include "syscall_handlers.h"
 
-/***********************PCB related structures and variables***********************/
-// pcb_t *cur_pcb_ptr[terminal_id] = NULL;
-// rtc fops table
+// /**
+//  * Bugs:
+//  * Fish on terminal 1 then switch while running (will probably fix when we get video mem working)
+//  * Exiting base shell on terminal 2 or 3
+//  * 
+//  * */
+
+
+// /***********************PCB related structures and variables***********************/
+// // pcb_t *cur_pcb_ptr[terminal_id] = NULL;
+// // rtc fops table
 file_ops_t rtc_fops = {_sys_read_rtc, _sys_write_rtc, _sys_open_rtc, _sys_close_rtc};
 //file fops table
 file_ops_t file_fops = {_sys_read_file, _sys_write_file, _sys_open_file, _sys_close_file};
@@ -475,6 +483,7 @@ int32_t sys_vidmap(uint8_t **screen_start)
     /* makes sure that screen_start pointer is within the program loading block between 128 MB and 132 MB */
     if ((uint32_t)screen_start < USER_START || (uint32_t)screen_start >= USER_END || (uint32_t)screen_start == NULL)
         return -1;
+
     vidmap_paging();
     flush_tlb();                          // need to flush as page table gets set to a new virtual address
     (*screen_start) = (uint8_t *)_132_MB; //132 MB is where we have defined video memory to start
@@ -568,7 +577,6 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
         }
         re_echo_flag[terminal_num] = 0;
     }
-
 
     /* clears the keyboard buffer */
     /* adjusts nbytes if overflow */

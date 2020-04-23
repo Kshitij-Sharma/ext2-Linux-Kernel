@@ -227,34 +227,17 @@ void keyboard_interrupt()
     {
         switch(pressed){
             case(FUNCTION_ONE_PRESSED):
-                clear();
-                // sys_read_flag[terminal_id] = 0;
-                // sys_read_flag[0] = sys_read_flag[terminal_id];
-                // echo_flag[1] = echo_flag[terminal_id];
-                // error_flag[1] = error_fslag[terminal_id];
-                terminal_id = 0;
-                update_cursor();
-                return; /* switch_terminal(1); */
+                // printf("Terminal 1\n");
+                switch_terminal(0);
+                return;
             case(FUNCTION_TWO_PRESSED):
-                clear();
-                // sys_read_flag[terminal_id] = 0;
-                // sys_read_flag[1] = sys_read_flag[terminal_id];
-                // echo_flag[1] = echo_flag[terminal_id];
-                // error_flag[1] = error_fslag[terminal_id];
-                terminal_id = 1;
-                update_cursor();
-                // if (cur_pcb_ptr[terminal_id] == NULL) sys_execute("shell"); do inside scheduler
-                return; /* switch_terminal(2);*/
+                // printf("Terminal 1\n");
+                switch_terminal(1);
+                return;
             case(FUNCTION_THREE_PRESSED):
-                clear();
-                // sys_read_flag[terminal_id] = 0;
-                // sys_read_flag[2] = sys_read_flag[terminal_id];
-                // echo_flag[1] = echo_flag[terminal_id];
-                // error_flag[1] = error_fslag[terminal_id];
-                terminal_id = 2;
-                update_cursor();
-                // if (cur_pcb_ptr[terminal_id] == NULL) sys_execute("shell");
-                return; /*switch_terminal(3);*/
+                // printf("Terminal 1\n");
+                switch_terminal(2);
+                return;
             default:
                 break;
         }
