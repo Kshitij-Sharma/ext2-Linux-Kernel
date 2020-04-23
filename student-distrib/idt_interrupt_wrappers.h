@@ -16,6 +16,7 @@
 extern void keyboard_interrupt_asm();
 extern void rtc_interrupt_asm();
 extern void system_call_asm();
+extern void pit_interrupt_asm();
 
 
 #endif /* _IDT_INTERRUPT_WRAPPERS_H */
@@ -24,5 +25,6 @@ extern void system_call_asm();
 #define PIC_COMMAND_PORT    0x20
 #define IRQ_RTC             8
 #define IRQ_KEYBOARD        1
+#define IRQ_PIT             0
 
 #endif

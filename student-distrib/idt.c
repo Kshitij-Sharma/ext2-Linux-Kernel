@@ -44,7 +44,7 @@ void idt_init(){
         reserved,
         reserved,
         reserved,                   /*reserved by Intel end */
-        empty,              /*interrupt start */
+        pit_interrupt_asm,              /*interrupt start */
         keyboard_interrupt_asm,
         empty,                      /* cascade to slave */
         empty, 

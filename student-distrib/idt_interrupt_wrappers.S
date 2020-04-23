@@ -2,7 +2,7 @@
 #include "idt_interrupt_wrappers.h"
 .text 
 
-.globl keyboard_interrupt_asm, rtc_interrupt_asm, divide_by_zero_test, system_call_asm
+.globl keyboard_interrupt_asm, rtc_interrupt_asm, divide_by_zero_test, system_call_asm, pit_interrupt_asm
 
 .align 4
 
@@ -49,6 +49,23 @@ rtc_interrupt_asm:
         /* Return control */
         iret
 
+pit_interrupt_asm:
+        pushal
+        /* call the C handler*/
+        call pit_interrupt 
+
+        /* send EOI signal */
+        pushl $IRQ_PIT
+        call send_eoi               /* sends the EOI */
+        popl %ebx
+
+
+
+        popal
+
+        /* Return control */
+        iret
+
 /* system_call_asm()
         INPUTS: none
         OUTPUTS: none
@@ -69,17 +86,17 @@ system_call_asm:
         
         
         /* push params */
-        ; pushl %edx
-        ; pushl %ecx
-        ; pushl %ebx
+        pushl %edx
+        pushl %ecx
+        pushl %ebx
 
         /* jump to function */
         call     *sys_call_table(,%eax,4)
 
-        /* pop params */
-        ; popl %ebx
-        ; popl %ecx
-        ; popl %edx
+        /* pop params */ 
+        popl %ebx
+        popl %ecx
+        popl %edx
         movl %eax, (sys_call_eax)
         jmp cont
 
@@ -87,15 +104,15 @@ system_call_asm:
         movl $-1, (sys_call_eax)
 
         cont:
-        /* send EOI signal */
+        /* send EOI signal 
         ; pushl $IRQ_RTC
-        ; call send_eoi               /* sends the EOI */
-        ; popl %eax
+        ; call send_eoi               sends the EOI 
+        ; popl %eax */
 
         popal
-        ; movl $0, %ebx
+        /*movl $0, %ebx
         ; movl $0, %ecx
-        ; movl $0, %edx
+        ; movl $0, %edx*/
         movl (sys_call_eax), %eax
 
         /* Return control to user stack */

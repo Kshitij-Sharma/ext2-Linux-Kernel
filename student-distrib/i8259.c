@@ -40,10 +40,7 @@ void i8259_init(void) {
     enable_irq(2);                  // enables slave IRQ
     enable_irq(8);                  // enables RTC IRQ
     enable_irq(1);                  // enables keyboard IRQ
-
-    // high skill debugging
-    // printf("%x\n", inb(MASTER_8259_DATA_PORT));
-    // printf("%x\n", inb(SLAVE_8259_DATA_PORT));
+    enable_irq(0);                  // enables PIT IRQ
 
 }
 

@@ -31,6 +31,7 @@ int32_t sys_halt(int8_t status)
 {
     int i;
     /* closes all file sin PCB */
+    // if (cur_pcb_ptr[terminal_id] == NULL) sys_execute("shell");
     for (i = 0; i < FILE_DESC_ARR_SIZE; i++)
         sys_close(i);
 
@@ -50,7 +51,7 @@ int32_t sys_halt(int8_t status)
     shell_flag[terminal_id] = 1;
 
     /* cant close shell! */
-    if (process_num == 0) sys_execute("shell");
+    if (process_num == 0 || cur_pcb_ptr[terminal_id]->number <= 1) sys_execute("shell"); // add checking to see if it is the last shell in the terminal**************************
     /* returns to previous program's execution */
     asm volatile(
         "mov %0, %%esp;" /* store esp*/
@@ -281,6 +282,9 @@ pcb_t *_execute_create_PCB(char *argument)
     new_pcb->next_open_index = 2;
     memset(new_pcb->argument_array, '\0', KEYBOARD_BUFFER_SIZE);
     memcpy(new_pcb->argument_array, argument, strlen(argument));
+
+    if (cur_pcb_ptr[terminal_id] == NULL) new_pcb->number = 1;
+    else new_pcb->number = cur_pcb_ptr[terminal_id]->number + 1;
     return new_pcb;
 }
 
@@ -295,7 +299,7 @@ void _execute_context_switch()
 {
     /* switch TSS context (stack segment and esp) */
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[terminal_id]->process_id);
+    tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[terminal_id]->process_id); // pointer to the top of stack/pcb
     /* maps the esp of user space */
     uint32_t user_esp = _132_MB; // maps to the esp of user space
     /* gets the eip from the executable header */
@@ -546,22 +550,23 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     /* check edge cases */
     uint32_t retval = 0;
     int i = 0;
+    int terminal_num = terminal_id;
     if (NULL == buf || nbytes < 0)
         return -1;
     if (nbytes == 0)
         return 0;
 
-    memset(keyboard_buffer[terminal_id], '\0', KEYBOARD_BUFFER_SIZE);
+    memset(keyboard_buffer[terminal_num], '\0', KEYBOARD_BUFFER_SIZE);
 
-    if (re_echo_flag[terminal_id] == 1){
-        keyboard_cursor_idx[terminal_id] = temp_kbd_idx[terminal_id];
-        keyboard_buffer_end_idx[terminal_id] = keyboard_cursor_idx[terminal_id];
-        memcpy(keyboard_buffer[terminal_id], temp_kbd_buf[terminal_id], keyboard_cursor_idx[terminal_id]);
-        while (i < keyboard_cursor_idx[terminal_id]){
-            putc(keyboard_buffer[terminal_id][i]);
+    if (re_echo_flag[terminal_num] == 1){
+        keyboard_cursor_idx[terminal_num] = temp_kbd_idx[terminal_num];
+        keyboard_buffer_end_idx[terminal_num] = keyboard_cursor_idx[terminal_num];
+        memcpy(keyboard_buffer[terminal_num], temp_kbd_buf[terminal_num], keyboard_cursor_idx[terminal_num]);
+        while (i < keyboard_cursor_idx[terminal_num]){
+            putc(keyboard_buffer[terminal_num][i]);
             i++;
         }
-        re_echo_flag[terminal_id] = 0;
+        re_echo_flag[terminal_num] = 0;
     }
 
 
@@ -571,13 +576,13 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE - 1 : nbytes;
 
     /* reads data/fills buffer from keyboard */
-    sys_read_flag[terminal_id] = 1;
-    while (sys_read_flag[terminal_id]);
+    sys_read_flag[terminal_num] = 1;
+    while (sys_read_flag[terminal_num]); // keep track of which terminal called read so that you can differentiate
 
     /* copies memory from keyboard input to buffer */
-    while (keyboard_buffer[terminal_id][i] != '\0' && keyboard_buffer[terminal_id][i] != '\n' && keyboard_buffer[terminal_id][i] != '\0' && i < nbytes)
+    while (keyboard_buffer[terminal_num][i] != '\0' && keyboard_buffer[terminal_num][i] != '\n' && keyboard_buffer[terminal_num][i] != '\0' && i < nbytes)
     {
-        memcpy(&(((char *)buf)[i]), &(keyboard_buffer[terminal_id][i]), 1);
+        memcpy(&(((char *)buf)[i]), &(keyboard_buffer[terminal_num][i]), 1);
         retval++;
         i++;
     }

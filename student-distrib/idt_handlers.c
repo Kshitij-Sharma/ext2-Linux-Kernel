@@ -32,7 +32,7 @@
 #define UP_ARROW_RELEASED           0xC8
 #define DOWN_ARROW_PRESSED          0x50
 #define DOWN_ARROW_RELEASED         0xD0
-#define FUNCTION_ONE_PRESED         0x3B
+#define FUNCTION_ONE_PRESSED         0x3B
 #define FUNCTION_TWO_PRESSED        0x3C
 #define FUNCTION_THREE_PRESSED      0x3D      
 
@@ -223,19 +223,42 @@ void keyboard_interrupt()
         alt_on[terminal_id] = 0;
         return;
     }
-    // if (alt_on[terminal_id])
-    // {
-    //     switch(pressed){
-    //         case(FUNCTION_ONE_PRESED):
-    //             return /* switch_terminal(1); */
-    //         case(FUNCTION_TWO_PRESSED):
-    //             return /* switch_terminal(2);*/
-    //         case(FUNCTION_THREE_PRESSED):
-    //             return /*switch_terminal(3);*/
-    //         default:
-    //             break;
-    //     }
-    // }
+    if (alt_on[terminal_id])
+    {
+        switch(pressed){
+            case(FUNCTION_ONE_PRESSED):
+                clear();
+                // sys_read_flag[terminal_id] = 0;
+                // sys_read_flag[0] = sys_read_flag[terminal_id];
+                // echo_flag[1] = echo_flag[terminal_id];
+                // error_flag[1] = error_fslag[terminal_id];
+                terminal_id = 0;
+                update_cursor();
+                return; /* switch_terminal(1); */
+            case(FUNCTION_TWO_PRESSED):
+                clear();
+                // sys_read_flag[terminal_id] = 0;
+                // sys_read_flag[1] = sys_read_flag[terminal_id];
+                // echo_flag[1] = echo_flag[terminal_id];
+                // error_flag[1] = error_fslag[terminal_id];
+                terminal_id = 1;
+                update_cursor();
+                // if (cur_pcb_ptr[terminal_id] == NULL) sys_execute("shell"); do inside scheduler
+                return; /* switch_terminal(2);*/
+            case(FUNCTION_THREE_PRESSED):
+                clear();
+                // sys_read_flag[terminal_id] = 0;
+                // sys_read_flag[2] = sys_read_flag[terminal_id];
+                // echo_flag[1] = echo_flag[terminal_id];
+                // error_flag[1] = error_fslag[terminal_id];
+                terminal_id = 2;
+                update_cursor();
+                // if (cur_pcb_ptr[terminal_id] == NULL) sys_execute("shell");
+                return; /*switch_terminal(3);*/
+            default:
+                break;
+        }
+    }
     /* if we are releasing a key we don't do anything */
     /* ctrl+L clears screen */  
     if (control_on[terminal_id] && pressed == L_SCANCODE){
@@ -322,10 +345,14 @@ void rtc_interrupt()
     inb(RTC_DATA_PORT); 
 }
 
-// void system_call(int call_number, int first_arg, int second_arg, int third_arg)  
-// { 
-//     printf("System call triggered! \n"); // prints out which exception was triggered
-// }
+/* void pit_interrupt()
+        INPUTS: none
+        OUTPUTS: none
+        SIDE EFFECTS: 
+*/
+void pit_interrupt(){
+    return;
+}
 
 /* Array of error messages in order so we can index into them based on the argument of the function call*/
 char * error_messages[NUM_EXCEPTIONS] = {

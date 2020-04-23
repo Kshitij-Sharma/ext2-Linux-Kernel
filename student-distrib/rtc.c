@@ -7,9 +7,12 @@
 */
 void rtc_init(){
     char prev;
-    re_echo_flag[terminal_id] = 0;
-    RTC_ON_FLAG[terminal_id] = 0;
-    RTC_READ_FLAG[terminal_id] = 0;
+    int i;
+    for (i = 0; i < NUM_TERMINALS; i++){
+        re_echo_flag[i] = 0;
+        RTC_ON_FLAG[i] = 0;
+        RTC_READ_FLAG[i] = 0;
+    }
     outb(RTC_STATUS_REGISTER_B, RTC_CMD_PORT);          // set index to register B
     prev = inb(RTC_DATA_PORT);                          // get initial value from register B
     outb(RTC_STATUS_REGISTER_B, RTC_CMD_PORT);          // reset index to register B

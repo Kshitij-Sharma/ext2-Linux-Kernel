@@ -20,8 +20,9 @@
  * Inputs: integer to take log of
  * Outputs: log of number passed in   
  * Side Effects: 
- */static int screen_x[NUM_TERMINALS];
-static int screen_y[NUM_TERMINALS];
+ */
+static int screen_x[NUM_TERMINALS] = {0, 0, 0};
+static int screen_y[NUM_TERMINALS] = {0, 0, 0};
 static char* video_mem = (char *)VIDEO;
 int forward_next[NUM_TERMINALS] = {0, 0, 0};       // global var used for wraparound/backspace corner case
 int backward_next[NUM_TERMINALS] = {0, 0, 0};
