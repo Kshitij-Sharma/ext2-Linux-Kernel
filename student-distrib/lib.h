@@ -11,6 +11,7 @@
 
 int32_t printf(int8_t *format, ...);
 void putc(uint8_t c);
+void modify_vid_mem(uint32_t address);
 void backspace(void);
 void scroll_down(void);
 void wraparound(void);
@@ -38,6 +39,7 @@ int power_of_two(int num);
 void update_cursor();
 // void disable_cursor();
 // void enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
+extern char* video_buf[3];
 
 /* **********START OF KBD VARIABLES*************/
 
@@ -57,6 +59,7 @@ int current_buf_index[NUM_TERMINALS];
 
 int temp_kbd_idx[NUM_TERMINALS];                            
 int re_echo_flag[NUM_TERMINALS];                            // flag to see if we need to re display text for control L
+int putc_to_visible_flag;
 
 /* **********END OF KBD VARIABLES*************/
 

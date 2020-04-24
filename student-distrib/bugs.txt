@@ -88,10 +88,16 @@ BUG LOG
                 BUG: Syserr fail on err_open_lots
                         - We weren't checking for if more than 6 files were being open
                         - SOLUTION: Made a case check pcb if the process number was greater than index 7 (8th open file)
------------------------------------Checkpoint 3 Bugs-----------------------------------
+-----------------------------------Checkpoint 4 Bugs-----------------------------------
         1. Filysytem Bugs
                 BUG: Frame0.txt and frame1.txt were being passed in as null
-                        fix: fixed context swtiching in execute
+                        - SOLUTION: fixed context swtiching in execute
         2. Vidmap
                 BUG: Indexing into wrong page
-                        fix: set page in page table to be 0
+                        - SOLUTION: set page in page table to be 0
+-----------------------------------Checkpoint 4 Bugs-----------------------------------
+        1. Multiple Terminals
+                BUG: Unable to type in terminal when we switch 
+                        - incorrect paging switches when we switched terminals, so although a new terminal would show, input was always in terminal one
+                        - SOLUTION: update the location to which we are writing when switching terminals
+                BUG: When terminals switch while fish is running, fish keeps writing to the new terminal (not the one the process is in) 

@@ -52,7 +52,7 @@ rtc_interrupt_asm:
 pit_interrupt_asm:
         pushal
         /* call the C handler*/
-        call pit_interrupt 
+        call scheduling 
 
         /* send EOI signal */
         pushl $IRQ_PIT

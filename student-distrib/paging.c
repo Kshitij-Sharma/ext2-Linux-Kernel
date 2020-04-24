@@ -98,7 +98,16 @@ void program_paging(uint32_t physical_address){
     page_directory[VIDEO_START / _4MB_PAGE] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT | USER);
     //then set up the page table
     page_table_vidmap[0] = VIDEO;
-	page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
+		page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
+ }
+
+ void vidmap_paging_modify(uint32_t terminal_address)
+ {
+    page_directory[VIDEO_START / _4MB_PAGE] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT | USER);
+    //then set up the page table
+    page_table_vidmap[0] = terminal_address;
+		page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
+		flush_tlb();
  }
 
 

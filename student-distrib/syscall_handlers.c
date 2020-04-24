@@ -11,7 +11,7 @@
 
 
 // /***********************PCB related structures and variables***********************/
-// // pcb_t *cur_pcb_ptr[terminal_id] = NULL;
+// // pcb_t *cur_pcb_ptr[visible_terminal] = NULL;
 // // rtc fops table
 file_ops_t rtc_fops = {_sys_read_rtc, _sys_write_rtc, _sys_open_rtc, _sys_close_rtc};
 //file fops table
@@ -39,16 +39,17 @@ int32_t sys_halt(int8_t status)
 {
     int i;
     /* closes all file sin PCB */
-    // if (cur_pcb_ptr[terminal_id] == NULL) sys_execute("shell");
+    // if (cur_pcb_ptr[process_terminal] == NULL) sys_execute("shell");
     for (i = 0; i < FILE_DESC_ARR_SIZE; i++)
         sys_close(i);
-
+    cur_pcb_ptr[process_terminal]->vidmap_terminal = -1;
     /* decrements current process number */
     process_num--;
 
     /* sets pcb to be the parent's pcb*/
-    cur_pcb_ptr[terminal_id] = cur_pcb_ptr[terminal_id]->parent_pcb;
-
+    cur_pcb_ptr[process_terminal] = cur_pcb_ptr[process_terminal]->parent_pcb;
+    modify_vid_mem(VIDEO);
+    vidmap_paging_modify(VIDEO);
     /* sets program paging to previous process */
     program_paging(((process_num - 1) * _4MB_PAGE) + _8_MB);
 
@@ -56,10 +57,10 @@ int32_t sys_halt(int8_t status)
     flush_tlb();
     tss.ss0 = KERNEL_DS; // switch stack context
     tss.esp0 = (uint32_t)(_8_MB - (process_num)*_8_KB - _4_BYTES);
-    shell_flag[terminal_id] = 1;
+    shell_flag[process_terminal] = 1;
 
     /* cant close shell! */
-    if (process_num == 0 || cur_pcb_ptr[terminal_id]->number <= 1) sys_execute("shell"); // add checking to see if it is the last shell in the terminal**************************
+    if (process_num == 0 || cur_pcb_ptr[process_terminal]->number < 1) sys_execute("shell"); // add checking to see if it is the last shell in the terminal**************************
     /* returns to previous program's execution */
     asm volatile(
         "mov %0, %%esp;" /* store esp*/
@@ -67,7 +68,7 @@ int32_t sys_halt(int8_t status)
         "mov %2, %%eax;" /* store return value */
         "jmp return_from_prog;"
         :
-        : "r"(cur_pcb_ptr[terminal_id]->esp), "r"(cur_pcb_ptr[terminal_id]->ebp), "r"((uint32_t)status));
+        : "r"(cur_pcb_ptr[process_terminal]->esp), "r"(cur_pcb_ptr[process_terminal]->ebp), "r"((uint32_t)status));
     return 0;
 }
 
@@ -85,17 +86,17 @@ int32_t sys_execute(const int8_t *command)
     int8_t arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0;
     tempret = 0;
-    error_flag[terminal_id] = 0;
-    arg_flag[terminal_id] = 1;
+    error_flag[visible_terminal] = 0;
+    arg_flag[visible_terminal] = 1;
     if (process_num > 5) return -2;
 
     /* saves the old base and stack pointer prior to execution to return to later*/
-    if (cur_pcb_ptr[terminal_id] != NULL)
+    if (cur_pcb_ptr[visible_terminal] != NULL)
     {
         asm volatile(
             "mov %%esp, %%eax;" /* push user_ds */
             "mov %%ebp, %%ebx;"
-            : "=a"(cur_pcb_ptr[terminal_id]->esp), "=b"(cur_pcb_ptr[terminal_id]->ebp));
+            : "=a"(cur_pcb_ptr[visible_terminal]->esp), "=b"(cur_pcb_ptr[visible_terminal]->ebp));
     }
 
     /* parses arguments passed into command, stores them in prog_name and arg */
@@ -105,11 +106,11 @@ int32_t sys_execute(const int8_t *command)
     if (tempret == -1)
         return -1;
     if (tempret == -2)
-        arg_flag[terminal_id] = 0;
+        arg_flag[visible_terminal] = 0;
 
     
     /* checks that the file is an executable*/
-    tempret = _execute_executable_check(prog_name, buf_executable_header[terminal_id]);
+    tempret = _execute_executable_check(prog_name, buf_executable_header[visible_terminal]);
     if (tempret == -1)
         return -1;
 
@@ -123,17 +124,17 @@ int32_t sys_execute(const int8_t *command)
     if (tempret == -1)
         return -1;
 
-    if (strncmp(prog_name, "shell", 5) == 0) shell_flag[terminal_id] = 1;
-    else shell_flag[terminal_id] = 0;
+    if (strncmp(prog_name, "shell", 5) == 0) shell_flag[visible_terminal] = 1;
+    else shell_flag[visible_terminal] = 0;
     /* creates PCB for process */
-    cur_pcb_ptr[terminal_id] = _execute_create_PCB(arg);
-
+    cur_pcb_ptr[visible_terminal] = _execute_create_PCB(arg);
+    process_terminal = visible_terminal;
     
     /* switches context to user program */
     _execute_context_switch();
 
-    keyboard_cursor_idx[terminal_id] = 0;
-    memset(keyboard_buffer[terminal_id], '\0', KEYBOARD_BUFFER_SIZE);
+    keyboard_cursor_idx[visible_terminal] = 0;
+    memset(keyboard_buffer[visible_terminal], '\0', KEYBOARD_BUFFER_SIZE);
     /* place for a program to return to while being halted */
     asm volatile(
         "return_from_prog:;" /* push user_ds */
@@ -142,11 +143,11 @@ int32_t sys_execute(const int8_t *command)
         : "=a"(return_value));
 
     /* checks if there's an error*/
-    if (error_flag[terminal_id])
+    if (error_flag[visible_terminal])
     {
         return_value = ERROR_VAL;
     }
-    shell_flag[terminal_id] = 1;
+    shell_flag[visible_terminal] = 1;
     return return_value;
 }
 
@@ -279,7 +280,7 @@ pcb_t *_execute_create_PCB(char *argument)
     /* creates the PCB for this at the right location */
     pcb_t *new_pcb = (pcb_t *)((int)_8_MB - ((int)_8_KB * (process_num + 1)));
 
-    new_pcb->parent_pcb = cur_pcb_ptr[terminal_id];   // sets the parent of PCB for this process
+    new_pcb->parent_pcb = cur_pcb_ptr[visible_terminal];   // sets the parent of PCB for this process
     new_pcb->process_id = process_num++; // gives our process a PID
 
     /* first 2 file descriptors in PCB are stdin/stdout */
@@ -290,9 +291,10 @@ pcb_t *_execute_create_PCB(char *argument)
     new_pcb->next_open_index = 2;
     memset(new_pcb->argument_array, '\0', KEYBOARD_BUFFER_SIZE);
     memcpy(new_pcb->argument_array, argument, strlen(argument));
+    new_pcb->vidmap_terminal = -1;
 
-    if (cur_pcb_ptr[terminal_id] == NULL) new_pcb->number = 1;
-    else new_pcb->number = cur_pcb_ptr[terminal_id]->number + 1;
+    if (cur_pcb_ptr[visible_terminal] == NULL) new_pcb->number = 1;
+    else new_pcb->number = (cur_pcb_ptr[visible_terminal]->number + 1);
     return new_pcb;
 }
 
@@ -307,15 +309,15 @@ void _execute_context_switch()
 {
     /* switch TSS context (stack segment and esp) */
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[terminal_id]->process_id); // pointer to the top of stack/pcb
+    tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[visible_terminal]->process_id); // pointer to the top of stack/pcb
     /* maps the esp of user space */
     uint32_t user_esp = _132_MB; // maps to the esp of user space
     /* gets the eip from the executable header */
     uint32_t eip = 0;
     // buf_executable_header from 27 to 24 used as specified in the documentation. the 24, 16, and 8 are used to shift the bytes to the correct spot in the eip int
-    eip += (((uint8_t)buf_executable_header[terminal_id][ELF_BYTE_ONE]) << 24) | (((uint8_t)buf_executable_header[terminal_id][ELF_BYTE_TWO]) << 16) 
-         | ((uint8_t)(buf_executable_header[terminal_id][ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[terminal_id][ELF_BYTE_FOUR]);
-    cur_pcb_ptr[terminal_id]->eip = eip;
+    eip += (((uint8_t)buf_executable_header[visible_terminal][ELF_BYTE_ONE]) << 24) | (((uint8_t)buf_executable_header[visible_terminal][ELF_BYTE_TWO]) << 16) 
+         | ((uint8_t)(buf_executable_header[visible_terminal][ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[visible_terminal][ELF_BYTE_FOUR]);
+    cur_pcb_ptr[visible_terminal]->eip = eip;
     /* performs context stack in assembly */
     asm volatile(
         "push %0;" /* push user_ds */
@@ -342,11 +344,11 @@ int32_t sys_read(int32_t fd, void *buf, int32_t nbytes)
     if (nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)
         return -1;
     /* checks that the file is active */
-    if (cur_pcb_ptr[terminal_id]->file_desc_array[fd].flags == 0)
+    if (cur_pcb_ptr[process_terminal]->file_desc_array[fd].flags == 0)
         return -1;
 
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
-    return cur_pcb_ptr[terminal_id]->file_desc_array[fd].file_ops_table->read(fd, buf, nbytes);
+    return cur_pcb_ptr[process_terminal]->file_desc_array[fd].file_ops_table->read(fd, buf, nbytes);
 }
 
 /** sys_write
@@ -363,12 +365,12 @@ int32_t sys_write(int32_t fd, const void *buf, int32_t nbytes)
     if (nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX)
         return -1;
     /* checks that the file is active */
-    if (cur_pcb_ptr[terminal_id]->file_desc_array[fd].flags == 0)
+    if (cur_pcb_ptr[process_terminal]->file_desc_array[fd].flags == 0)
         return -1;
 
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
-    uint32_t this_inode = cur_pcb_ptr[terminal_id]->file_desc_array[fd].inode;
-    return cur_pcb_ptr[terminal_id]->file_desc_array[fd].file_ops_table->write(this_inode, buf, nbytes);
+    uint32_t this_inode = cur_pcb_ptr[process_terminal]->file_desc_array[fd].inode;
+    return cur_pcb_ptr[process_terminal]->file_desc_array[fd].file_ops_table->write(this_inode, buf, nbytes);
 }
 
 /** sys_open()
@@ -385,18 +387,18 @@ int32_t sys_open(const uint8_t *filename)
     /* assign the appropriate file descriptor to the PCB */
     for (i = 2; i <= MAX_FD_IDX; i++)
     {
-        if (cur_pcb_ptr[terminal_id]->file_desc_array[i].flags == 1)
+        if (cur_pcb_ptr[process_terminal]->file_desc_array[i].flags == 1)
             continue;
         else
         {
-            cur_pcb_ptr[terminal_id]->next_open_index = i;
+            cur_pcb_ptr[process_terminal]->next_open_index = i;
             break;
         }
     }
     /* if the PCB is full, we fail this */
     if (i > MAX_FD_IDX)
         return -1;
-    int32_t cur_pcb_idx = cur_pcb_ptr[terminal_id]->next_open_index;
+    int32_t cur_pcb_idx = cur_pcb_ptr[process_terminal]->next_open_index;
 
     /* find the dentry for the file */
     dentry_t this_dentry;
@@ -428,7 +430,7 @@ int32_t sys_open(const uint8_t *filename)
         return -1;
     }
     /* assigns appropriate file descriptor */
-    cur_pcb_ptr[terminal_id]->file_desc_array[cur_pcb_idx] = (file_desc_t){this_fops, this_inode, 0, 1};
+    cur_pcb_ptr[process_terminal]->file_desc_array[cur_pcb_idx] = (file_desc_t){this_fops, this_inode, 0, 1};
 
     return cur_pcb_idx; // index in the file descriptor array
 }
@@ -445,14 +447,14 @@ int32_t sys_close(int32_t fd)
     /* checks bounds and if the file is active */
     if (fd < MIN_FD_IDX || fd > MAX_FD_IDX)
         return -1;
-    if (cur_pcb_ptr[terminal_id]->file_desc_array[fd].flags == 0)
+    if (cur_pcb_ptr[process_terminal]->file_desc_array[fd].flags == 0)
         return -1;
 
     /* marks file as closed in PCB */
-    cur_pcb_ptr[terminal_id]->file_desc_array[fd].flags = 0;
-    cur_pcb_ptr[terminal_id]->next_open_index = fd;
+    cur_pcb_ptr[process_terminal]->file_desc_array[fd].flags = 0;
+    cur_pcb_ptr[process_terminal]->next_open_index = fd;
     /* calls the appropriate system close function */
-    return cur_pcb_ptr[terminal_id]->file_desc_array[fd].file_ops_table->close(fd);
+    return cur_pcb_ptr[process_terminal]->file_desc_array[fd].file_ops_table->close(fd);
 }
 
 /** sys_halt
@@ -465,9 +467,9 @@ int32_t sys_close(int32_t fd)
  */
 int32_t sys_getargs(int8_t *buf, int32_t nbytes)
 {
-    if (arg_flag[terminal_id] == 0) return -1;
+    if (arg_flag[process_terminal] == 0) return -1;
     memset(buf, '\0', KEYBOARD_BUFFER_SIZE);
-    memcpy(buf, cur_pcb_ptr[terminal_id]->argument_array, strlen(cur_pcb_ptr[terminal_id]->argument_array));
+    memcpy(buf, cur_pcb_ptr[process_terminal]->argument_array, strlen(cur_pcb_ptr[process_terminal]->argument_array));
     return 0;
 }
 
@@ -483,10 +485,16 @@ int32_t sys_vidmap(uint8_t **screen_start)
     /* makes sure that screen_start pointer is within the program loading block between 128 MB and 132 MB */
     if ((uint32_t)screen_start < USER_START || (uint32_t)screen_start >= USER_END || (uint32_t)screen_start == NULL)
         return -1;
-
-    vidmap_paging();
-    flush_tlb();                          // need to flush as page table gets set to a new virtual address
-    (*screen_start) = (uint8_t *)_132_MB; //132 MB is where we have defined video memory to start
+    /* maps video memory to appropriate terminal */
+    if(visible_terminal == process_terminal)        vidmap_paging();
+    else{
+        uint32_t terminal_address  = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
+        vidmap_paging_modify(terminal_address);
+    }
+    flush_tlb();                          
+    /* video memory will be at 132MB */
+    (*screen_start) = (uint8_t *)_132_MB; 
+    cur_pcb_ptr[process_terminal]->vidmap_terminal = 1;
     return 0;
 }
 
@@ -559,23 +567,22 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     /* check edge cases */
     uint32_t retval = 0;
     int i = 0;
-    int terminal_num = terminal_id;
     if (NULL == buf || nbytes < 0)
         return -1;
     if (nbytes == 0)
         return 0;
 
-    memset(keyboard_buffer[terminal_num], '\0', KEYBOARD_BUFFER_SIZE);
+    memset(keyboard_buffer[process_terminal], '\0', KEYBOARD_BUFFER_SIZE);
 
-    if (re_echo_flag[terminal_num] == 1){
-        keyboard_cursor_idx[terminal_num] = temp_kbd_idx[terminal_num];
-        keyboard_buffer_end_idx[terminal_num] = keyboard_cursor_idx[terminal_num];
-        memcpy(keyboard_buffer[terminal_num], temp_kbd_buf[terminal_num], keyboard_cursor_idx[terminal_num]);
-        while (i < keyboard_cursor_idx[terminal_num]){
-            putc(keyboard_buffer[terminal_num][i]);
+    if (re_echo_flag[process_terminal] == 1){
+        keyboard_cursor_idx[process_terminal] = temp_kbd_idx[process_terminal];
+        keyboard_buffer_end_idx[process_terminal] = keyboard_cursor_idx[process_terminal];
+        memcpy(keyboard_buffer[process_terminal], temp_kbd_buf[process_terminal], keyboard_cursor_idx[process_terminal]);
+        while (i < keyboard_cursor_idx[process_terminal]){
+            putc(keyboard_buffer[process_terminal][i]);
             i++;
         }
-        re_echo_flag[terminal_num] = 0;
+        re_echo_flag[process_terminal] = 0;
     }
 
     /* clears the keyboard buffer */
@@ -584,13 +591,13 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE - 1 : nbytes;
 
     /* reads data/fills buffer from keyboard */
-    sys_read_flag[terminal_num] = 1;
-    while (sys_read_flag[terminal_num]); // keep track of which terminal called read so that you can differentiate
+    sys_read_flag[process_terminal] = 1;
+    while (sys_read_flag[process_terminal]); // keep track of which terminal called read so that you can differentiate
 
     /* copies memory from keyboard input to buffer */
-    while (keyboard_buffer[terminal_num][i] != '\0' && keyboard_buffer[terminal_num][i] != '\n' && keyboard_buffer[terminal_num][i] != '\0' && i < nbytes)
+    while (keyboard_buffer[process_terminal][i] != '\0' && keyboard_buffer[process_terminal][i] != '\n' && keyboard_buffer[process_terminal][i] != '\0' && i < nbytes)
     {
-        memcpy(&(((char *)buf)[i]), &(keyboard_buffer[terminal_num][i]), 1);
+        memcpy(&(((char *)buf)[i]), &(keyboard_buffer[process_terminal][i]), 1);
         retval++;
         i++;
     }
@@ -709,9 +716,8 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes)
 {
-    RTC_READ_FLAG[terminal_id] = 1; // sets a global flag
-    while (RTC_READ_FLAG[terminal_id]); // waits for interrupt
-    // printf("read rtc\n");
+    RTC_READ_FLAG[process_terminal] = 1; // sets a global flag
+    while (RTC_READ_FLAG[process_terminal]); // waits for interrupt
     return 0;
 }
 
@@ -773,15 +779,15 @@ int32_t _sys_close_file(int32_t fd)
 int32_t _sys_read_file(int32_t fd, void *buf, int32_t nbytes)
 {
     int32_t data_read;
-    int32_t offset = cur_pcb_ptr[terminal_id]->file_desc_array[fd].file_position;
+    int32_t offset = cur_pcb_ptr[process_terminal]->file_desc_array[fd].file_position;
     /* condition checks */
     if (nbytes <= 0 || buf == NULL || fd < 0)
         return -1;
     /* does the data read */
-    data_read = read_data(cur_pcb_ptr[terminal_id]->file_desc_array[fd].inode, offset, buf, nbytes);
+    data_read = read_data(cur_pcb_ptr[process_terminal]->file_desc_array[fd].inode, offset, buf, nbytes);
     /* moves forward in file corresponding to how many bytes are read */
     if (data_read > 0)
-        cur_pcb_ptr[terminal_id]->file_desc_array[fd].file_position += data_read;
+        cur_pcb_ptr[process_terminal]->file_desc_array[fd].file_position += data_read;
     /* checks that we have read ALL bytes requested */
     return data_read;
 }
@@ -833,12 +839,12 @@ int32_t _sys_close_directory(int32_t fd)
 int32_t _sys_read_directory(int32_t fd, void *buf, int32_t nbytes)
 {
     dentry_t curr_dentry;
-    if (read_dir_flag[terminal_id] == boot_block->entries)
+    if (read_dir_flag[process_terminal] == boot_block->entries)
     {
-        read_dir_flag[terminal_id] = 0;
+        read_dir_flag[process_terminal] = 0;
         return 0;
     }
-    read_dentry_by_index(read_dir_flag[terminal_id]++, &curr_dentry);
+    read_dentry_by_index(read_dir_flag[process_terminal]++, &curr_dentry);
     strncpy((int8_t *)(buf),
             (int8_t *)curr_dentry.file_name, FILENAME_LEN);
     return FILENAME_LEN;

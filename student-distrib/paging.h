@@ -59,6 +59,8 @@ void paging_init();
 void flush_tlb();
 void program_paging();
 void vidmap_paging();
+void vidmap_paging_modify(uint32_t terminal_address);
+void vidmap_terminal_switch();
 int process_num;
 
 #endif
