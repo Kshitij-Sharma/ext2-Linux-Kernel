@@ -185,9 +185,9 @@ void scroll_down(void) {
         for (i = NUM_COLS; i < NUM_ROWS * NUM_COLS; i++) {
             *(uint8_t *)(video_buf[term] + ((i-NUM_COLS) << 1)) =  *(uint8_t *)(video_buf[term] + (i << 1));
             *(uint8_t *)(video_buf[term] + (i << 1) + 1) = ATTRIB;
-            if (visible_terminal == term){
-                *(uint8_t *)(video_mem + ((i-NUM_COLS) << 1)) =  *(uint8_t *)(video_mem + (i << 1));
-                *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+            if (visible_terminal == process_terminal){
+                *(uint8_t *)(VIDEO + ((i-NUM_COLS) << 1)) =  *(uint8_t *)(VIDEO + (i << 1));
+                *(uint8_t *)(VIDEO + (i << 1) + 1) = ATTRIB;
             }
         }
         /* fill in the bottom row with blanks */
@@ -195,8 +195,8 @@ void scroll_down(void) {
             *(uint8_t *)(video_buf[term] + (i << 1)) = '\0';
             *(uint8_t *)(video_buf[term] + (i << 1) + 1) = ATTRIB;
             if (visible_terminal == process_terminal){
-                *(uint8_t *)(video_mem + (i << 1)) = '\0';
-                *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+                *(uint8_t *)(VIDEO + (i << 1)) = '\0';
+                *(uint8_t *)(VIDEO + (i << 1) + 1) = ATTRIB;
             }
         }
         screen_y[term] = NUM_ROWS-1;

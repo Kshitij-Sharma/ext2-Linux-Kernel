@@ -378,15 +378,6 @@ void rtc_interrupt()
     inb(RTC_DATA_PORT); 
 }
 
-/* void pit_interrupt()
-        INPUTS: none
-        OUTPUTS: none
-        SIDE EFFECTS: 
-*/
-void pit_interrupt(){
-    return;
-}
-
 /* Array of error messages in order so we can index into them based on the argument of the function call*/
 char * error_messages[NUM_EXCEPTIONS] = {
     "Dividing by zero is illegal in thirteen countries.", 

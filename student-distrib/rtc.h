@@ -14,8 +14,11 @@
 #define PIC_COMMAND_PORT        0x20
 #define FREQ_CONVERSION_CONST   32768
 #define RTC_MAX_FREQ            1024
-
+#define PIT_DATA_PORT_ZERO      0X40
+#define PIT_COMMAND_PORT        0X43
+#define PIT_FREQ_DIVISOR        1193180
 void rtc_init();
 void rtc_set_frequency_from_rate(int rate);
+void pit_init(int frequency);
 // void rtc_
 #endif /* _RTC_H */

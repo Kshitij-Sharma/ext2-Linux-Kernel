@@ -21,8 +21,8 @@ int32_t _execute_parse_args(const int8_t* command, char * program_name, char * a
 int32_t _execute_executable_check(int8_t * prog_name, int8_t * buf);
 int32_t _execute_setup_program_paging();
 int32_t _execute_user_program_loader();
-pcb_t * _execute_create_PCB();
-void _execute_context_switch();
+pcb_t * _execute_create_PCB(char* argument, uint32_t term);
+void _execute_context_switch(uint32_t term);
 
 
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes);

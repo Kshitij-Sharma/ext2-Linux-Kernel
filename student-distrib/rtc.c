@@ -1,6 +1,6 @@
 #include "rtc.h"
 
-/* rtc_enable()
+/* rtc_init()
         INPUTS: none
         OUTPUTS: none
         SIDE EFFECTS: enables periodic interrupts on RTC
@@ -36,4 +36,14 @@ void rtc_set_frequency_from_rate(int rate){
     // MAGIC NUMBER: 0xF0 is used to clear bottom 4 bits before setting rate
 
 }
-
+/* pit_init()
+        INPUTS: none
+        OUTPUTS: none
+        SIDE EFFECTS: enables periodic interrupts on RTC
+*/
+void pit_init(int frequency ){
+    int divisor = PIT_FREQ_DIVISOR / frequency;
+    outb(0x36, PIT_COMMAND_PORT);
+    outb(PIT_DATA_PORT_ZERO, divisor & 0xFF);
+    outb(PIT_DATA_PORT_ZERO, divisor >> 8);
+}

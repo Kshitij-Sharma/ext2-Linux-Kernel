@@ -82,23 +82,11 @@ int32_t sys_halt(int8_t status)
  */
 int32_t sys_execute(const int8_t *command)
 {
-    int8_t tempret;
+    int8_t tempret = 0;
     int8_t prog_name[FILENAME_LEN];
     int8_t arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0;
-    tempret = 0;
-    error_flag[visible_terminal] = 0;
-    arg_flag[visible_terminal] = 1;
-    if (process_num > 5) return -2;
-
-    /* saves the old base and stack pointer prior to execution to return to later*/
-    if (cur_pcb_ptr[visible_terminal] != NULL)
-    {
-        asm volatile(
-            "mov %%esp, %%eax;" /* push user_ds */
-            "mov %%ebp, %%ebx;"
-            : "=a"(cur_pcb_ptr[visible_terminal]->esp), "=b"(cur_pcb_ptr[visible_terminal]->ebp));
-    }
+    uint32_t term = visible_terminal;
 
     /* parses arguments passed into command, stores them in prog_name and arg */
     memset(prog_name, '\0', FILENAME_LEN);
@@ -106,12 +94,27 @@ int32_t sys_execute(const int8_t *command)
     tempret = _execute_parse_args(command, prog_name, arg);
     if (tempret == -1)
         return -1;
+    if (strncmp(prog_name, "shell", 5) == 0) term = process_terminal;
     if (tempret == -2)
-        arg_flag[visible_terminal] = 0;
+        arg_flag[term] = 0;
+        
+    error_flag[term] = 0;
+    arg_flag[term] = 1;
+    if (process_num > 5) return -2;
+
+    /* saves the old base and stack pointer prior to execution to return to later*/
+    if (cur_pcb_ptr[term] != NULL)
+    {
+        asm volatile(
+            "mov %%esp, %%eax;" /* push user_ds */
+            "mov %%ebp, %%ebx;"
+            : "=a"(cur_pcb_ptr[term]->esp), "=b"(cur_pcb_ptr[term]->ebp));
+    }
+
 
     
     /* checks that the file is an executable*/
-    tempret = _execute_executable_check(prog_name, buf_executable_header[visible_terminal]);
+    tempret = _execute_executable_check(prog_name, buf_executable_header[term]);
     if (tempret == -1)
         return -1;
 
@@ -125,17 +128,17 @@ int32_t sys_execute(const int8_t *command)
     if (tempret == -1)
         return -1;
 
-    if (strncmp(prog_name, "shell", 5) == 0) shell_flag[visible_terminal] = 1;
-    else shell_flag[visible_terminal] = 0;
+    if (strncmp(prog_name, "shell", 5) == 0) shell_flag[term] = 1;
+    else shell_flag[term] = 0;
     /* creates PCB for process */
-    cur_pcb_ptr[visible_terminal] = _execute_create_PCB(arg);
-    process_terminal = visible_terminal;
+    cur_pcb_ptr[term] = _execute_create_PCB(arg, term);
+    // process_terminal = term;
     
     /* switches context to user program */
-    _execute_context_switch();
+    _execute_context_switch(term);
 
-    keyboard_cursor_idx[visible_terminal] = 0;
-    memset(keyboard_buffer[visible_terminal], '\0', KEYBOARD_BUFFER_SIZE);
+    keyboard_cursor_idx[term] = 0;
+    memset(keyboard_buffer[term], '\0', KEYBOARD_BUFFER_SIZE);
     /* place for a program to return to while being halted */
     asm volatile(
         "return_from_prog:;" /* push user_ds */
@@ -144,11 +147,11 @@ int32_t sys_execute(const int8_t *command)
         : "=a"(return_value));
 
     /* checks if there's an error*/
-    if (error_flag[visible_terminal])
+    if (error_flag[term])
     {
         return_value = ERROR_VAL;
     }
-    shell_flag[visible_terminal] = 1;
+    shell_flag[term] = 1;
     return return_value;
 }
 
@@ -273,13 +276,13 @@ int32_t _execute_user_program_loader(int8_t *prog_name)
  * Outputs: new PCB for the program
  * Side Effects: creates the PCB for this program and stores appropriate information
  */
-pcb_t *_execute_create_PCB(char *argument)
+pcb_t *_execute_create_PCB(char* argument, uint32_t term)
 {
 
     /* creates the PCB for this at the right location */
     pcb_t *new_pcb = (pcb_t *)((int)_8_MB - ((int)_8_KB * (process_num + 1)));
 
-    new_pcb->parent_pcb = cur_pcb_ptr[visible_terminal];   // sets the parent of PCB for this process
+    new_pcb->parent_pcb = cur_pcb_ptr[term];   // sets the parent of PCB for this process
     new_pcb->process_id = process_num++; // gives our process a PID
 
     /* first 2 file descriptors in PCB are stdin/stdout */
@@ -292,8 +295,8 @@ pcb_t *_execute_create_PCB(char *argument)
     memcpy(new_pcb->argument_array, argument, strlen(argument));
     new_pcb->vidmap_terminal = -1;
 
-    if (cur_pcb_ptr[visible_terminal] == NULL) new_pcb->number = 1;
-    else new_pcb->number = (cur_pcb_ptr[visible_terminal]->number + 1);
+    if (cur_pcb_ptr[term] == NULL) new_pcb->number = 1;
+    else new_pcb->number = (cur_pcb_ptr[term]->number + 1);
     return new_pcb;
 }
 
@@ -304,19 +307,19 @@ pcb_t *_execute_create_PCB(char *argument)
  * Outputs: none
  * Side Effects: switches context to the user program
  */
-void _execute_context_switch()
+void _execute_context_switch(uint32_t term)
 {
     /* switch TSS context (stack segment and esp) */
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[visible_terminal]->process_id); // pointer to the top of stack/pcb
+    tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[term]->process_id); // pointer to the top of stack/pcb
     /* maps the esp of user space */
     uint32_t user_esp = _132_MB; // maps to the esp of user space
     /* gets the eip from the executable header */
     uint32_t eip = 0;
     // buf_executable_header from 27 to 24 used as specified in the documentation. the 24, 16, and 8 are used to shift the bytes to the correct spot in the eip int
-    eip += (((uint8_t)buf_executable_header[visible_terminal][ELF_BYTE_ONE]) << 24) | (((uint8_t)buf_executable_header[visible_terminal][ELF_BYTE_TWO]) << 16) 
-         | ((uint8_t)(buf_executable_header[visible_terminal][ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[visible_terminal][ELF_BYTE_FOUR]);
-    cur_pcb_ptr[visible_terminal]->eip = eip;
+    eip += (((uint8_t)buf_executable_header[term][ELF_BYTE_ONE]) << 24) | (((uint8_t)buf_executable_header[term][ELF_BYTE_TWO]) << 16) 
+         | ((uint8_t)(buf_executable_header[term][ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[term][ELF_BYTE_FOUR]);
+    cur_pcb_ptr[term]->eip = eip;
     /* performs context stack in assembly */
     asm volatile(
         "push %0;" /* push user_ds */

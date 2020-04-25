@@ -21,8 +21,6 @@
 #define KB_CMD_REGISTER         0x64        // write access
 #define NUM_CODES               116
 #define NUM_TERMINALS           3
-#define PIT_DATA_PORT_ZERO      0X40
-#define PIT_COMMAND_PORT        0X43
 
 extern void empty();
 extern void reserved();

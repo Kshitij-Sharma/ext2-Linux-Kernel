@@ -53,7 +53,6 @@ pit_interrupt_asm:
         pushal
         /* call the C handler*/
         call scheduling 
-
         /* send EOI signal */
         pushl $IRQ_PIT
         call send_eoi               /* sends the EOI */
