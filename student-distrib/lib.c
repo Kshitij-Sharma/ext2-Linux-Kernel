@@ -462,13 +462,7 @@ void putc(uint8_t c) {
             screen_x[term]++;
             screen_x[term] %= (NUM_COLS);
             screen_y[term] = (screen_y[term] + (screen_x[term] / NUM_COLS)) % NUM_ROWS;
-        // }else{     
-        //     *(uint8_t *)(video[process_terminal] + ((NUM_COLS * screen_y[process_terminal] + screen_x[process_terminal]) << 1)) = c;
-        //     *(uint8_t *)(video[process_terminal] + ((NUM_COLS * screen_y[process_terminal] + screen_x[process_terminal]) << 1) + 1) = ATTRIB;
-        //     screen_x[process_terminal]++;
-        //     screen_x[process_terminal] %= (NUM_COLS);
-        //     screen_y[process_terminal] = (screen_y[process_terminal] + (screen_x[process_terminal] / NUM_COLS)) % NUM_ROWS;
-        // }
+
     }
     wraparound();
     scroll_down();

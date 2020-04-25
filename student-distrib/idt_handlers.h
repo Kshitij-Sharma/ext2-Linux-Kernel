@@ -4,6 +4,8 @@
 #include "lib.h"
 #include "syscall_handlers.h"
 #include "i8259.h"
+#include "idt_interrupt_wrappers.h"
+
 // #include "syscall_handlers.h"
 
 

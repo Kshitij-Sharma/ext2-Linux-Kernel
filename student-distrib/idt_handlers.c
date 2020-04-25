@@ -1,6 +1,7 @@
 
 #include "idt_handlers.h"
 #include "syscall_handlers.h"
+#include "idt_interrupt_wrappers.h"
 
 
 #define ENTER_PRESSED               0x1C
@@ -255,17 +256,33 @@ void keyboard_interrupt()
         switch(pressed){
             case(FUNCTION_ONE_PRESSED):
                 // printf("Terminal 1\n");
+                if (visible_terminal == 0) return;
                 switch_terminal(0);
+                sti();
                 putc_to_visible_flag = 0;
                 return;
             case(FUNCTION_TWO_PRESSED):
                 // printf("Terminal 1\n");
+                if (visible_terminal == 1) return;
+                // asm volatile(
+                // "mov %0, %%eax;" /* push user_ds */
+                // :
+                // : "r"(1));
+                // switch_terminal_asm();
                 switch_terminal(1);
+                sti();
                 putc_to_visible_flag = 0;
                 return;
             case(FUNCTION_THREE_PRESSED):
                 // printf("Terminal 1\n");
+                if (visible_terminal == 2) return;
+                // asm volatile(
+                // "mov %0, %%eax;" /* push user_ds */
+                // :
+                // : "r"(2));
+                // switch_terminal_asm();
                 switch_terminal(2);
+                sti();
                 putc_to_visible_flag = 0;
                 return;
             default:

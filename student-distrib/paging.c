@@ -84,6 +84,7 @@ void program_paging(uint32_t physical_address){
 	page_directory[SYS_VIRTUAL_MEM] = physical_address;
 	/* assigns approriate attributes to the page */
 	page_directory[SYS_VIRTUAL_MEM] |= PAGE_SIZE | USER | PRESENT | READ_WRITE;
+	flush_tlb();
 }
 
 /*
@@ -98,7 +99,8 @@ void program_paging(uint32_t physical_address){
     page_directory[VIDEO_START / _4MB_PAGE] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT | USER);
     //then set up the page table
     page_table_vidmap[0] = VIDEO;
-		page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
+	page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
+	flush_tlb();
  }
 
  void vidmap_paging_modify(uint32_t terminal_address)
@@ -106,8 +108,8 @@ void program_paging(uint32_t physical_address){
     page_directory[VIDEO_START / _4MB_PAGE] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT | USER);
     //then set up the page table
     page_table_vidmap[0] = terminal_address;
-		page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
-		flush_tlb();
+	page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
+	flush_tlb();
  }
 
 

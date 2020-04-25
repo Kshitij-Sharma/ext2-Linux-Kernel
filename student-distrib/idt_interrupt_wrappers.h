@@ -12,6 +12,7 @@
 #include "i8259.h"
 #include "lib.h"
 #include "idt_handlers.h"
+#include "multiprocessing.h"
 
 extern void keyboard_interrupt_asm();
 extern void rtc_interrupt_asm();

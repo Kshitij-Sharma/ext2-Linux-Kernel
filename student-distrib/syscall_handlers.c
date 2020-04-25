@@ -40,6 +40,7 @@ int32_t sys_halt(int8_t status)
     int i;
     /* closes all file sin PCB */
     // if (cur_pcb_ptr[process_terminal] == NULL) sys_execute("shell");
+    // if (cur_pcb_ptr[process_terminal]->parent_pcb == NULL)  return 0 ;
     for (i = 0; i < FILE_DESC_ARR_SIZE; i++)
         sys_close(i);
     cur_pcb_ptr[process_terminal]->vidmap_terminal = -1;
@@ -51,17 +52,17 @@ int32_t sys_halt(int8_t status)
     modify_vid_mem(VIDEO);
     vidmap_paging_modify(VIDEO);
     /* sets program paging to previous process */
-    program_paging(((process_num - 1) * _4MB_PAGE) + _8_MB);
+    
+    if (process_num == 0 || cur_pcb_ptr[process_terminal] == NULL) sys_execute("shell"); 
+    // program_paging(((process_num - 1) * _4MB_PAGE) + _8_MB);
+    program_paging(((cur_pcb_ptr[process_terminal]->process_id) * _4MB_PAGE) + _8_MB);
 
-    /* flushes TLB before moving to new program */
-    flush_tlb();
+    /* cant close shell! */
+    /* returns to previous program's execution */
     tss.ss0 = KERNEL_DS; // switch stack context
     tss.esp0 = (uint32_t)(_8_MB - (process_num)*_8_KB - _4_BYTES);
     shell_flag[process_terminal] = 1;
 
-    /* cant close shell! */
-    if (process_num == 0 || cur_pcb_ptr[process_terminal]->number < 1) sys_execute("shell"); // add checking to see if it is the last shell in the terminal**************************
-    /* returns to previous program's execution */
     asm volatile(
         "mov %0, %%esp;" /* store esp*/
         "mov %1, %%ebp;" /* store ebp */
@@ -235,8 +236,6 @@ int32_t _execute_setup_program_paging()
 {
     /* sets up paging for the current program */
     program_paging((process_num * _4MB_PAGE) + _8_MB);
-    /* flushes TLB before moving to new program */
-    flush_tlb();
     return 0;
 }
 
@@ -258,7 +257,7 @@ int32_t _execute_user_program_loader(int8_t *prog_name)
     read_dentry_by_name((const uint8_t*)prog_name, &this_dentry);
     int32_t program_size = (int32_t)inode_head[this_dentry.inode].length;
 
-    memset((void *)PROGRAM_IMAGE, 0, _4KB_ * 10); // changed for fish -- make dynamic based on file size
+    memset((void *)PROGRAM_IMAGE, 0, program_size); // changed for fish -- make dynamic based on file size
     // int out = _sys_read_file(fd, (void *) PROGRAM_IMAGE, _4KB_);
 
     out = read_data(inode, 0, (void *)PROGRAM_IMAGE, program_size);
@@ -491,7 +490,6 @@ int32_t sys_vidmap(uint8_t **screen_start)
         uint32_t terminal_address  = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
         vidmap_paging_modify(terminal_address);
     }
-    flush_tlb();                          
     /* video memory will be at 132MB */
     (*screen_start) = (uint8_t *)_132_MB; 
     cur_pcb_ptr[process_terminal]->vidmap_terminal = 1;
