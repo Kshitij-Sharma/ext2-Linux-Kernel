@@ -710,7 +710,17 @@ int test_execute(){
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
+int pit_test(){
+	pit_init(20);
+	printf("pit intiialized \n");
+    int i = 0;
+    for(i = 0; i < 300000000; i++) continue;
+    clear();
+    printf("change pit");
+    pit_init(1000);
+	for(i = 0; i < 300000000; i++) continue;
 
+}
 /* Test suite entry point */
 // launch your tests here
 void launch_tests(){
@@ -759,6 +769,7 @@ void launch_tests(){
 	// TEST_OUTPUT("test_system_call", test_system_call());
 	// TEST_OUTPUT("test_execute_helpers", test_execute_helpers());
 	// TEST_OUTPUT("test_execute", test_execute());
+	// TEST_OUTPUT("test_pit", pit_test());
 
 	/* CP4 Tests */
 	/* CP5 Tests */

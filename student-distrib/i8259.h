@@ -8,7 +8,6 @@
 
 #include "lib.h"
 
-
 /* Ports that each PIC sits on */
 #define MASTER_8259_CMD_PORT    0x20
 #define MASTER_8259_DATA_PORT   0x21
@@ -18,7 +17,10 @@
 #define MASTER_PORT_MAX         8
 #define SLAVE_PORT_MAX          16
 
-#define SLAVE_IRQ_NUM           0x02
+#define IRQ_SLAVE           0x02
+#define IRQ_RTC             8
+#define IRQ_KEYBOARD        1
+#define IRQ_PIT             0
 /* Initialization control words to init each PIC.
  * See the Intel manuals for details on the meaning
  * of each word */

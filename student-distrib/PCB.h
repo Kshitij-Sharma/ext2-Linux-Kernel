@@ -34,6 +34,7 @@ typedef struct pcb_t{
   uint32_t eip;
   uint32_t number;
   int32_t vidmap_terminal;
+  int32_t rtc_interrupt_divider;
   // current PCB
   // something for registers (esp ebp eip) -- just need one of these
   // PID: index of child process in parent process FD array

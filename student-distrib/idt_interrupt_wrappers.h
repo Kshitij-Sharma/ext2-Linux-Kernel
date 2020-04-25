@@ -24,8 +24,6 @@ extern void pit_interrupt_asm();
 #define RTC_CMD_PORT        0x70
 #define RTC_DATA_PORT       0x71
 #define PIC_COMMAND_PORT    0x20
-#define IRQ_RTC             8
-#define IRQ_KEYBOARD        1
-#define IRQ_PIT             0
+
 
 #endif

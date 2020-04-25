@@ -368,11 +368,13 @@ void rtc_interrupt()
 { 
     // printf("RTC HANDLER\n");
     // if (RTC_ON_FLAG[visible_terminal])            test_interrupts();
-    if (RTC_ON_FLAG[process_terminal])                 printf("A");
-    if (RTC_READ_FLAG[process_terminal]) 
+    // if (RTC_ON_FLAG[process_terminal])                 printf("A");
+    if (RTC_READ_FLAG[0] || RTC_READ_FLAG[1] || RTC_READ_FLAG[2]) 
     {
         // printf("RTC INTERRUPT\n");
-        RTC_READ_FLAG[process_terminal] ^= RTC_READ_FLAG[process_terminal];   
+        RTC_READ_FLAG[0] ^= RTC_READ_FLAG[0];   
+        RTC_READ_FLAG[1] ^= RTC_READ_FLAG[1];   
+        RTC_READ_FLAG[2] ^= RTC_READ_FLAG[2];   
     }            
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 

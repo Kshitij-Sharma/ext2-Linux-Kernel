@@ -645,6 +645,7 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes)
 /**
  *  RTC  HELPERS 
  **/
+
 /** _sys_open_RTC
  *  
  * RTC helper function for system open
@@ -654,10 +655,11 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t _sys_open_rtc(const uint8_t *filename)
 {
-    int freq = 2;
-    _sys_write_rtc(NULL, (void *)freq, 0); // sets the RTC frequency to 2Hz
+    int freq[1] = {2};
+    _sys_write_rtc(NULL, (void *)freq, 4); // sets the RTC frequency to 2Hz
     return 0;
 }
+
 /** _sys_close_RTC
  *  
  * RTC helper function for system close
@@ -669,6 +671,7 @@ int32_t _sys_close_rtc(int32_t fd)
 {
     return 0;
 }
+
 /** sys_write_rtc
  *  
  * RTC helper function for system write
@@ -695,19 +698,12 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
     {
         frequency = MAX_INTERRUPT_FREQUENCY;
     }
-    // frequency = 16;
-    rate = (log_base_two(FREQ_CONVERSION_CONST / frequency) / log_base_two(2)) + 1;
-    if (rate < MIN_RATE)
-        rate = MIN_RATE;
+    /* figure out what multiple of the max frequency the program wants */
+    cur_pcb_ptr[process_terminal]->rtc_interrupt_divider = (MAX_INTERRUPT_FREQUENCY / frequency);
 
-    // MAGIC NUMBER: 0x0F sets rate selector bits in register A
-    outb(RTC_STATUS_REGISTER_A, RTC_CMD_PORT);   // set index to register A, disable NMI
-    prev = inb(RTC_DATA_PORT);                   // get initial value of register A
-    outb(RTC_STATUS_REGISTER_A, RTC_DATA_PORT);  // reset index to A
-    outb(((prev & 0xF0) | rate), RTC_DATA_PORT); // writes rate (bottom 4 bits) to A
-    // MAGIC NUMBER: 0xF0 is used to clear bottom 4 bits before setting rate
     return 0;
 }
+
 /** _sys_read_rtc
  *  
  * RTC helper function for system read
@@ -717,8 +713,17 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes)
 {
-    RTC_READ_FLAG[process_terminal] = 1; // sets a global flag
-    while (RTC_READ_FLAG[process_terminal]); // waits for interrupt
+    int counter = 0;
+    RTC_READ_FLAG[0] = 1; // sets a global flag
+    RTC_READ_FLAG[1] = 1; // sets a global flag
+    RTC_READ_FLAG[2] = 1; // sets a global flag
+
+    /* with virtualized RTC, keep reading until enough interrupts have occurred for desired frequency */
+    while (counter < cur_pcb_ptr[process_terminal]->rtc_interrupt_divider){
+        while (RTC_READ_FLAG[process_terminal]); // waits for interrupt
+        RTC_READ_FLAG[process_terminal] = 1; 
+        counter++;
+    }
     return 0;
 }
 

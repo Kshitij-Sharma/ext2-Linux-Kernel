@@ -37,10 +37,10 @@ void i8259_init(void) {
     
     /* turns on PIC interrupts for slave IRQ, RTC, keyboard*/
     for(i = 0; i < SLAVE_PORT_MAX; i++)         disable_irq(i);
-    enable_irq(2);                  // enables slave IRQ
-    enable_irq(8);                  // enables RTC IRQ
-    enable_irq(1);                  // enables keyboard IRQ
-    enable_irq(0);                  // enables PIT IRQ
+    enable_irq(IRQ_SLAVE);          // enables slave IRQ
+    enable_irq(IRQ_RTC);            // enables RTC IRQ
+    enable_irq(IRQ_KEYBOARD);       // enables keyboard IRQ
+    enable_irq(IRQ_PIT);            // enables PIT IRQ
 
 }
 
@@ -101,7 +101,7 @@ void send_eoi(uint32_t irq_num) {
     and slave IRQ line on master PIC */
     if (irq_num >= MASTER_PORT_MAX){
         outb((EOI | (irq_num-MASTER_PORT_MAX)), SLAVE_8259_CMD_PORT);
-        outb((EOI | SLAVE_IRQ_NUM) , MASTER_8259_CMD_PORT);  
+        outb((EOI | IRQ_SLAVE) , MASTER_8259_CMD_PORT);  
     } 
     /* when sending EOI to master PIC, we send it directly to the IRQ line */
     else        outb((EOI | irq_num), MASTER_8259_CMD_PORT);

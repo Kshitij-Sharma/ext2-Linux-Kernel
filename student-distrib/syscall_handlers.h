@@ -10,7 +10,7 @@
 #include "multiprocessing.h"
 #include "x86_desc.h"
 
-#define MAX_INTERRUPT_FREQUENCY     1024 
+#define MAX_INTERRUPT_FREQUENCY     512 
 #define ERROR_VAL                   256
 #define MIN_RATE                    3
 
