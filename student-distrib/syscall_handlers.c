@@ -69,7 +69,8 @@ int32_t sys_halt(int8_t status)
         "mov %2, %%eax;" /* store return value */
         "jmp return_from_prog;"
         :
-        : "r"(cur_pcb_ptr[process_terminal]->esp), "r"(cur_pcb_ptr[process_terminal]->ebp), "r"((uint32_t)status));
+        : "r"(cur_pcb_ptr[process_terminal]->esp), "r"(cur_pcb_ptr[process_terminal]->ebp), "r"((uint32_t)status)
+        );
     return 0;
 }
 
@@ -325,11 +326,16 @@ void _execute_context_switch(uint32_t term)
         "push %0;" /* push user_ds */
         "push %1;" /* push user_esp */
         "pushfl;"  /* push EFLAGS */
+        "popl %%eax;"
+        "orl  $0x0200, %%eax;" /* enable interrupts */
+        "pushl %%eax;"
         "push %%cs;"
         "push %2;" /* push eip value stored in esp */
         "iret;"
         :
-        : "r"(USER_DS), "r"(user_esp), "r"(eip));
+        : "r"(USER_DS), "r"(user_esp), "r"(eip)
+        : "eax"
+        );
 }
 
 /** sys_read
@@ -565,6 +571,7 @@ int32_t _sys_close_terminal(int32_t fd)
  */
 int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
 {
+    sti();
     /* check edge cases */
     uint32_t retval = 0;
     int i = 0;
@@ -682,8 +689,6 @@ int32_t _sys_close_rtc(int32_t fd)
 int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
 {
     // sets the RTC rate to 2Hz
-    char prev;
-    int rate;
     int frequency;
     if (nbytes != _4_BYTES || buf == NULL)
         return -1;
@@ -699,7 +704,10 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
         frequency = MAX_INTERRUPT_FREQUENCY;
     }
     /* figure out what multiple of the max frequency the program wants */
-    cur_pcb_ptr[process_terminal]->rtc_interrupt_divider = (MAX_INTERRUPT_FREQUENCY / frequency);
+    int count = MAX_INTERRUPT_FREQUENCY / frequency;
+    // int count = (MAX_INTERRUPT_FREQUENCY / frequency / 2) <= 1 ? 1 : (MAX_INTERRUPT_FREQUENCY / frequency / 2);
+    cur_pcb_ptr[process_terminal]->rtc_interrupt_divider = count;
+    cur_pcb_ptr[process_terminal]->rtc_counter = count;
 
     return 0;
 }
@@ -713,17 +721,10 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes)
 {
-    int counter = 0;
-    RTC_READ_FLAG[0] = 1; // sets a global flag
-    RTC_READ_FLAG[1] = 1; // sets a global flag
-    RTC_READ_FLAG[2] = 1; // sets a global flag
-
+    sti();
     /* with virtualized RTC, keep reading until enough interrupts have occurred for desired frequency */
-    while (counter < cur_pcb_ptr[process_terminal]->rtc_interrupt_divider){
-        while (RTC_READ_FLAG[process_terminal]); // waits for interrupt
-        RTC_READ_FLAG[process_terminal] = 1; 
-        counter++;
-    }
+    while (cur_pcb_ptr[process_terminal]->rtc_counter > 0);
+    
     return 0;
 }
 

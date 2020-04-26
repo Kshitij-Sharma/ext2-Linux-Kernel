@@ -21,10 +21,10 @@ void rtc_init(){
 
     /* VIRTUALIZATION: STATICALLY SET FREQUENCY TO 512kHZ*/
     // MAGIC NUMBER: 0x0F sets rate selector bits in register A
-    outb(RTC_STATUS_REGISTER_A, RTC_CMD_PORT);   // set index to register A, disable NMI
-    prev = inb(RTC_DATA_PORT);                   // get initial value of register A
-    outb(RTC_STATUS_REGISTER_A, RTC_DATA_PORT);  // reset index to A
-    outb(((prev & 0xF0) | RTC_MAX_RATE), RTC_DATA_PORT); // writes rate (bottom 4 bits) to A
+    outb(RTC_STATUS_REGISTER_A, RTC_CMD_PORT);              // set index to register A, disable NMI
+    prev = inb(RTC_DATA_PORT);                              // get initial value of register A
+    outb(RTC_STATUS_REGISTER_A, RTC_CMD_PORT);              // reset index to A
+    outb(((prev & 0xF0) | RTC_MAX_RATE), RTC_DATA_PORT);    // writes rate (bottom 4 bits) to A
     // MAGIC NUMBER: 0xF0 is used to clear bottom 4 bits before setting rate
 }
 

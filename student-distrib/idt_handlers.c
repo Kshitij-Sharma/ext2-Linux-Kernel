@@ -258,7 +258,7 @@ void keyboard_interrupt()
                 // printf("Terminal 1\n");
                 if (visible_terminal == 0) return;
                 switch_terminal(0);
-                sti();
+                // sti();
                 putc_to_visible_flag = 0;
                 return;
             case(FUNCTION_TWO_PRESSED):
@@ -270,7 +270,7 @@ void keyboard_interrupt()
                 // : "r"(1));
                 // switch_terminal_asm();
                 switch_terminal(1);
-                sti();
+                // sti();
                 putc_to_visible_flag = 0;
                 return;
             case(FUNCTION_THREE_PRESSED):
@@ -282,7 +282,7 @@ void keyboard_interrupt()
                 // : "r"(2));
                 // switch_terminal_asm();
                 switch_terminal(2);
-                sti();
+                // sti();
                 putc_to_visible_flag = 0;
                 return;
             default:
@@ -366,16 +366,14 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    // printf("RTC HANDLER\n");
-    // if (RTC_ON_FLAG[visible_terminal])            test_interrupts();
-    // if (RTC_ON_FLAG[process_terminal])                 printf("A");
-    if (RTC_READ_FLAG[0] || RTC_READ_FLAG[1] || RTC_READ_FLAG[2]) 
-    {
-        // printf("RTC INTERRUPT\n");
-        RTC_READ_FLAG[0] ^= RTC_READ_FLAG[0];   
-        RTC_READ_FLAG[1] ^= RTC_READ_FLAG[1];   
-        RTC_READ_FLAG[2] ^= RTC_READ_FLAG[2];   
-    }            
+           
+    if (cur_pcb_ptr[0] != NULL && cur_pcb_ptr[0]->rtc_counter == 0) cur_pcb_ptr[0]->rtc_counter = cur_pcb_ptr[0]->rtc_interrupt_divider;
+    else if (cur_pcb_ptr[0] != NULL) cur_pcb_ptr[0]->rtc_counter--;
+    if (cur_pcb_ptr[1] != NULL && cur_pcb_ptr[1]->rtc_counter == 0) cur_pcb_ptr[1]->rtc_counter = cur_pcb_ptr[1]->rtc_interrupt_divider;
+    else if (cur_pcb_ptr[1] != NULL) cur_pcb_ptr[1]->rtc_counter--;
+    if (cur_pcb_ptr[2] != NULL && cur_pcb_ptr[2]->rtc_counter == 0) cur_pcb_ptr[2]->rtc_counter = cur_pcb_ptr[2]->rtc_interrupt_divider;
+    else if (cur_pcb_ptr[2] != NULL) cur_pcb_ptr[2]->rtc_counter--;
+    
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 
 }
@@ -416,7 +414,7 @@ void exception_handler(int index)
     printf("EXCEPTION: %s \n EXCEPTION #: %d \n", error_messages[index], index); // prints out which exception was triggered
     // sys_halt(index);
     sys_halt(index);
-    sti();
+    // sti();
     return;
 }
 

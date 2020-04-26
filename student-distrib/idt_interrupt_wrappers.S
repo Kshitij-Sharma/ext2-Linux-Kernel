@@ -132,4 +132,4 @@ sys_call_table:
         
 
 sys_call_eax:
-        .long
+        .long 

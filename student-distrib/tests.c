@@ -719,7 +719,7 @@ int pit_test(){
     printf("change pit");
     pit_init(1000);
 	for(i = 0; i < 300000000; i++) continue;
-
+	return PASS;
 }
 /* Test suite entry point */
 // launch your tests here

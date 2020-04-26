@@ -13,7 +13,7 @@
 #define RTC_STATUS_REGISTER_C   0X0C
 #define PIC_COMMAND_PORT        0x20
 #define FREQ_CONVERSION_CONST   32768
-#define RTC_MAX_FREQ            1024
+#define RTC_MAX_FREQ            512
 #define RTC_MAX_RATE            0x7
 #define PIT_DATA_PORT_ZERO      0X40
 #define PIT_COMMAND_PORT        0X43

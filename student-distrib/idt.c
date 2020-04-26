@@ -73,7 +73,8 @@ void idt_init(){
         idt[i].seg_selector = KERNEL_CS;
         idt[i].reserved4 = 0;
         // reserved 3 should be 1 when we are setting a trap gate. 0 for an interrupt gate
-        idt[i].reserved3 = (i < FIRST_INTERRUPT_IDX || i > LAST_INTERRUPT_IDX) ? 1 : 0;
+        idt[i].reserved3 = 0;
+        //  (i < FIRST_INTERRUPT_IDX || i > LAST_INTERRUPT_IDX || i == SYSTEM_CALL_IDX) ? 1 : 0;
         // if (i == 128) idt[i].reserved3 = 0;
         idt[i].reserved2 = 1;
         idt[i].reserved1 = 1;

@@ -51,7 +51,7 @@ void switch_terminal(int32_t terminal_num)
     visible_terminal = terminal_num;
     update_cursor();
     send_eoi(IRQ_KEYBOARD);
-    sti();
+    // sti();
     // if (cur_pcb_ptr[terminal_num] == NULL){ // if shell has not yet been started on the terminal
     //     sys_execute("shell");
     //     return;
@@ -88,7 +88,7 @@ void scheduling(){
     // /* gets video memory of process we are switching away from */
     uint32_t prev_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
     /* gets video memory of process we are switching in to */
-    uint32_t new_terminal_video = (((process_terminal + 1) % 3) == 0) ? TERMINAL_ONE_BUFFER : (((process_terminal + 1) % 3) == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER; 
+    // uint32_t new_terminal_video = (((process_terminal + 1) % 3) == 0) ? TERMINAL_ONE_BUFFER : (((process_terminal + 1) % 3) == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER; 
     //// OLD PROCESS 
     /* saves ESP and EBP of current process if there is a process running */
     if(cur_pcb_ptr[process_terminal] != NULL){
@@ -108,7 +108,7 @@ void scheduling(){
     process_terminal = (process_terminal + 1) % 3;
     /* if shell has not yet been started on the terminal */  
     if (cur_pcb_ptr[process_terminal] == NULL){ 
-        sti();
+        // sti();
         send_eoi(IRQ_PIT);
         sys_execute("shell");
         return;
@@ -126,7 +126,9 @@ void scheduling(){
     if(cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal){ // the terminal we are swtiching TO is using vidmap        
         vidmap_paging_modify(VIDEO);
     }
-    
+    // sti();
+    send_eoi(IRQ_PIT);
+    send_eoi(1);
     asm volatile(
         "mov %0, %%esp;" /* push user_ds */
         "mov %1, %%ebp;"
@@ -135,5 +137,6 @@ void scheduling(){
         :
         : "r"(cur_pcb_ptr[process_terminal]->esp), "r"(cur_pcb_ptr[process_terminal]->ebp)
         );
-    // putc('a');
+    
+    putc('a');
 }

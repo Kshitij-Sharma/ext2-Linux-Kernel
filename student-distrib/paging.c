@@ -50,7 +50,7 @@ void paging_init(){
                  "movl %%eax, %%cr0;"		/* set paging bit */
                  :                      	/* no outputs */
                  :"r"(page_directory)   	/* input */
-                 :"%eax"               		/* clobbered register */
+                 :"eax"               		/* clobbered register */
                  );
                  
  }
@@ -68,13 +68,13 @@ void paging_init(){
       "movl %%eax, %%cr3;"
       :
       :
-      :"%eax"
+      :"eax"
     );
 }
 
 /*
 	program_paging()
-	Description: Sets up paging for program execute
+	Description: Sets up paging for program
 	Inputs: None
 	Outputs: None
 	Side Effects: none
