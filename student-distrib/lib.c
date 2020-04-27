@@ -185,7 +185,7 @@ void scroll_down(void) {
         for (i = NUM_COLS; i < NUM_ROWS * NUM_COLS; i++) {
             *(uint8_t *)(video_buf[term] + ((i-NUM_COLS) << 1)) =  *(uint8_t *)(video_buf[term] + (i << 1));
             *(uint8_t *)(video_buf[term] + (i << 1) + 1) = ATTRIB;
-            if (visible_terminal == process_terminal){
+            if (visible_terminal == term){
                 *(uint8_t *)(VIDEO + ((i-NUM_COLS) << 1)) =  *(uint8_t *)(VIDEO + (i << 1));
                 *(uint8_t *)(VIDEO + (i << 1) + 1) = ATTRIB;
             }
@@ -194,7 +194,7 @@ void scroll_down(void) {
         for (i = (NUM_ROWS-1) * NUM_COLS; i < NUM_ROWS*NUM_COLS; i++){
             *(uint8_t *)(video_buf[term] + (i << 1)) = '\0';
             *(uint8_t *)(video_buf[term] + (i << 1) + 1) = ATTRIB;
-            if (visible_terminal == process_terminal){
+            if (visible_terminal == term){
                 *(uint8_t *)(VIDEO + (i << 1)) = '\0';
                 *(uint8_t *)(VIDEO + (i << 1) + 1) = ATTRIB;
             }
@@ -455,7 +455,7 @@ void putc(uint8_t c) {
     } else { /* write info to the respective buffer of each process */
             *(uint8_t *)(video_buf[term] + ((NUM_COLS * screen_y[term] + screen_x[term]) << 1)) = c;
             *(uint8_t *)(video_buf[term] + ((NUM_COLS * screen_y[term] + screen_x[term]) << 1) + 1) = ATTRIB;
-        if(visible_terminal == process_terminal || putc_to_visible_flag == 1){ /* If the current process is on screen, write it to video memory */
+        if(visible_terminal == term){ /* If the current process is on screen, write it to video memory */
             *(uint8_t *)(VIDEO + ((NUM_COLS * screen_y[term] + screen_x[term]) << 1)) = c;
             *(uint8_t *)(VIDEO + ((NUM_COLS * screen_y[term] + screen_x[term]) << 1) + 1) = ATTRIB;
          }

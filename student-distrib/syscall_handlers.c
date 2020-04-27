@@ -96,11 +96,11 @@ int32_t sys_execute(const int8_t *command)
     if (tempret == -1)
         return -1;
     if (strncmp(prog_name, "shell", 5) == 0) term = process_terminal;
+    arg_flag[term] = 1;
     if (tempret == -2)
         arg_flag[term] = 0;
         
     error_flag[term] = 0;
-    arg_flag[term] = 1;
     if (process_num > 5) return -2;
 
     /* saves the old base and stack pointer prior to execution to return to later*/
@@ -292,9 +292,11 @@ pcb_t *_execute_create_PCB(char* argument, uint32_t term)
 
     /* next open location to place a file */
     new_pcb->next_open_index = 2;
+    new_pcb->vidmap_terminal = -1;
+    new_pcb->rtc_counter = 1;
+    new_pcb->rtc_interrupt_divider = 1;
     memset(new_pcb->argument_array, '\0', KEYBOARD_BUFFER_SIZE);
     memcpy(new_pcb->argument_array, argument, strlen(argument));
-    new_pcb->vidmap_terminal = -1;
 
     if (cur_pcb_ptr[term] == NULL) new_pcb->number = 1;
     else new_pcb->number = (cur_pcb_ptr[term]->number + 1);
@@ -571,7 +573,7 @@ int32_t _sys_close_terminal(int32_t fd)
  */
 int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
 {
-    sti();
+    // sti();
     /* check edge cases */
     uint32_t retval = 0;
     int i = 0;
@@ -601,7 +603,7 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     /* reads data/fills buffer from keyboard */
     sys_read_flag[process_terminal] = 1;
     while (sys_read_flag[process_terminal]); // keep track of which terminal called read so that you can differentiate
-
+    // cli();
     /* copies memory from keyboard input to buffer */
     while (keyboard_buffer[process_terminal][i] != '\0' && keyboard_buffer[process_terminal][i] != '\n' && keyboard_buffer[process_terminal][i] != '\0' && i < nbytes)
     {
@@ -706,8 +708,8 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
     /* figure out what multiple of the max frequency the program wants */
     int count = MAX_INTERRUPT_FREQUENCY / frequency;
     // int count = (MAX_INTERRUPT_FREQUENCY / frequency / 2) <= 1 ? 1 : (MAX_INTERRUPT_FREQUENCY / frequency / 2);
-    cur_pcb_ptr[process_terminal]->rtc_interrupt_divider = count;
-    cur_pcb_ptr[process_terminal]->rtc_counter = count;
+    cur_pcb_ptr[process_terminal]->rtc_interrupt_divider = 32;
+    cur_pcb_ptr[process_terminal]->rtc_counter = 32;
 
     return 0;
 }
@@ -721,7 +723,7 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes)
 {
-    sti();
+    // sti();
     /* with virtualized RTC, keep reading until enough interrupts have occurred for desired frequency */
     while (cur_pcb_ptr[process_terminal]->rtc_counter > 0);
     
@@ -846,7 +848,7 @@ int32_t _sys_close_directory(int32_t fd)
 int32_t _sys_read_directory(int32_t fd, void *buf, int32_t nbytes)
 {
     dentry_t curr_dentry;
-    if (read_dir_flag[process_terminal] == boot_block->entries)
+    if (read_dir_flag[process_terminal] >= boot_block->entries)
     {
         read_dir_flag[process_terminal] = 0;
         return 0;

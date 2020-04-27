@@ -84,59 +84,59 @@ void switch_terminal(int32_t terminal_num)
  */
 // REMEMBER TO SET RTC FREQUENCY EVERY TIME WE CHANGE TASKS
 void scheduling(){
-    if (process_terminal == visible_terminal && cur_pcb_ptr[process_terminal] == NULL) return;
-    // /* gets video memory of process we are switching away from */
-    uint32_t prev_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
-    /* gets video memory of process we are switching in to */
-    // uint32_t new_terminal_video = (((process_terminal + 1) % 3) == 0) ? TERMINAL_ONE_BUFFER : (((process_terminal + 1) % 3) == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER; 
-    //// OLD PROCESS 
-    /* saves ESP and EBP of current process if there is a process running */
-    if(cur_pcb_ptr[process_terminal] != NULL){
-        asm volatile(
-            "mov %%esp, %%eax;" /* push user_ds */
-            "mov %%ebp, %%ebx;"
-            : "=a"(cur_pcb_ptr[process_terminal]->esp), "=b"(cur_pcb_ptr[process_terminal]->ebp));
-    }
-    /* switching AWAY from a terminal using vidmap */
-    if(cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->vidmap_terminal == 1){ // the terminal that we are switching AWAY FROM is using Vidmap
-        // modify_vid_mem(prev_terminal_video);
-        vidmap_paging_modify(prev_terminal_video);
-    }// POSSIBLY UNNEEDED
+    // if (process_terminal == visible_terminal && cur_pcb_ptr[process_terminal] == NULL) return;
+    // // /* gets video memory of process we are switching away from */
+    // uint32_t prev_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
+    // /* gets video memory of process we are switching in to */
+    // // uint32_t new_terminal_video = (((process_terminal + 1) % 3) == 0) ? TERMINAL_ONE_BUFFER : (((process_terminal + 1) % 3) == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER; 
+    // //// OLD PROCESS 
+    // /* saves ESP and EBP of current process if there is a process running */
+    // if(cur_pcb_ptr[process_terminal] != NULL){
+    //     asm volatile(
+    //         "mov %%esp, %%eax;" /* push user_ds */
+    //         "mov %%ebp, %%ebx;"
+    //         : "=a"(cur_pcb_ptr[process_terminal]->esp), "=b"(cur_pcb_ptr[process_terminal]->ebp));
+    // }
+    // /* switching AWAY from a terminal using vidmap */
+    // if(cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->vidmap_terminal == 1){ // the terminal that we are switching AWAY FROM is using Vidmap
+    //     // modify_vid_mem(prev_terminal_video);
+    //     vidmap_paging_modify(prev_terminal_video);
+    // }// POSSIBLY UNNEEDED
 
-    // NEW PROCESS 
-    /* increments to the next procress */
-    process_terminal = (process_terminal + 1) % 3;
-    /* if shell has not yet been started on the terminal */  
-    if (cur_pcb_ptr[process_terminal] == NULL){ 
-        // sti();
-        send_eoi(IRQ_PIT);
-        sys_execute("shell");
-        return;
-    }
+    // // NEW PROCESS 
+    // /* increments to the next procress */
+    // process_terminal = (process_terminal + 1) % 3;
+    // /* if shell has not yet been started on the terminal */  
+    // if (cur_pcb_ptr[process_terminal] == NULL){ 
+    //     // sti();
+    //     send_eoi(IRQ_PIT);
+    //     sys_execute("shell");
+    //     return;
+    // }
     
-    program_paging((cur_pcb_ptr[process_terminal]->process_id * _4MB_PAGE) + _8_MB);
+    // program_paging((cur_pcb_ptr[process_terminal]->process_id * _4MB_PAGE) + _8_MB);
 
-    /* Set TSS */
-    tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[process_terminal]->process_id); // pointer to the top of stack/pcb
+    // /* Set TSS */
+    // tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[process_terminal]->process_id); // pointer to the top of stack/pcb
 
-    // /* update running video coordinates */
-    // modify_vid_mem(VIDEO);
+    // // /* update running video coordinates */
+    // // modify_vid_mem(VIDEO);
 
-    // /* switching TO a terminal using vidmap */
-    if(cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal){ // the terminal we are swtiching TO is using vidmap        
-        vidmap_paging_modify(VIDEO);
-    }
-    // sti();
-    send_eoi(IRQ_PIT);
-    send_eoi(1);
-    asm volatile(
-        "mov %0, %%esp;" /* push user_ds */
-        "mov %1, %%ebp;"
-        "leave;"
-        "ret;"
-        :
-        : "r"(cur_pcb_ptr[process_terminal]->esp), "r"(cur_pcb_ptr[process_terminal]->ebp)
-        );
+    // // /* switching TO a terminal using vidmap */
+    // if(cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal){ // the terminal we are swtiching TO is using vidmap        
+    //     vidmap_paging_modify(VIDEO);
+    // }
+    // // sti();
+    // send_eoi(IRQ_PIT);
+    // send_eoi(1);
+    // asm volatile(
+    //     "mov %0, %%esp;" /* push user_ds */
+    //     "mov %1, %%ebp;"
+    //     "leave;"
+    //     "ret;"
+    //     :
+    //     : "r"(cur_pcb_ptr[process_terminal]->esp), "r"(cur_pcb_ptr[process_terminal]->ebp)
+    //     );
     
-    putc('a');
+    // putc('a');
 }
