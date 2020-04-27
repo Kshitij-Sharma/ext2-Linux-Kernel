@@ -158,6 +158,7 @@ void entry(unsigned long magic, unsigned long addr) {
     sti();
     clear();
     pit_init(100);
+    pit_flag = 1;
 
 	sys_execute("shell");
 #ifdef RUN_TESTS

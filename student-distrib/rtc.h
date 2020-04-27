@@ -20,6 +20,7 @@
 #define PIT_FREQ_DIVISOR        1193180
 void rtc_init();
 void pit_init(double frequency);
+int32_t pit_flag;
 
 // void rtc_
 #endif /* _RTC_H */
