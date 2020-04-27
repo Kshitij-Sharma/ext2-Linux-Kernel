@@ -3,7 +3,7 @@
 
 volatile uint32_t visible_terminal = 0;
 volatile uint32_t process_terminal = 0;
-
+int scheduler_calls = 0;
 pcb_t* cur_pcb_ptr[NUM_TERMINALS] = {NULL, NULL, NULL};
 
 /** switch_terminal
@@ -64,6 +64,7 @@ void switch_terminal(int32_t terminal_num)
 void scheduling(){
     if (pit_flag == 0) return;
     cli();
+    scheduler_calls++;
     // printf("scheduling\n");
     /* make sure pit doesn't occur before first shell runs */
     // if (process_terminal == visible_terminal && cur_pcb_ptr[process_terminal] == NULL) return;
@@ -110,9 +111,6 @@ void scheduling(){
     if(cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal){ // the terminal we are swtiching TO is using vidmap        
         vidmap_paging_modify(VIDEO);
     }
-    send_eoi(IRQ_PIT);
-    send_eoi(IRQ_KEYBOARD);
-    sti();
     asm volatile(
         "mov %0, %%esp;" /* push user_ds */
         "mov %1, %%ebp;"
@@ -120,4 +118,7 @@ void scheduling(){
         : "r"(cur_pcb_ptr[process_terminal]->esp), "r"(cur_pcb_ptr[process_terminal]->ebp)
         );
     
+    send_eoi(IRQ_PIT);
+    send_eoi(IRQ_KEYBOARD);
+    sti();
 }

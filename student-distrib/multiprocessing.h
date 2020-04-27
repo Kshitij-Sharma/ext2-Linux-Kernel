@@ -15,4 +15,5 @@ extern void scheduling();
 extern volatile uint32_t visible_terminal;
 extern volatile uint32_t process_terminal;
 extern pcb_t* cur_pcb_ptr[NUM_TERMINAL];
+extern int scheduler_calls;
 #endif

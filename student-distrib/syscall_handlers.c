@@ -629,28 +629,29 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes)
 {
     int i, bytes_written;
     char write_string[nbytes];
-
+    // int term = process_terminal;
     /* check edge cases */
     if (NULL == buf || nbytes < 0)
         return -1;
     if (nbytes == 0)
         return 0;
-
+    cli();
     /* put passed in buffer into an appropriately sized buffer */
-    memset(write_string, NULL, nbytes);
+    memset(write_string, '\0', nbytes);
     memcpy(write_string, buf, nbytes);
-
+    
     /* prints all non-null characters */
     bytes_written = 0;
     for (i = 0; i < nbytes; i++)
     {
         /* writes non null characters */
-        if (write_string[i] != NULL)
+        if (write_string[i] != '\0')
         {
             putc(write_string[i]);
             bytes_written++;
         }
     }
+    sti();
     return bytes_written;
 }
 
