@@ -40,7 +40,7 @@ void i8259_init(void) {
     enable_irq(IRQ_SLAVE);          // enables slave IRQ
     enable_irq(IRQ_RTC);            // enables RTC IRQ
     enable_irq(IRQ_KEYBOARD);       // enables keyboard IRQ
-    // enable_irq(IRQ_PIT);            // enables PIT IRQ
+    enable_irq(IRQ_PIT);            // enables PIT IRQ
 
 }
 

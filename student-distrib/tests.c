@@ -769,7 +769,7 @@ void launch_tests(){
 	// TEST_OUTPUT("test_system_call", test_system_call());
 	// TEST_OUTPUT("test_execute_helpers", test_execute_helpers());
 	// TEST_OUTPUT("test_execute", test_execute());
-	// TEST_OUTPUT("test_pit", pit_test());
+	TEST_OUTPUT("test_pit", pit_test());
 
 	/* CP4 Tests */
 	/* CP5 Tests */

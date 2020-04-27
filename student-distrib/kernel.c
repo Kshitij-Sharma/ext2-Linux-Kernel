@@ -145,7 +145,6 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Init the PIC */
     i8259_init();
     rtc_init();
-    pit_init(100);
     // rtc_enable();
     filesys_init((module_t*)mbi->mods_addr);
     paging_init();
@@ -158,7 +157,8 @@ void entry(unsigned long magic, unsigned long addr) {
     printf("Enabling Interrupts\n");
     sti();
     clear();
-  
+    pit_init(100);
+
 	sys_execute("shell");
 #ifdef RUN_TESTS
     /* Run tests */

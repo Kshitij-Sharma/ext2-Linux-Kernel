@@ -1,8 +1,8 @@
 #include "syscall_handlers.h"
 #include "multiprocessing.h"
 
-uint32_t visible_terminal = 1;
-uint32_t process_terminal = 1;
+volatile uint32_t visible_terminal = 0;
+volatile uint32_t process_terminal = 0;
 
 pcb_t* cur_pcb_ptr[NUM_TERMINALS] = {NULL, NULL, NULL};
 
@@ -18,13 +18,8 @@ void switch_terminal(int32_t terminal_num)
 {
     /* error checking */
     if(terminal_num < 0 || terminal_num >= NUM_TERMINAL)    return; 
-    // if (cur_pcb_ptr[visible_terminal] != NULL) // save the ESP and EBP of the current process right where it left off
-    // {
-    //     asm volatile(
-    //         "mov %%esp, %%eax;" /* push user_ds */
-    //         "mov %%ebp, %%ebx;"
-    //         : "=a"(cur_pcb_ptr[visible_terminal]->esp), "=b"(cur_pcb_ptr[visible_terminal]->ebp));
-    // }
+    cli();
+
     /* gets the video buffer address of the current terminal */
     uint32_t prev_terminal_video = (visible_terminal == 0) ? TERMINAL_ONE_BUFFER : (visible_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER; 
     /* gets the video buffer address of the terminal we are switching to */
@@ -51,24 +46,8 @@ void switch_terminal(int32_t terminal_num)
     visible_terminal = terminal_num;
     update_cursor();
     send_eoi(IRQ_KEYBOARD);
-    // sti();
-    // if (cur_pcb_ptr[terminal_num] == NULL){ // if shell has not yet been started on the terminal
-    //     sys_execute("shell");
-    //     return;
-    // }
-    // process_terminal = terminal_num;
-    // // program_paging((cur_pcb_ptr[visible_terminal]->process_id * _4MB_PAGE) + _8_MB);
-    // // // _execute_user_program_loader("shell");
-    // // tss.ss0 = KERNEL_DS; // switch stack context
-    // // tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[visible_terminal]->process_id); // pointer to the top of stack/pcb
-    
-    // asm volatile(
-    // "movl %0, %%esp;"
-    // "movl %1, %%ebp;"
-    // "leave;"
-    // "ret;"
-    // :
-    // : "r"(cur_pcb_ptr[terminal_num]->esp), "r"(cur_pcb_ptr[terminal_num]->ebp));
+    sti();
+
     return;
 }
 
@@ -82,9 +61,10 @@ void switch_terminal(int32_t terminal_num)
  * Side Effects: hella shit
  * 
  */
-// REMEMBER TO SET RTC FREQUENCY EVERY TIME WE CHANGE TASKS
 void scheduling(){
-    // if (process_terminal == visible_terminal && cur_pcb_ptr[process_terminal] == NULL) return;
+    // cli();
+    // /* make sure pit doesn't occur before first shell runs */
+    // // if (process_terminal == visible_terminal && cur_pcb_ptr[process_terminal] == NULL) return;
     // // /* gets video memory of process we are switching away from */
     // uint32_t prev_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
     // /* gets video memory of process we are switching in to */
@@ -110,6 +90,7 @@ void scheduling(){
     // if (cur_pcb_ptr[process_terminal] == NULL){ 
     //     // sti();
     //     send_eoi(IRQ_PIT);
+    //     sti();
     //     sys_execute("shell");
     //     return;
     // }
@@ -117,8 +98,10 @@ void scheduling(){
     // program_paging((cur_pcb_ptr[process_terminal]->process_id * _4MB_PAGE) + _8_MB);
 
     // /* Set TSS */
-    // tss.esp0 = _8_MB - (_8_KB * cur_pcb_ptr[process_terminal]->process_id); // pointer to the top of stack/pcb
-
+    // tss.ss0 = KERNEL_DS;
+    // tss.esp0 = _8_MB - (_8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
+    // // tss.esp0 = cur_pcb_ptr[process_terminal]->esp;
+  
     // // /* update running video coordinates */
     // // modify_vid_mem(VIDEO);
 
@@ -126,17 +109,14 @@ void scheduling(){
     // if(cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal){ // the terminal we are swtiching TO is using vidmap        
     //     vidmap_paging_modify(VIDEO);
     // }
-    // // sti();
     // send_eoi(IRQ_PIT);
-    // send_eoi(1);
+    // send_eoi(IRQ_KEYBOARD);
+    // sti();
     // asm volatile(
     //     "mov %0, %%esp;" /* push user_ds */
     //     "mov %1, %%ebp;"
-    //     "leave;"
-    //     "ret;"
     //     :
     //     : "r"(cur_pcb_ptr[process_terminal]->esp), "r"(cur_pcb_ptr[process_terminal]->ebp)
     //     );
     
-    // putc('a');
 }
