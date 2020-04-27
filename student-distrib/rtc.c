@@ -19,7 +19,7 @@ void rtc_init(){
     outb((prev | 0x40), RTC_DATA_PORT);                 // turns on interrupts in RTC
     // MAGIC NUMBER: x040 is used to turn on PIE (periodic interrupt enable) in RTC register B
 
-    /* VIRTUALIZATION: STATICALLY SET FREQUENCY TO 512kHZ*/
+    /* VIRTUALIZATION: STATICALLY SET FREQUENCY TO 512HZ*/
     // MAGIC NUMBER: 0x0F sets rate selector bits in register A
     outb(RTC_STATUS_REGISTER_A, RTC_CMD_PORT);              // set index to register A, disable NMI
     prev = inb(RTC_DATA_PORT);                              // get initial value of register A

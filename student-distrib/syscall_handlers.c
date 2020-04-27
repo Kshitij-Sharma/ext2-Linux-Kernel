@@ -708,8 +708,8 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
     /* figure out what multiple of the max frequency the program wants */
     int count = MAX_INTERRUPT_FREQUENCY / frequency;
     // int count = (MAX_INTERRUPT_FREQUENCY / frequency / 2) <= 1 ? 1 : (MAX_INTERRUPT_FREQUENCY / frequency / 2);
-    cur_pcb_ptr[process_terminal]->rtc_interrupt_divider = 32;
-    cur_pcb_ptr[process_terminal]->rtc_counter = 32;
+    cur_pcb_ptr[process_terminal]->rtc_interrupt_divider = count;
+    cur_pcb_ptr[process_terminal]->rtc_counter = count;
 
     return 0;
 }
@@ -726,7 +726,7 @@ int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes)
     // sti();
     /* with virtualized RTC, keep reading until enough interrupts have occurred for desired frequency */
     while (cur_pcb_ptr[process_terminal]->rtc_counter > 0);
-    
+    cur_pcb_ptr[process_terminal]->rtc_counter = cur_pcb_ptr[process_terminal]->rtc_interrupt_divider;
     return 0;
 }
 
