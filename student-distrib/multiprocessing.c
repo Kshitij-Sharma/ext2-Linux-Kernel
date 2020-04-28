@@ -100,17 +100,19 @@ void scheduling(){
     program_paging((cur_pcb_ptr[process_terminal]->process_id * _4MB_PAGE) + _8_MB);
 
     /* Set TSS */
-    tss.ss0 = KERNEL_DS;
-    tss.esp0 = (uint32_t) (_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
     // tss.esp0 = cur_pcb_ptr[process_terminal]->esp;
   
     // /* update running video coordinates */
     // modify_vid_mem(VIDEO);
 
     // /* switching TO a terminal using vidmap */
+    uint32_t new_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
     if(cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal){ // the terminal we are swtiching TO is using vidmap        
         vidmap_paging_modify(VIDEO);
     }
+    else if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) vidmap_paging_modify(new_terminal_video);
+    // tss.ss0 = KERNEL_DS;
+    tss.esp0 = (uint32_t) (_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
     asm volatile(
         "mov %0, %%esp;" /* push user_ds */
         "mov %1, %%ebp;"

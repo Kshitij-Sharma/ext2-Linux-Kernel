@@ -63,11 +63,11 @@ int32_t sys_halt(int8_t status)
 
     /* sets program paging to previous process */
     program_paging(((cur_pcb_ptr[term]->process_id) * _4MB_PAGE) + _8_MB);
+    shell_flag[term] = 1;
 
     /* returns to previous program's execution */
     tss.ss0 = KERNEL_DS; // switch stack context
     tss.esp0 = (uint32_t)(_8_MB - ((cur_pcb_ptr[term]->process_id)*_8_KB) - _4_BYTES);
-    shell_flag[term] = 1;
     // sti();
     asm volatile(
         "mov %0, %%esp;" /* store esp*/
@@ -89,26 +89,33 @@ int32_t sys_halt(int8_t status)
  */
 int32_t sys_execute(const int8_t *command)
 {
+    cli();
     int8_t tempret = 0;
     int8_t prog_name[FILENAME_LEN];
     int8_t arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0;
-    uint32_t term = visible_terminal;
-
+    uint32_t term = process_terminal;
     /* parses arguments passed into command, stores them in prog_name and arg */
     memset(prog_name, '\0', FILENAME_LEN);
     memset(arg, '\0', KEYBOARD_BUFFER_SIZE);
+    // cli();
     tempret = _execute_parse_args(command, prog_name, arg);
-    if (tempret == -1)
+    // sti();
+    if (tempret == -1){
+        sti();
         return -1;
+    }
     /* checks if we are executing from scheduling vs. from command line */
     if (cur_pcb_ptr[process_terminal] == NULL) term = process_terminal;
     arg_flag[term] = 1;
-    if (tempret == -2)
+    if (tempret == -2){}
         arg_flag[term] = 0;
         
     error_flag[term] = 0;
-    if (process_num > 6) return -2;
+    if (process_num > 6) {
+        sti();
+        return -2;
+    }
 
     /* saves the old base and stack pointer prior to execution to return to later*/
     if (cur_pcb_ptr[term] != NULL)
@@ -122,16 +129,24 @@ int32_t sys_execute(const int8_t *command)
 
     /* checks that the file is an executable*/
     tempret = _execute_executable_check(prog_name, buf_executable_header[term]);
-    if (tempret == -1) return -1;
-
+    if (tempret == -1){
+        sti();
+        return -1;
+    } 
     /* sets up paging scheme for current program */
     tempret = _execute_setup_program_paging();
-    if (tempret == -1) return -1;
+    if (tempret == -1) {
+        sti();
+        return -1;
+    }
 
 
     /* loads the user program */
     tempret = _execute_user_program_loader(prog_name);
-    if (tempret == -1) return -1;
+    if (tempret == -1) {
+        sti();
+        return -1;
+    }
     if (strncmp(prog_name, "shell", 5) == 0) shell_flag[term] = 1;
     else shell_flag[term] = 0;
     /* creates PCB for process */
@@ -326,6 +341,7 @@ void _execute_context_switch(uint32_t term)
          | ((uint8_t)(buf_executable_header[term][ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[term][ELF_BYTE_FOUR]);
     cur_pcb_ptr[term]->eip = eip;
     /* performs context stack in assembly */
+    sti();
     asm volatile(
         "push %0;" /* push user_ds */
         "push %1;" /* push user_esp */
@@ -615,7 +631,7 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
         i++;
     }
     ((char *)buf)[i] = '\n';
-    // while (visible_terminal != process_terminal);
+    while (process_terminal != term);
     return retval + 1;
 }
 /** _sys_write_terminal
@@ -669,7 +685,9 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes)
 int32_t _sys_open_rtc(const uint8_t *filename)
 {
     int freq[1] = {2};
+    cli();
     _sys_write_rtc(NULL, (void *)freq, 4); // sets the RTC frequency to 2Hz
+    sti();
     return 0;
 }
 
