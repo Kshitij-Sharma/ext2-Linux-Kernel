@@ -6,6 +6,11 @@
 #define MAX_FD_IDX              7
 #define MIN_FD_IDX              2
 #define KEYBOARD_BUFFER_SIZE    128
+#define MAX_NUM_PROCESSES       6
+
+/* variables to keep track of processes*/
+extern uint32_t active_processes[MAX_NUM_PROCESSES];
+int process_num;
 
 typedef struct file_ops_struct{
    int32_t (*read)  (int32_t fd, void* buf, int32_t nbytes);

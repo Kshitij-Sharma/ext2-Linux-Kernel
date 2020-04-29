@@ -26,6 +26,7 @@ file_ops_t std_out_fops = {_sys_dummy_read, _sys_write_terminal, _sys_dummy_open
 int8_t buf_executable_header[NUM_TERMINALS][HEADER_INFO];
 int read_dir_flag[NUM_TERMINALS] = {0, 0, 0};
 int arg_flag[NUM_TERMINALS] = {1, 1, 1};
+uint32_t active_processes[MAX_NUM_PROCESSES] = {0, 0, 0, 0, 0, 0};
 
 /** sys_halt
  * Halt System Call 
@@ -38,36 +39,35 @@ int32_t sys_halt(int8_t status)
 {
     // cli();
     int32_t i;
-    int32_t term = process_terminal;
     /* closes all file sin PCB */
     // if (cur_pcb_ptr[process_terminal] == NULL) sys_execute("shell");
     // if (cur_pcb_ptr[process_terminal]->parent_pcb == NULL)  
     //     return -1;
     for (i = 0; i < FILE_DESC_ARR_SIZE; i++)
         sys_close(i);
-    cur_pcb_ptr[term]->vidmap_terminal = -1;
-    /* decrements current process number */
-    process_num--;
+    cur_pcb_ptr[process_terminal]->vidmap_terminal = -1;
+    /* makes the process inactive */
+    active_processes[cur_pcb_ptr[process_terminal]->process_id] = 0;
 
     /* sets pcb to be the parent's pcb*/
     cli();
-    cur_pcb_ptr[term] = cur_pcb_ptr[term]->parent_pcb;
-    sti();
-    modify_vid_mem(VIDEO);
+    cur_pcb_ptr[process_terminal] = cur_pcb_ptr[process_terminal]->parent_pcb;
+    // modify_vid_mem(VIDEO);
     vidmap_paging_modify(VIDEO);
     
     /* cant close shell! */
-    if (process_num == 0 || cur_pcb_ptr[term] == NULL){
+    if (cur_pcb_ptr[process_terminal] == NULL){
         sys_execute("shell"); 
     } 
 
     /* sets program paging to previous process */
-    program_paging(((cur_pcb_ptr[term]->process_id) * _4MB_PAGE) + _8_MB);
-    shell_flag[term] = 1;
+    program_paging(((cur_pcb_ptr[process_terminal]->process_id) * _4MB_PAGE) + _8_MB);
+    shell_flag[process_terminal] = 1;
+    sti();
 
     /* returns to previous program's execution */
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 = (uint32_t)(_8_MB - ((cur_pcb_ptr[term]->process_id)*_8_KB) - _4_BYTES);
+    tss.esp0 = (uint32_t)(_8_MB - ((cur_pcb_ptr[process_terminal]->process_id)*_8_KB) - _4_BYTES);
     // sti();
     asm volatile(
         "mov %0, %%esp;" /* store esp*/
@@ -75,7 +75,7 @@ int32_t sys_halt(int8_t status)
         "mov %2, %%eax;" /* store return value */
         "jmp return_from_prog;"
         :
-        : "r"(cur_pcb_ptr[term]->esp), "r"(cur_pcb_ptr[term]->ebp), "r"((uint32_t)status)
+        : "r"((cur_pcb_ptr[process_terminal]->esp)), "r"((cur_pcb_ptr[process_terminal]->ebp)), "r"((uint32_t)status)
         );
     return 0;
 }
@@ -94,7 +94,8 @@ int32_t sys_execute(const int8_t *command)
     int8_t prog_name[FILENAME_LEN];
     int8_t arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0;
-    uint32_t term = process_terminal;
+    uint32_t term = visible_terminal;
+    process_num = 0;
     /* parses arguments passed into command, stores them in prog_name and arg */
     memset(prog_name, '\0', FILENAME_LEN);
     memset(arg, '\0', KEYBOARD_BUFFER_SIZE);
@@ -108,14 +109,10 @@ int32_t sys_execute(const int8_t *command)
     /* checks if we are executing from scheduling vs. from command line */
     if (cur_pcb_ptr[process_terminal] == NULL) term = process_terminal;
     arg_flag[term] = 1;
-    if (tempret == -2){}
+    if (tempret == -2)
         arg_flag[term] = 0;
         
     error_flag[term] = 0;
-    if (process_num > 6) {
-        sti();
-        return -2;
-    }
 
     /* saves the old base and stack pointer prior to execution to return to later*/
     if (cur_pcb_ptr[term] != NULL)
@@ -123,16 +120,26 @@ int32_t sys_execute(const int8_t *command)
         asm volatile(
             "mov %%esp, %%eax;" /* push user_ds */
             "mov %%ebp, %%ebx;"
-            : "=a"(cur_pcb_ptr[term]->esp), "=b"(cur_pcb_ptr[term]->ebp));
+            : "=a"((cur_pcb_ptr[term]->esp)), "=b"((cur_pcb_ptr[term]->ebp)));
     }
-
-
     /* checks that the file is an executable*/
     tempret = _execute_executable_check(prog_name, buf_executable_header[term]);
     if (tempret == -1){
         sti();
         return -1;
     } 
+    uint32_t i; 
+    for (i = 0; i < MAX_NUM_PROCESSES; i++){
+        if (active_processes[i] == 1)
+            continue;
+        else
+        {
+            process_num = i;
+            break;
+        }
+    }
+    if (i >= MAX_NUM_PROCESSES) return -1;
+    active_processes[process_num] = 1;
     /* sets up paging scheme for current program */
     tempret = _execute_setup_program_paging();
     if (tempret == -1) {
@@ -163,12 +170,13 @@ int32_t sys_execute(const int8_t *command)
         "leave;"
         "ret;"
         : "=a"(return_value));
-
+    sti();
     /* checks if there's an error*/
     if (error_flag[term])
     {
         return_value = ERROR_VAL;
     }
+    process_terminal = visible_terminal;
     shell_flag[term] = 1;
     return return_value;
 }
@@ -301,7 +309,7 @@ pcb_t *_execute_create_PCB(char* argument, uint32_t term)
     pcb_t *new_pcb = (pcb_t *)((int)_8_MB - ((int)_8_KB * (process_num + 1)) - _4_BYTES);
 
     new_pcb->parent_pcb = cur_pcb_ptr[term];   // sets the parent of PCB for this process
-    new_pcb->process_id = process_num++; // gives our process a PID
+    new_pcb->process_id = process_num; // gives our process a PID
 
     /* first 2 file descriptors in PCB are stdin/stdout */
     new_pcb->file_desc_array[0] = (file_desc_t){&std_in_fops, 0, 0, 1};  //SET EQUAL TO STDIN
@@ -595,23 +603,22 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     // sti();
     uint32_t retval = 0;
     int i = 0;
-    int32_t term = process_terminal;
     if (NULL == buf || nbytes < 0)
         return -1;
     if (nbytes == 0)
         return 0;
 
-    memset(keyboard_buffer[term], '\0', KEYBOARD_BUFFER_SIZE);
+    memset(keyboard_buffer[process_terminal], '\0', KEYBOARD_BUFFER_SIZE);
 
-    if (re_echo_flag[term] == 1){
-        keyboard_cursor_idx[term] = temp_kbd_idx[term];
-        keyboard_buffer_end_idx[term] = keyboard_cursor_idx[term];
-        memcpy(keyboard_buffer[term], temp_kbd_buf[term], keyboard_cursor_idx[term]);
-        while (i < keyboard_cursor_idx[term]){
-            putc(keyboard_buffer[term][i]);
+    if (re_echo_flag[process_terminal] == 1){
+        keyboard_cursor_idx[process_terminal] = temp_kbd_idx[process_terminal];
+        keyboard_buffer_end_idx[process_terminal] = keyboard_cursor_idx[process_terminal];
+        memcpy(keyboard_buffer[process_terminal], temp_kbd_buf[process_terminal], keyboard_cursor_idx[process_terminal]);
+        while (i < keyboard_cursor_idx[process_terminal]){
+            putc(keyboard_buffer[process_terminal][i]);
             i++;
         }
-        re_echo_flag[term] = 0;
+        re_echo_flag[process_terminal] = 0;
     }
 
     /* clears the keyboard buffer */
@@ -620,18 +627,17 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE - 1 : nbytes;
 
     /* reads data/fills buffer from keyboard */
-    sys_read_flag[term] = 1;
-    while (sys_read_flag[term] || process_terminal != term); // keep track of which terminal called read so that you can differentiate
+    sys_read_flag[process_terminal] = 1;
+    while (sys_read_flag[process_terminal] /*|| process_terminal != term*/); // keep track ofb which terminal called read so that you can differentiate
     // cli();
     /* copies memory from keyboard input to buffer */
-    while (keyboard_buffer[term][i] != '\0' && keyboard_buffer[term][i] != '\n' && keyboard_buffer[term][i] != '\0' && i < nbytes)
+    while (keyboard_buffer[process_terminal][i] != '\0' && keyboard_buffer[process_terminal][i] != '\n' && keyboard_buffer[process_terminal][i] != '\0' && i < nbytes)
     {
-        memcpy(&(((char *)buf)[i]), &(keyboard_buffer[term][i]), 1);
+        memcpy(&(((char *)buf)[i]), &(keyboard_buffer[process_terminal][i]), 1);
         retval++;
         i++;
     }
     ((char *)buf)[i] = '\n';
-    while (process_terminal != term);
     return retval + 1;
 }
 /** _sys_write_terminal
@@ -685,9 +691,7 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes)
 int32_t _sys_open_rtc(const uint8_t *filename)
 {
     int freq[1] = {2};
-    cli();
     _sys_write_rtc(NULL, (void *)freq, 4); // sets the RTC frequency to 2Hz
-    sti();
     return 0;
 }
 

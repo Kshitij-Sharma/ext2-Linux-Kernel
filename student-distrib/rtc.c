@@ -39,4 +39,5 @@ void pit_init(double frequency){
     outb(0x36, PIT_COMMAND_PORT);
     outb(divisor & 0xFF, PIT_DATA_PORT_ZERO);
     outb(divisor >> 8, PIT_DATA_PORT_ZERO);
+    enable_irq(IRQ_PIT);
 }

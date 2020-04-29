@@ -78,7 +78,7 @@ void scheduling(){
         asm volatile(
             "mov %%esp, %%eax;" /* push user_ds */
             "mov %%ebp, %%ebx;"
-            : "=a"(cur_pcb_ptr[process_terminal]->esp), "=b"(cur_pcb_ptr[process_terminal]->ebp));
+            : "=a"((cur_pcb_ptr[process_terminal]->esp)), "=b"((cur_pcb_ptr[process_terminal]->ebp)));
     }
     /* switching AWAY from a terminal using vidmap */
     if(cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->vidmap_terminal == 1){ // the terminal that we are switching AWAY FROM is using Vidmap
@@ -91,8 +91,6 @@ void scheduling(){
     process_terminal = (process_terminal + 1) % 3;
     /* if shell has not yet been started on the terminal */  
     if (cur_pcb_ptr[process_terminal] == NULL){ 
-        // sti();
-        send_eoi(IRQ_PIT);
         sti();
         sys_execute("shell");
     }
@@ -107,20 +105,21 @@ void scheduling(){
 
     // /* switching TO a terminal using vidmap */
     uint32_t new_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
+    
     if(cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal){ // the terminal we are swtiching TO is using vidmap        
         vidmap_paging_modify(VIDEO);
-    }
-    else if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) vidmap_paging_modify(new_terminal_video);
+    } else if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) 
+        vidmap_paging_modify(new_terminal_video);
     // tss.ss0 = KERNEL_DS;
     tss.esp0 = (uint32_t) (_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
     asm volatile(
         "mov %0, %%esp;" /* push user_ds */
         "mov %1, %%ebp;"
         :
-        : "r"(cur_pcb_ptr[process_terminal]->esp), "r"(cur_pcb_ptr[process_terminal]->ebp)
+        : "r"((cur_pcb_ptr[process_terminal]->esp)), "r"((cur_pcb_ptr[process_terminal]->ebp))
         );
     
-    send_eoi(IRQ_PIT);
-    send_eoi(IRQ_KEYBOARD);
+    // send_eoi(IRQ_PIT);
+    // send_eoi(IRQ_KEYBOARD);
     sti();
 }
