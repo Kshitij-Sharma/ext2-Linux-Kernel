@@ -140,6 +140,7 @@ int32_t sys_execute(const int8_t *command)
     }
     if (i >= MAX_NUM_PROCESSES) return -1;
     active_processes[process_num] = 1;
+    
     /* sets up paging scheme for current program */
     tempret = _execute_setup_program_paging();
     if (tempret == -1) {
