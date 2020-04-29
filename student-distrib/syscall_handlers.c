@@ -66,7 +66,7 @@ int32_t sys_halt(int8_t status)
 
     /* returns to previous program's execution */
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 = (uint32_t)(_8_MB - ((cur_pcb_ptr[process_terminal]->process_id)*_8_KB) - _4_BYTES);
+    tss.esp0 = (uint32_t)(_8_MB - ((cur_pcb_ptr[process_terminal]->process_id)*_8_KB));
     // sti();
     asm volatile(
         "mov %0, %%esp;" /* store esp*/
@@ -307,7 +307,7 @@ pcb_t *_execute_create_PCB(char* argument, uint32_t term)
 {
 
     /* creates the PCB for this at the right location */
-    pcb_t *new_pcb = (pcb_t *)((int)_8_MB - ((int)_8_KB * (process_num + 1)) - _4_BYTES);
+    pcb_t *new_pcb = (pcb_t *)((int)_8_MB - ((int)_8_KB * (process_num + 1)));
 
     new_pcb->parent_pcb = cur_pcb_ptr[term];   // sets the parent of PCB for this process
     new_pcb->process_id = process_num; // gives our process a PID
@@ -340,7 +340,7 @@ void _execute_context_switch(uint32_t term)
 {
     /* switch TSS context (stack segment and esp) */
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 =(uint32_t) (_8_MB - (_8_KB * cur_pcb_ptr[term]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
+    tss.esp0 =(uint32_t) (_8_MB - (_8_KB * cur_pcb_ptr[term]->process_id)); // pointer to the top of stack/pcb
     /* maps the esp of user space */
     uint32_t user_esp = _132_MB; // maps to the esp of user space
     /* gets the eip from the executable header */

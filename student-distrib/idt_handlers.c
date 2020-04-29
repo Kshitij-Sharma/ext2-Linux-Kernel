@@ -362,6 +362,7 @@ void rtc_interrupt()
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 
     sti();
+    // send_eoi(IRQ_RTC);
 }
 
 /* Array of error messages in order so we can index into them based on the argument of the function call*/
