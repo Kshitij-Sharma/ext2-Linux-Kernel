@@ -63,7 +63,6 @@ int32_t sys_halt(int8_t status)
     /* sets program paging to previous process */
     program_paging(((cur_pcb_ptr[process_terminal]->process_id) * _4MB_PAGE) + _8_MB);
     shell_flag[process_terminal] = 1;
-    sti();
 
     /* returns to previous program's execution */
     tss.ss0 = KERNEL_DS; // switch stack context
@@ -169,15 +168,15 @@ int32_t sys_execute(const int8_t *command)
     asm volatile(
         "return_from_prog:;" /* push user_ds */
         "leave;"
+        "sti;"
         "ret;"
         : "=a"(return_value));
-    sti();
     /* checks if there's an error*/
     if (error_flag[term])
     {
         return_value = ERROR_VAL;
     }
-    process_terminal = visible_terminal;
+    // process_terminal = visible_terminal;
     shell_flag[term] = 1;
     return return_value;
 }
@@ -283,7 +282,8 @@ int32_t _execute_user_program_loader(int8_t *prog_name)
     int32_t out;
     
     /* gets size of program */
-    dentry_t this_dentry; 
+    dentry_t this_dentry;
+
     read_dentry_by_name((const uint8_t*)prog_name, &this_dentry);
     int32_t program_size = (int32_t)inode_head[this_dentry.inode].length;
 
@@ -350,8 +350,9 @@ void _execute_context_switch(uint32_t term)
          | ((uint8_t)(buf_executable_header[term][ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[term][ELF_BYTE_FOUR]);
     cur_pcb_ptr[term]->eip = eip;
     /* performs context stack in assembly */
-    sti();
+    // sti();
     asm volatile(
+        "cli;"
         "push %0;" /* push user_ds */
         "push %1;" /* push user_esp */
         "pushfl;"  /* push EFLAGS */
@@ -360,6 +361,7 @@ void _execute_context_switch(uint32_t term)
         "pushl %%eax;"
         "push %%cs;"
         "push %2;" /* push eip value stored in esp */
+        "sti;"
         "iret;"
         :
         : "r"(USER_DS), "r"(user_esp), "r"(eip)
@@ -639,6 +641,7 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
         i++;
     }
     ((char *)buf)[i] = '\n';
+    // sti();
     return retval + 1;
 }
 /** _sys_write_terminal

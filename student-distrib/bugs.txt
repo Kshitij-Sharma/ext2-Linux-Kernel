@@ -95,7 +95,7 @@ BUG LOG
         2. Vidmap
                 BUG: Indexing into wrong page
                         - SOLUTION: set page in page table to be 0
------------------------------------Checkpoint 4 Bugs-----------------------------------
+-----------------------------------Checkpoint 5 Bugs-----------------------------------
         1. Multiple Terminals/Scheduling
                 BUG: Unable to type in terminal when we switch 
                         - incorrect paging switches when we switched terminals, so although a new terminal would show, input was always in terminal one
@@ -106,8 +106,7 @@ BUG LOG
                 BUG: Executing shell in a second terminal blocks typing
                         - EOI and STI were not getting sent    
                         - SOLUTION: manually send EOI/STI when we open shell in a second terminal
------------------------------------Checkpoint 4 Bugs-----------------------------------
-        1. Halting from different shell 
+        2. Halting from different shell 
                 BUG: We were using a global variable "process_num" to keep track of what is being executed and halted and to create PCB
                      This was causing our PCBs to get overwritten at times.
                 SOLUTION: We created an array to keep track of this so that it isn't so linear and can be more dynamic
