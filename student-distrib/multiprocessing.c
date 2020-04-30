@@ -70,6 +70,10 @@ void scheduling(){
             "movl %%ebp, %1;"
             : "=r"((cur_pcb_ptr[process_terminal]->esp)), "=r"((cur_pcb_ptr[process_terminal]->ebp)));
     }
+    // /* switching AWAY from a terminal using vidmap */
+    if(cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) // the terminal that we are switching AWAY FROM is using Vidmap
+        vidmap_paging_modify(prev_terminal_video);
+        
     process_terminal = (process_terminal + 1) % 3;
     // process_terminal = visible_terminal;
     /* if shell has not yet been started on the terminal */  
@@ -89,9 +93,6 @@ void scheduling(){
         vidmap_paging_modify(VIDEO);
     } else if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) 
         vidmap_paging_modify(new_terminal_video);
-    // /* switching AWAY from a terminal using vidmap */
-    // if(cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) // the terminal that we are switching AWAY FROM is using Vidmap
-    //     vidmap_paging_modify(prev_terminal_video);
     
     
 

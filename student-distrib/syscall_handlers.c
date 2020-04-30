@@ -2,16 +2,7 @@
 #include "multiprocessing.h"
 #include "syscall_handlers.h"
 
-// /**
-//  * Bugs:
-//  * Fish on terminal 1 then switch while running (will probably fix when we get video mem working)
-//  * Exiting base shell on terminal 2 or 3
-//  * 
-//  * */
-
-
 // /***********************PCB related structures and variables***********************/
-// // pcb_t *cur_pcb_ptr[visible_terminal] = NULL;
 // // rtc fops table
 file_ops_t rtc_fops = {_sys_read_rtc, _sys_write_rtc, _sys_open_rtc, _sys_close_rtc};
 //file fops table
