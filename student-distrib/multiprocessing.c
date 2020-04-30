@@ -12,12 +12,10 @@ pcb_t *cur_pcb_ptr[NUM_TERMINALS] = {NULL, NULL, NULL};
  * Side Effects: switches terminals on screen, swaps video memory
  * 
  */
-
 void switch_terminal(int32_t terminal_num)
 {
     /* error checking */
-    if (terminal_num < 0 || terminal_num >= NUM_TERMINAL)
-        return;
+    if (terminal_num < 0 || terminal_num >= NUM_TERMINAL) return;
 
     /* gets the video buffer address of the current terminal */
     uint32_t prev_terminal_video = (visible_terminal == 0) ? TERMINAL_ONE_BUFFER : (visible_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
@@ -57,8 +55,7 @@ void switch_terminal(int32_t terminal_num)
 void scheduling()
 {
     /* make sure pit doesn't occur before first shell runs */
-    if (pit_flag == 0)
-        return;
+    if (pit_flag == 0) return;
     /* gets video memory of process we are switching away from */
     uint32_t prev_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
     /* saves ESP and EBP of current process if there is a process running */
@@ -92,9 +89,7 @@ void scheduling()
     tss.esp0 = (uint32_t)(_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); 
     /* the terminal we are swtiching TO is using vidmap */
     if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal)
-    { 
         vidmap_paging_modify(VIDEO);
-    }
     else if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1)
         vidmap_paging_modify(new_terminal_video);
 

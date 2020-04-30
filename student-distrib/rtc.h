@@ -16,8 +16,13 @@
 #define PIT_DATA_PORT_ZERO      0X40
 #define PIT_COMMAND_PORT        0X43
 #define PIT_FREQ_DIVISOR        1193180
+/* initialize RTC */
 void rtc_init();
+
+/* initialize PIT */
 void pit_init(double frequency);
+
+/* used to block scheduling from happening till we want it to */
 int32_t pit_flag;
 
 

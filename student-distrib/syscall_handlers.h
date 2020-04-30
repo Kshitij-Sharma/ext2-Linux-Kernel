@@ -40,22 +40,25 @@ int32_t _sys_read_file (int32_t fd, void* buf, int32_t nbytes);
 int32_t _sys_read_rtc (int32_t fd, void* buf, int32_t nbytes);
 int32_t _sys_read_directory (int32_t fd, void* buf, int32_t nbytes);
 
-/* helper functions for sys read */
+/* helper functions for sys write */
 extern int32_t _sys_write_terminal (int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_write_file (int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_write_rtc (int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_write_directory (int32_t fd, const void* buf, int32_t nbytes);
 
+/* helper functions for sys open */
 int32_t _sys_open_terminal (const uint8_t* filename);
 int32_t _sys_open_file (const uint8_t* filename);
 int32_t _sys_open_rtc (const uint8_t* filename);
 int32_t _sys_open_directory (const uint8_t* filename); 
 
+/* helper functions for sys close */
 int32_t _sys_close_terminal(int32_t fd);
 int32_t _sys_close_file(int32_t fd);
 int32_t _sys_close_rtc(int32_t fd);
 int32_t _sys_close_directory(int32_t fd);
 
+/* dummy placeholder functions for the fops */
 int32_t _sys_dummy_write(int32_t fd, const void* buf, int32_t nbytes);
 int32_t _sys_dummy_read(int32_t fd, void* buf, int32_t nbytes);
 int32_t _sys_dummy_open(const uint8_t* filename);

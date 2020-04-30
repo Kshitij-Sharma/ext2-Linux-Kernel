@@ -33,10 +33,14 @@ int8_t* strcpy(int8_t* dest, const int8_t*src);
 int8_t* strncpy(int8_t* dest, const int8_t*src, uint32_t n);
 void test_interrupts(void);
 
+/* helper functions that do exactly what their name says */
 int log_base_two(int n);
 int power_of_two(int num);
 void update_cursor();
+/* holds location of each terminal's buffer */
 extern char* video_buf[NUM_TERMINALS];
+
+/* used for wraparound edge case on the far right egdes */
 extern int forward_next[NUM_TERMINALS];
 extern int backward_next[NUM_TERMINALS];
 
