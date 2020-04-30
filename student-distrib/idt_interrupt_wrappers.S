@@ -55,7 +55,7 @@ pit_interrupt_asm:
         popl %ebx
         
         /* call the C handler*/
-        /*call scheduling*/
+        call scheduling
 
 
         popal

@@ -43,7 +43,7 @@ void switch_terminal(int32_t terminal_num)
     }
     visible_terminal = terminal_num;
     update_cursor();
-    scheduling();
+    // scheduling();
 
     return;
 }
@@ -70,8 +70,8 @@ void scheduling(){
             "movl %%ebp, %1;"
             : "=r"((cur_pcb_ptr[process_terminal]->esp)), "=r"((cur_pcb_ptr[process_terminal]->ebp)));
     }
-    // process_terminal = (process_terminal + 1) % 3;
-    process_terminal = visible_terminal;
+    process_terminal = (process_terminal + 1) % 3;
+    // process_terminal = visible_terminal;
     /* if shell has not yet been started on the terminal */  
     if (cur_pcb_ptr[process_terminal] == NULL){ 
         sys_execute("shell");

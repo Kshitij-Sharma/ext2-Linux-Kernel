@@ -164,7 +164,7 @@ void entry(unsigned long magic, unsigned long addr) {
     // disable_irq(IRQ_PIT);
     pit_init(100);
     pit_flag = 1;
-    sys_execute("shell");
+    // sys_execute("shell");
 #ifdef RUN_TESTS
     /* Run tests */
     launch_tests();
