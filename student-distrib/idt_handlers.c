@@ -351,8 +351,6 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    // cli();
-    // printf("rtc\n");
     if (cur_pcb_ptr[0] != NULL && cur_pcb_ptr[0]->rtc_counter == 0) cur_pcb_ptr[0]->rtc_counter = cur_pcb_ptr[0]->rtc_interrupt_divider;
     else if (cur_pcb_ptr[0] != NULL) cur_pcb_ptr[0]->rtc_counter--;
     if (cur_pcb_ptr[1] != NULL && cur_pcb_ptr[1]->rtc_counter == 0) cur_pcb_ptr[1]->rtc_counter = cur_pcb_ptr[1]->rtc_interrupt_divider;
@@ -362,7 +360,6 @@ void rtc_interrupt()
     
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 
-    // sti();
 }
 
 /* Array of error messages in order so we can index into them based on the argument of the function call*/

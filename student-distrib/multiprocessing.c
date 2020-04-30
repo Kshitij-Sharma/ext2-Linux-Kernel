@@ -46,6 +46,7 @@ void switch_terminal(int32_t terminal_num)
     update_cursor();
     send_eoi(IRQ_KEYBOARD);
     sti();
+    scheduling();
 
     return;
 }
@@ -61,62 +62,50 @@ void switch_terminal(int32_t terminal_num)
  * 
  */
 void scheduling(){
-    if (pit_flag == 0) return;
-    cli();
     /* make sure pit doesn't occur before first shell runs */
-    // if (process_terminal == visible_terminal && cur_pcb_ptr[process_terminal] == NULL) return;
-    // /* gets video memory of process we are switching away from */
+    if (pit_flag == 0) return;
+    /* gets video memory of process we are switching away from */
     uint32_t prev_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
-    /* gets video memory of process we are switching in to */
-    // uint32_t new_terminal_video = (((process_terminal + 1) % 3) == 0) ? TERMINAL_ONE_BUFFER : (((process_terminal + 1) % 3) == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER; 
-    //// OLD PROCESS 
     /* saves ESP and EBP of current process if there is a process running */
     if(cur_pcb_ptr[process_terminal] != NULL){
         asm volatile(
-            "mov %%esp, %%eax;" /* push user_ds */
-            "mov %%ebp, %%ebx;"
-            : "=a"((cur_pcb_ptr[process_terminal]->esp)), "=b"((cur_pcb_ptr[process_terminal]->ebp)));
+            "movl %%esp, %0;" /* push user_ds */
+            "movl %%ebp, %1;"
+            : "=r"((cur_pcb_ptr[process_terminal]->esp)), "=r"((cur_pcb_ptr[process_terminal]->ebp)));
     }
-    /* switching AWAY from a terminal using vidmap */
-    if(cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->vidmap_terminal == 1){ // the terminal that we are switching AWAY FROM is using Vidmap
-        // modify_vid_mem(prev_terminal_video);
-        vidmap_paging_modify(prev_terminal_video);
-    }// POSSIBLY UNNEEDED
-
-    // NEW PROCESS 
-    /* increments to the next procress */
-    process_terminal = (process_terminal + 1) % 3;
+    process_terminal = visible_terminal;
     /* if shell has not yet been started on the terminal */  
     if (cur_pcb_ptr[process_terminal] == NULL){ 
-        sti();
+        send_eoi(IRQ_PIT);        
         sys_execute("shell");
+        return;
     }
-    
-    program_paging((cur_pcb_ptr[process_terminal]->process_id * _4MB_PAGE) + _8_MB);
-
-    /* Set TSS */
-    // tss.esp0 = cur_pcb_ptr[process_terminal]->esp;
-  
-    // /* update running video coordinates */
-    // modify_vid_mem(VIDEO);
-
-    // /* switching TO a terminal using vidmap */
+    /* increments to the next procress */
+    // process_terminal = (process_terminal + 1) % 3;
     uint32_t new_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
+
+    program_paging((cur_pcb_ptr[process_terminal]->process_id * _4MB_PAGE) + _8_MB);
+    tss.ss0 = KERNEL_DS;
+    tss.esp0 = (uint32_t) (_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
     
     if(cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal){ // the terminal we are swtiching TO is using vidmap        
         vidmap_paging_modify(VIDEO);
     } else if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) 
         vidmap_paging_modify(new_terminal_video);
+    // /* switching AWAY from a terminal using vidmap */
+    // if(cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) // the terminal that we are switching AWAY FROM is using Vidmap
+    //     vidmap_paging_modify(prev_terminal_video);
+    
+    
+
+    // /* switching TO a terminal using vidmap */
+    
     // tss.ss0 = KERNEL_DS;
-    tss.esp0 = (uint32_t) (_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
     asm volatile(
         "mov %0, %%esp;" /* push user_ds */
         "mov %1, %%ebp;"
         :
         : "r"((cur_pcb_ptr[process_terminal]->esp)), "r"((cur_pcb_ptr[process_terminal]->ebp))
         );
-    
-    // send_eoi(IRQ_PIT);
-    // send_eoi(IRQ_KEYBOARD);
-    sti();
+        send_eoi(IRQ_PIT);
 }

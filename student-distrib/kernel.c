@@ -161,7 +161,8 @@ void entry(unsigned long magic, unsigned long addr) {
         forward_next[i] = 1;
         backward_next[i] = NUM_COLS;
     }
-    pit_init(100);
+    disable_irq(IRQ_PIT);
+    // pit_init(100);
     pit_flag = 1;
 
 #ifdef RUN_TESTS

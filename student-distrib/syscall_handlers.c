@@ -66,7 +66,7 @@ int32_t sys_halt(int8_t status)
 
     /* returns to previous program's execution */
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 = (uint32_t)(_8_MB - ((cur_pcb_ptr[process_terminal]->process_id)*_8_KB));
+    tss.esp0 = (uint32_t)(_8_MB - ((cur_pcb_ptr[process_terminal]->process_id)*_8_KB) - _4_BYTES);
 
     /* jumps into end of execute */
     asm volatile(
@@ -317,7 +317,7 @@ pcb_t *_execute_create_PCB(char* argument, uint32_t term)
 {
 
     /* creates the PCB for this at the right location */
-    pcb_t *new_pcb = (pcb_t *)((int)_8_MB - ((int)_8_KB * (process_num + 1)));
+    pcb_t *new_pcb = (pcb_t *)((int)_8_MB - ((int)_8_KB * (process_num + 1)) - _4_BYTES);
 
     /* assigns parent PCB and PID */
     new_pcb->parent_pcb = cur_pcb_ptr[term];   
@@ -350,7 +350,7 @@ void _execute_context_switch(uint32_t term)
 {
     /* switch TSS context (stack segment and esp) */
     tss.ss0 = KERNEL_DS; // switch stack context
-    tss.esp0 =(uint32_t) (_8_MB - (_8_KB * cur_pcb_ptr[term]->process_id)); // pointer to the top of stack/pcb
+    tss.esp0 =(uint32_t) (_8_MB - (_8_KB * cur_pcb_ptr[term]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
     /* maps the esp of user space */
     uint32_t user_esp = _132_MB; // maps to the esp of user space
     /* gets the eip from the executable header */
@@ -360,7 +360,7 @@ void _execute_context_switch(uint32_t term)
          | ((uint8_t)(buf_executable_header[term][ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[term][ELF_BYTE_FOUR]);
     cur_pcb_ptr[term]->eip = eip;
     /* performs context stack in assembly */
-    sti();
+    // sti();
     asm volatile(
         "cli;"
         "push %0;" /* push user_ds */
@@ -391,20 +391,20 @@ int32_t sys_read(int32_t fd, void *buf, int32_t nbytes)
     // return _sys_read_terminal(fd, buf, nbytes);
     /* checking bounds of the arguments */
     int32_t ret;
-    cli();
+    // cli();
     if (nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX){
-        sti();
+        // sti();
         return -1;
     }
     /* checks that the file is active */
     if (cur_pcb_ptr[process_terminal]->file_desc_array[fd].flags == 0){
-        sti();
+        // sti();
         return -1;
     }
 
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     ret = cur_pcb_ptr[process_terminal]->file_desc_array[fd].file_ops_table->read(fd, buf, nbytes);
-    sti();
+    // sti();
     return ret;
 }
 
@@ -419,21 +419,21 @@ int32_t sys_write(int32_t fd, const void *buf, int32_t nbytes)
 {
     int32_t ret;
     /* checking bounds of the arguments */
-    cli();
+    // cli();
     if (nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX){
-        sti();
+        // sti();
         return -1;
     }
     /* checks that the file is active */
     if (cur_pcb_ptr[process_terminal]->file_desc_array[fd].flags == 0){
-        sti();
+        // sti();
         return -1;
     }
 
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     uint32_t this_inode = cur_pcb_ptr[process_terminal]->file_desc_array[fd].inode;
     ret = cur_pcb_ptr[process_terminal]->file_desc_array[fd].file_ops_table->write(this_inode, buf, nbytes);
-    sti();
+    // sti();
     return ret;
 }
 
@@ -621,7 +621,7 @@ int32_t _sys_close_terminal(int32_t fd)
 int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
 {
     /* check edge cases */
-    sti();
+    // sti();
     uint32_t retval = 0;
     int i = 0;
     if (NULL == buf || nbytes < 0)
@@ -651,7 +651,7 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
     /* reads data/fills buffer from keyboard */
     sys_read_flag[process_terminal] = 1;
     while (sys_read_flag[process_terminal] /*|| process_terminal != term*/); // keep track ofb which terminal called read so that you can differentiate
-    cli();
+    // cli();
     /* copies memory from keyboard input to buffer */
     while (keyboard_buffer[process_terminal][i] != '\0' && keyboard_buffer[process_terminal][i] != '\n' && i < nbytes)
     {
@@ -772,7 +772,6 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes)
 {
-    sti();
     /* with virtualized RTC, keep reading until enough interrupts have occurred for desired frequency */
     while (cur_pcb_ptr[process_terminal]->rtc_counter > 0);
     cur_pcb_ptr[process_terminal]->rtc_counter = cur_pcb_ptr[process_terminal]->rtc_interrupt_divider;
