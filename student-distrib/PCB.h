@@ -33,11 +33,10 @@ typedef struct pcb_t{
   int8_t argument_array[KEYBOARD_BUFFER_SIZE];
   struct pcb_t* parent_pcb;
   uint32_t process_id; // which number process is it
-  uint32_t next_open_index;
-  int32_t ebp;
-  int32_t esp;
-  int32_t eip;
-  uint32_t number;
+  // uint32_t next_open_index;
+  uint32_t ebp;
+  uint32_t esp;
+  uint32_t eip;
   int32_t vidmap_terminal;
   int32_t rtc_interrupt_divider;
   uint32_t rtc_counter;

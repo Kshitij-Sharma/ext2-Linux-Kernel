@@ -128,6 +128,7 @@ void keyboard_interrupt()
     char output_char;
     putc_to_visible_flag = 1;
     pressed = inb(0x60);
+    send_eoi(IRQ_KEYBOARD);
     // printf("%x",pressed);
     if (pressed == UP_ARROW_PRESSED && shell_flag[visible_terminal] == 1){
         if (last_buf[visible_terminal][0] != '\0'){
@@ -350,7 +351,7 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    cli();
+    // cli();
     // printf("rtc\n");
     if (cur_pcb_ptr[0] != NULL && cur_pcb_ptr[0]->rtc_counter == 0) cur_pcb_ptr[0]->rtc_counter = cur_pcb_ptr[0]->rtc_interrupt_divider;
     else if (cur_pcb_ptr[0] != NULL) cur_pcb_ptr[0]->rtc_counter--;
@@ -361,8 +362,7 @@ void rtc_interrupt()
     
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 
-    sti();
-    // send_eoi(IRQ_RTC);
+    // sti();
 }
 
 /* Array of error messages in order so we can index into them based on the argument of the function call*/

@@ -12,17 +12,22 @@
         OUTPUTS: none
         SIDE EFFECTS: prints out key pressed to screen
 */keyboard_interrupt_asm:     
+        cli
         pushal
+        /* send EOI signal */
 
+        pushl $IRQ_PIT
+        call enable_irq               /* sends the EOI */
+        popl %ebx
         /*call C handler*/
         call keyboard_interrupt
-        /* send EOI signal */
+
         pushl $IRQ_KEYBOARD
         call send_eoi               /* sends the EOI */
         popl %ebx
 
-
         popal
+        sti
         iret
 
 /* rtc_interrupt_asm()
@@ -32,26 +37,30 @@
         NOTE: this is an assembly wrapper function for rtc interrupts 
 */
 rtc_interrupt_asm:  
-
+        cli
         pushal
-        /* call the C handler*/
-        call rtc_interrupt 
-
-        /* send EOI signal */
-        pushl $IRQ_RTC
-        call send_eoi               /* sends the EOI */
+        /* enable PIT */
+        pushl $IRQ_PIT
+        call enable_irq               /*sends the EOI */
         popl %ebx
 
-
+        /* call the C handler*/
+        call rtc_interrupt 
+        
+        /* send EOI signal*/
+        pushl $IRQ_RTC
+        call send_eoi              /* sends the EOI */
+        popl %ebx 
+        
 
         popal
-
+        sti
         /* Return control */
         iret
 
 pit_interrupt_asm:
+        cli
         pushal
-
         /* send EOI signal */
         pushl $IRQ_PIT
         call send_eoi               /* sends the EOI */
@@ -61,9 +70,9 @@ pit_interrupt_asm:
         call scheduling 
 
 
-
         popal
 
+        sti
         /* Return control */
         iret
 
@@ -106,15 +115,8 @@ system_call_asm:
         movl $-1, (sys_call_eax)
 
         cont:
-        /* send EOI signal 
-        ; pushl $IRQ_RTC
-        ; call send_eoi               sends the EOI 
-        ; popl %eax */
-
+        
         popal
-        /*movl $0, %ebx
-        ; movl $0, %ecx
-        ; movl $0, %edx*/
         movl (sys_call_eax), %eax
 
         /* Return control to user stack */

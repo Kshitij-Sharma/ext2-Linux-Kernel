@@ -12,7 +12,6 @@
 
 extern void switch_terminal(int32_t terminal_num);
 extern void scheduling();
-// extern void scheduling(int32_t esp, int32_t ebp);
 extern volatile uint32_t visible_terminal;
 extern volatile uint32_t process_terminal;
 extern pcb_t* cur_pcb_ptr[NUM_TERMINAL];

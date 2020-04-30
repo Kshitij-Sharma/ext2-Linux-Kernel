@@ -3,7 +3,6 @@
 
 volatile uint32_t visible_terminal = 0;
 volatile uint32_t process_terminal = 0;
-int scheduler_calls = 0;
 pcb_t* cur_pcb_ptr[NUM_TERMINALS] = {NULL, NULL, NULL};
 
 /** switch_terminal
@@ -63,9 +62,7 @@ void switch_terminal(int32_t terminal_num)
  */
 void scheduling(){
     if (pit_flag == 0) return;
-    // cli();
-    scheduler_calls++;
-    // printf("scheduling\n");
+    cli();
     /* make sure pit doesn't occur before first shell runs */
     // if (process_terminal == visible_terminal && cur_pcb_ptr[process_terminal] == NULL) return;
     // /* gets video memory of process we are switching away from */
@@ -80,7 +77,6 @@ void scheduling(){
             "mov %%ebp, %%ebx;"
             : "=a"((cur_pcb_ptr[process_terminal]->esp)), "=b"((cur_pcb_ptr[process_terminal]->ebp)));
     }
-
     /* switching AWAY from a terminal using vidmap */
     if(cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->vidmap_terminal == 1){ // the terminal that we are switching AWAY FROM is using Vidmap
         // modify_vid_mem(prev_terminal_video);
@@ -93,7 +89,6 @@ void scheduling(){
     /* if shell has not yet been started on the terminal */  
     if (cur_pcb_ptr[process_terminal] == NULL){ 
         sti();
-        send_eoi(IRQ_PIT);
         sys_execute("shell");
     }
     
@@ -113,9 +108,7 @@ void scheduling(){
     } else if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) 
         vidmap_paging_modify(new_terminal_video);
     // tss.ss0 = KERNEL_DS;
-    tss.esp0 = (uint32_t) (_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id)); // pointer to the top of stack/pcb
-    // send_eoi(IRQ_PIT);
-    sti();
+    tss.esp0 = (uint32_t) (_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
     asm volatile(
         "mov %0, %%esp;" /* push user_ds */
         "mov %1, %%ebp;"
@@ -123,5 +116,7 @@ void scheduling(){
         : "r"((cur_pcb_ptr[process_terminal]->esp)), "r"((cur_pcb_ptr[process_terminal]->ebp))
         );
     
+    // send_eoi(IRQ_PIT);
     // send_eoi(IRQ_KEYBOARD);
+    sti();
 }

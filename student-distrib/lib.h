@@ -7,6 +7,8 @@
 
 #include "types.h"
 #include "multiprocessing.h"
+#define NUM_COLS    80
+#define NUM_TERMINALS 3
 // #include "syscall_handlers.h"
 
 int32_t printf(int8_t *format, ...);
@@ -39,7 +41,9 @@ int power_of_two(int num);
 void update_cursor();
 // void disable_cursor();
 // void enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
-extern char* video_buf[3];
+extern char* video_buf[NUM_TERMINALS];
+extern int forward_next[NUM_TERMINALS];
+extern int backward_next[NUM_TERMINALS];
 
 /* **********START OF KBD VARIABLES*************/
 
