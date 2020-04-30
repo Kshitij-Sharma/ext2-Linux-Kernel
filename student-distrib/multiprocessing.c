@@ -17,7 +17,6 @@ void switch_terminal(int32_t terminal_num)
 {
     /* error checking */
     if(terminal_num < 0 || terminal_num >= NUM_TERMINAL)    return; 
-    cli();
 
     /* gets the video buffer address of the current terminal */
     uint32_t prev_terminal_video = (visible_terminal == 0) ? TERMINAL_ONE_BUFFER : (visible_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER; 
@@ -44,8 +43,6 @@ void switch_terminal(int32_t terminal_num)
     }
     visible_terminal = terminal_num;
     update_cursor();
-    send_eoi(IRQ_KEYBOARD);
-    sti();
     scheduling();
 
     return;
@@ -73,18 +70,18 @@ void scheduling(){
             "movl %%ebp, %1;"
             : "=r"((cur_pcb_ptr[process_terminal]->esp)), "=r"((cur_pcb_ptr[process_terminal]->ebp)));
     }
+    // process_terminal = (process_terminal + 1) % 3;
     process_terminal = visible_terminal;
     /* if shell has not yet been started on the terminal */  
     if (cur_pcb_ptr[process_terminal] == NULL){ 
-        send_eoi(IRQ_PIT);        
         sys_execute("shell");
         return;
     }
     /* increments to the next procress */
-    // process_terminal = (process_terminal + 1) % 3;
     uint32_t new_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
 
     program_paging((cur_pcb_ptr[process_terminal]->process_id * _4MB_PAGE) + _8_MB);
+
     tss.ss0 = KERNEL_DS;
     tss.esp0 = (uint32_t) (_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
     
@@ -100,12 +97,10 @@ void scheduling(){
 
     // /* switching TO a terminal using vidmap */
     
-    // tss.ss0 = KERNEL_DS;
     asm volatile(
-        "mov %0, %%esp;" /* push user_ds */
-        "mov %1, %%ebp;"
+        "movl %0, %%esp;" /* push user_ds */
+        "movl %1, %%ebp;"
         :
         : "r"((cur_pcb_ptr[process_terminal]->esp)), "r"((cur_pcb_ptr[process_terminal]->ebp))
         );
-        send_eoi(IRQ_PIT);
 }

@@ -37,7 +37,6 @@ uint32_t active_processes[MAX_NUM_PROCESSES] = {0, 0, 0, 0, 0, 0};
  */
 int32_t sys_halt(int8_t status)
 {
-    cli();      // GETS STI'd AT EXECUTE BOTTOM
     int32_t i;
     /* closes all file sin PCB */
     for (i = MIN_FD_IDX; i < FILE_DESC_ARR_SIZE; i++)
@@ -56,7 +55,6 @@ int32_t sys_halt(int8_t status)
     
     /* cant close shell! */
     if (cur_pcb_ptr[process_terminal] == NULL){
-        sti();
         sys_execute("shell"); 
     } 
 
@@ -89,7 +87,6 @@ int32_t sys_halt(int8_t status)
  */
 int32_t sys_execute(const int8_t *command)
 {
-    cli();
 
     int8_t tempret = 0, prog_name[FILENAME_LEN], arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0, term = visible_terminal, i;
@@ -100,7 +97,6 @@ int32_t sys_execute(const int8_t *command)
     memset(arg, '\0', KEYBOARD_BUFFER_SIZE);
     tempret = _execute_parse_args(command, prog_name, arg);
     if (tempret == -1){
-        sti();
         return -1;
     }
     /* checks if we are executing from scheduling vs. from command line */
@@ -116,15 +112,14 @@ int32_t sys_execute(const int8_t *command)
     if (cur_pcb_ptr[term] != NULL)
     {
         asm volatile(
-            "mov %%esp, %%eax;" /* push user_ds */
-            "mov %%ebp, %%ebx;"
-            : "=a"((cur_pcb_ptr[term]->esp)), "=b"((cur_pcb_ptr[term]->ebp)));
+            "mov %%esp, %0;" /* push user_ds */
+            "mov %%ebp, %1;"
+            : "=r"((cur_pcb_ptr[term]->esp)), "=r"((cur_pcb_ptr[term]->ebp)));
     }
 
     /* checks that the file is an executable*/
     tempret = _execute_executable_check(prog_name, buf_executable_header[term]);
     if (tempret == -1){
-        sti();
         return -1;
     } 
 
@@ -139,7 +134,6 @@ int32_t sys_execute(const int8_t *command)
         }
     }
     if (i >= MAX_NUM_PROCESSES) {
-        sti();
         return -1;
     }
     active_processes[process_num] = 1;
@@ -147,14 +141,12 @@ int32_t sys_execute(const int8_t *command)
     /* sets up paging scheme for current program */
     tempret = _execute_setup_program_paging();
     if (tempret == -1) {
-        sti();
         return -1;
     }
 
     /* loads the user program */
     tempret = _execute_user_program_loader(prog_name);
     if (tempret == -1) {
-        sti();
         return -1;
     }
 
@@ -171,13 +163,11 @@ int32_t sys_execute(const int8_t *command)
     /* place for a program to return to while being halted */
     asm volatile(
         "return_from_prog:;" /* push user_ds */
-        "sti;"
         "leave;"
         "ret;"
         : "=a"(return_value));
 
     return 0;
-    // sti();
     // /* checks if there's an error*/
     // if (error_flag[term])
     // {
@@ -352,7 +342,7 @@ void _execute_context_switch(uint32_t term)
     tss.ss0 = KERNEL_DS; // switch stack context
     tss.esp0 =(uint32_t) (_8_MB - (_8_KB * cur_pcb_ptr[term]->process_id) - _4_BYTES); // pointer to the top of stack/pcb
     /* maps the esp of user space */
-    uint32_t user_esp = _132_MB; // maps to the esp of user space
+    uint32_t user_esp = _132_MB - _4_BYTES; // maps to the esp of user space
     /* gets the eip from the executable header */
     uint32_t eip = 0;
     // buf_executable_header from 27 to 24 used as specified in the documentation. the 24, 16, and 8 are used to shift the bytes to the correct spot in the eip int
@@ -360,21 +350,18 @@ void _execute_context_switch(uint32_t term)
          | ((uint8_t)(buf_executable_header[term][ELF_BYTE_THREE]) << 8) | ((uint8_t)buf_executable_header[term][ELF_BYTE_FOUR]);
     cur_pcb_ptr[term]->eip = eip;
     /* performs context stack in assembly */
-    // sti();
     asm volatile(
-        "cli;"
         "push %0;" /* push user_ds */
         "push %1;" /* push user_esp */
         "pushfl;"  /* push EFLAGS */
         "popl %%eax;"
         "orl  $0x0200, %%eax;" /* enable interrupts */
         "pushl %%eax;"
-        "push %%cs;"
-        "push %2;" /* push eip value stored in esp */
-        "sti;"
+        "push %2;"
+        "push %3;" /* push eip value stored in esp */
         "iret;"
         :
-        : "r"(USER_DS), "r"(user_esp), "r"(eip)
+        : "r"(USER_DS), "r"(user_esp), "r"(USER_CS), "r"(eip)
         : "eax"
         );
 }
@@ -391,20 +378,16 @@ int32_t sys_read(int32_t fd, void *buf, int32_t nbytes)
     // return _sys_read_terminal(fd, buf, nbytes);
     /* checking bounds of the arguments */
     int32_t ret;
-    // cli();
     if (nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX){
-        // sti();
         return -1;
     }
     /* checks that the file is active */
     if (cur_pcb_ptr[process_terminal]->file_desc_array[fd].flags == 0){
-        // sti();
         return -1;
     }
 
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     ret = cur_pcb_ptr[process_terminal]->file_desc_array[fd].file_ops_table->read(fd, buf, nbytes);
-    // sti();
     return ret;
 }
 
@@ -419,21 +402,17 @@ int32_t sys_write(int32_t fd, const void *buf, int32_t nbytes)
 {
     int32_t ret;
     /* checking bounds of the arguments */
-    // cli();
     if (nbytes <= 0 || buf == NULL || fd < 0 || fd > MAX_FD_IDX){
-        // sti();
         return -1;
     }
     /* checks that the file is active */
     if (cur_pcb_ptr[process_terminal]->file_desc_array[fd].flags == 0){
-        // sti();
         return -1;
     }
 
     /* reads using the correct file operation. we get the inode b/c _sys_read_file/directory use an inode */
     uint32_t this_inode = cur_pcb_ptr[process_terminal]->file_desc_array[fd].inode;
     ret = cur_pcb_ptr[process_terminal]->file_desc_array[fd].file_ops_table->write(this_inode, buf, nbytes);
-    // sti();
     return ret;
 }
 
@@ -621,7 +600,6 @@ int32_t _sys_close_terminal(int32_t fd)
 int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
 {
     /* check edge cases */
-    // sti();
     uint32_t retval = 0;
     int i = 0;
     if (NULL == buf || nbytes < 0)
@@ -650,8 +628,9 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
 
     /* reads data/fills buffer from keyboard */
     sys_read_flag[process_terminal] = 1;
-    while (sys_read_flag[process_terminal] /*|| process_terminal != term*/); // keep track ofb which terminal called read so that you can differentiate
-    // cli();
+    sti();
+    while (sys_read_flag[process_terminal]); // keep track ofb which terminal called read so that you can differentiate
+    cli();
     /* copies memory from keyboard input to buffer */
     while (keyboard_buffer[process_terminal][i] != '\0' && keyboard_buffer[process_terminal][i] != '\n' && i < nbytes)
     {
@@ -671,7 +650,6 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes)
  */
 int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes)
 {
-    // sti();
     int i, bytes_written;
     char write_string[nbytes];
     // int term = process_terminal;
@@ -680,7 +658,6 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes)
         return -1;
     if (nbytes == 0)
         return 0;
-    // cli();
     /* put passed in buffer into an appropriately sized buffer */
     memset(write_string, '\0', nbytes);
     memcpy(write_string, buf, nbytes);
@@ -696,7 +673,6 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes)
             bytes_written++;
         }
     }
-    // sti();
     return bytes_written;
 }
 
@@ -748,7 +724,6 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
     /* param check */
     if (power_of_two(frequency) || frequency < 0)
         return -1;
-    // cli();
     // gets frequency from buffer
     if (frequency > MAX_INTERRUPT_FREQUENCY)
     {
@@ -759,7 +734,6 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
     // int count = (MAX_INTERRUPT_FREQUENCY / frequency / 2) <= 1 ? 1 : (MAX_INTERRUPT_FREQUENCY / frequency / 2);
     cur_pcb_ptr[process_terminal]->rtc_interrupt_divider = count;
     cur_pcb_ptr[process_terminal]->rtc_counter = count;
-    // sti();
     return 0;
 }
 
@@ -772,8 +746,11 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes)
  */
 int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes)
 {
+    cur_pcb_ptr[process_terminal]->rtc_counter = cur_pcb_ptr[process_terminal]->rtc_interrupt_divider;
+    sti();
     /* with virtualized RTC, keep reading until enough interrupts have occurred for desired frequency */
     while (cur_pcb_ptr[process_terminal]->rtc_counter > 0);
+    cli();
     cur_pcb_ptr[process_terminal]->rtc_counter = cur_pcb_ptr[process_terminal]->rtc_interrupt_divider;
     return 0;
 }

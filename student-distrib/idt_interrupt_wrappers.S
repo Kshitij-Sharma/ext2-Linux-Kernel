@@ -13,14 +13,15 @@
         SIDE EFFECTS: prints out key pressed to screen
 */keyboard_interrupt_asm:     
         pushal
-
-        /*call C handler*/
-        call keyboard_interrupt
-
+        
         /* send EOI signal */
         pushl $IRQ_KEYBOARD
         call send_eoi               /* sends the EOI */
         popl %ebx
+
+        /*call C handler*/
+        call keyboard_interrupt
+
 
         popal
         iret
@@ -33,21 +34,20 @@
 */
 rtc_interrupt_asm:  
         pushal
-        /* call the C handler*/
-        call rtc_interrupt 
-        
+
         /* send EOI signal*/
         pushl $IRQ_RTC
         call send_eoi              /* sends the EOI */
         popl %ebx 
-        
+
+        /* call the C handler*/
+        call rtc_interrupt 
 
         popal
         /* Return control */
         iret
 
 pit_interrupt_asm:
-        cli
         pushal
         /* send EOI signal */
         pushl $IRQ_PIT
@@ -55,12 +55,10 @@ pit_interrupt_asm:
         popl %ebx
         
         /* call the C handler*/
-        /* call scheduling  */
+        /*call scheduling*/
 
 
         popal
-
-        sti
         /* Return control */
         iret
 
