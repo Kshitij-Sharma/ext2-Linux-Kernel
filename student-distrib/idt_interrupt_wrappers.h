@@ -8,16 +8,18 @@
 #ifndef ASM
 
 
-// #include "types.h"
 #include "i8259.h"
 #include "lib.h"
 #include "idt_handlers.h"
 #include "multiprocessing.h"
 
+/* calls C function handlers for all 3 of the below */
 extern void keyboard_interrupt_asm();
 extern void rtc_interrupt_asm();
-extern void system_call_asm();
 extern void pit_interrupt_asm();
+
+/* handles the system call and calls the appropriate function */
+extern void system_call_asm();
 
 
 #endif /* _IDT_INTERRUPT_WRAPPERS_H */

@@ -7,9 +7,9 @@
 		Outputs: None
 		Side Effects: initializes paging
 */
-void paging_init(){
-
- 	int i;	//for loop index
+void paging_init() {
+	/* looping variable */
+ 	int i;
 
  	/* This loop initializes the page directory and oen page table as empty, 
 	 		grants read/write permissions */
@@ -21,7 +21,7 @@ void paging_init(){
 			* Not Present: The page table is not present (Based on the 0th bit)
 			*/
  		page_directory[i] = READ_WRITE & ~PRESENT;
-		page_table[i] = (i * SIZE_OF_PAGE) | (READ_WRITE & ~PRESENT); // attributes: supervisor level, read/write, not present.
+		page_table[i] = (i * SIZE_OF_PAGE) | (READ_WRITE & ~PRESENT); /* attributes: supervisor level, read/write, not present. */
 		page_table_vidmap[i] = READ_WRITE & ~PRESENT;
  	}
 
@@ -62,7 +62,7 @@ void paging_init(){
 		Outputs: None
 		Side Effects: none
 	*/
-  void flush_tlb(){
+  void flush_tlb() {
     asm volatile(
       "movl %%cr3, %%eax;"
       "movl %%eax, %%cr3;"
@@ -79,7 +79,7 @@ void paging_init(){
 	Outputs: None
 	Side Effects: none
 	*/
-void program_paging(uint32_t physical_address){
+void program_paging(uint32_t physical_address) {
 	/* maps spot in virtual memory to appropriate physical memory */
 	page_directory[SYS_VIRTUAL_MEM] = physical_address;
 	/* assigns approriate attributes to the page */
@@ -94,19 +94,23 @@ void program_paging(uint32_t physical_address){
 	Outputs: None
 	Side Effects: None
  */
- void vidmap_paging()
- {
+ void vidmap_paging() {
     page_directory[VIDEO_START / _4MB_PAGE] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT | USER);
-    //then set up the page table
+    /* then set up the page table */
     page_table_vidmap[0] = VIDEO;
 	page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
 	flush_tlb();
  }
-
- void vidmap_paging_modify(uint32_t terminal_address)
- {
+/*
+	vidmap_paging_modify()
+	Description: Sets up paging for video memory defined at the address passed in
+	Inputs: None
+	Outputs: None
+	Side Effects: None
+ */
+ void vidmap_paging_modify(uint32_t terminal_address) {
     page_directory[VIDEO_START / _4MB_PAGE] = ((uint32_t)(page_table_vidmap)) | (READ_WRITE | PRESENT | USER);
-    //then set up the page table
+    /* then set up the page table */
     page_table_vidmap[0] = terminal_address;
 	page_table_vidmap[0] |= (READ_WRITE | PRESENT | USER);
 	flush_tlb();

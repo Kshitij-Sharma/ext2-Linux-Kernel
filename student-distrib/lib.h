@@ -9,17 +9,14 @@
 #include "multiprocessing.h"
 #define NUM_COLS    80
 #define NUM_TERMINALS 3
-// #include "syscall_handlers.h"
 
 int32_t printf(int8_t *format, ...);
 void putc(uint8_t c);
-void modify_vid_mem(uint32_t address);
 void backspace(void);
 void scroll_down(void);
 void wraparound(void);
 int left_arrow(void);
 int right_arrow(void);
-// void clear_line(void);
 int32_t puts(int8_t *s);
 int8_t *itoa(uint32_t value, int8_t* buf, int32_t radix);
 int8_t *strrev(int8_t* s);
@@ -39,8 +36,6 @@ void test_interrupts(void);
 int log_base_two(int n);
 int power_of_two(int num);
 void update_cursor();
-// void disable_cursor();
-// void enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
 extern char* video_buf[NUM_TERMINALS];
 extern int forward_next[NUM_TERMINALS];
 extern int backward_next[NUM_TERMINALS];
@@ -55,14 +50,14 @@ volatile int shell_flag[NUM_TERMINALS];
 int keyboard_cursor_idx[NUM_TERMINALS];
 int keyboard_buffer_end_idx[NUM_TERMINALS];
 
-char temp_kbd_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];    // ctrl-L
-char last_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];        // up arrow: stores previous command
-char current_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];     // down arrow: copy of current command
+char temp_kbd_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];    /* used for ctrl-L to store what was already typed */
+char last_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];        /* used for up arrow to store previous command */
+char current_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];     /* used for down arrow to store a copy of current command */
 int last_buf_index[NUM_TERMINALS];
 int current_buf_index[NUM_TERMINALS];
 
 int temp_kbd_idx[NUM_TERMINALS];                            
-int re_echo_flag[NUM_TERMINALS];                            // flag to see if we need to re display text for control L
+int re_echo_flag[NUM_TERMINALS];                            /* flag to see if we need to re display text for control L */
 int putc_to_visible_flag;
 
 /* **********END OF KBD VARIABLES*************/

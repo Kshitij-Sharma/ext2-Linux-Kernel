@@ -52,7 +52,6 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Is the command line passed? */
     if (CHECK_FLAG(mbi->flags, 2))
         printf("cmdline = %s\n", (char *)mbi->cmdline);
-    // module_t* mod = (module_t*)mbi->mods_addr;
     if (CHECK_FLAG(mbi->flags, 3)) {
         int mod_count = 0;
         int i;
@@ -157,14 +156,16 @@ void entry(unsigned long magic, unsigned long addr) {
     sti();
     clear();
     int i;
+    /* sets up terminals for proper printing */
     for (i = 0; i < NUM_TERMINAL; i++){
         forward_next[i] = 1;
         backward_next[i] = NUM_COLS;
     }
-    // disable_irq(IRQ_PIT);
+    /* set pit to 100Hz */
     pit_init(100);
+    
+    /* allow scheduling to start */
     pit_flag = 1;
-    // sys_execute("shell");
 #ifdef RUN_TESTS
     /* Run tests */
     launch_tests();

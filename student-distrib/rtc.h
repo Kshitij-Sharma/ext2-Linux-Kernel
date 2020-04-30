@@ -3,8 +3,6 @@
 
 #include "lib.h"
 #include "idt_handlers.h"
-// #include <stdio.h>
-// #include <math.h>
 
 #define RTC_CMD_PORT            0x70
 #define RTC_DATA_PORT           0x71
@@ -22,5 +20,5 @@ void rtc_init();
 void pit_init(double frequency);
 int32_t pit_flag;
 
-// void rtc_
+
 #endif /* _RTC_H */

@@ -17,7 +17,7 @@
 #define OTHER_INTERRUPTS_IDX    0x30
 
 
-
+/* initialized IDT */
 void idt_init();
 
 #endif

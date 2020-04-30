@@ -9,10 +9,10 @@
                                         40 for RTC interrupts
 */
 void idt_init(){
-    int i;          // loop variable
+    int i;          /* loop variable */
     /* Array that stores pointers to the exception/interrupt handlers*/
     void * interrupts_and_excpetions[NUM_VEC] = {
-        divide_by_zero,             /*excpetion start*/
+        divide_by_zero,             /* excpetion start */
         debug,
         non_maskable_interrupt,
         breakpoint,
@@ -31,8 +31,8 @@ void idt_init(){
         coprocessor_fault,
         alignment_check,
         machine_check,
-        SIMD_floating_point,        /*excpetion end*/
-        reserved,                   /*reserved by Intel start*/
+        SIMD_floating_point,        /* excpetion end */
+        reserved,                   /* reserved by Intel start */
         reserved,
         reserved,
         reserved,
@@ -72,16 +72,18 @@ void idt_init(){
         /* set values in IDT */
         idt[i].seg_selector = KERNEL_CS;
         idt[i].reserved4 = 0;
-        // reserved 3 should be 1 when we are setting a trap gate. 0 for an interrupt gate
+        /* reserved 3 should be 1 when we are setting a trap gate. 0 for an interrupt gate */
         idt[i].reserved3 = (i < FIRST_INTERRUPT_IDX || i > LAST_INTERRUPT_IDX ) ? 1 : 0;
         if (i == 128) idt[i].reserved3 = 0;
         idt[i].reserved2 = 1;
         idt[i].reserved1 = 1;
         idt[i].reserved0 = 0;
-        idt[i].size = 1;                                                // size is 32-bit, so we set to 1
-        idt[i].dpl = (i == SYSTEM_CALL_IDX) ? 3 : 0;                    // DPL value set to 3 for index 0x80 b/c that needs to be called by user code
-        // idt[i].present = (i < (KB_INTERRUPT_IDX + 1) || i == SYSTEM_CALL_IDX || i == RTC_INTERRUPT_IDX) ? 1 : 0;
+        /* size is 32-bit, so we set to 1 */
+        idt[i].size = 1;  
+        /* DPL value set to 3 for index 0x80 b/c that needs to be called by user code */                                              
+        idt[i].dpl = (i == SYSTEM_CALL_IDX) ? 3 : 0;                    
         idt[i].present = 1;
-        SET_IDT_ENTRY(idt[i], interrupts_and_excpetions[i]);            // stores the function address in the idt
+        /* stores the function address in the idt */
+        SET_IDT_ENTRY(idt[i], interrupts_and_excpetions[i]);            
     }    
 }

@@ -3,46 +3,7 @@
 #include "syscall_handlers.h"
 #include "idt_interrupt_wrappers.h"
 
-
-#define ENTER_PRESSED               0x1C
-#define LEFT_SHIFT_PRESSED          0X2A
-#define LEFT_SHIFT_RELEASED         0XAA
-#define RIGHT_SHIFT_PRESSED         0X36
-#define RIGHT_SHIFT_RELEASED        0XB6
-#define CAPS_LOCK_PRESSED           0X3A
-#define CAPS_LOCK_RELEASED          0XBA
-#define START_RELEASED              0X81
-#define START_IGNORE                0X3B
-#define LEFT_CONTROL_RELEASED       0X9D
-#define RIGHT_CONTROL_TAG           0XE0
-#define LEFT_ALT_PRESSED            0X38
-#define LEFT_ALT_RELEASED           0XB8
-#define L_SCANCODE                  0x26
-#define BACKSPACE                   0X0E
-#define CAPS_IGNORE_START           0x27
-#define IGNORE_BRACKET              0x1A
-#define LEFT_CONTROL_PRESSED        0X1D
-#define CAPS_IGNORE_END             0x2B
-#define LETTER_START                0x10
-#define LETTER_END                  0x32
-#define LEFT_ARROW_PRESSED          0x4B
-#define LEFT_ARROW_RELEASED         0XCB
-#define RIGHT_ARROW_PRESSED         0x4D
-#define RIGHT_ARROW_RELEASED        0XCD
-#define UP_ARROW_PRESSED            0x48
-#define UP_ARROW_RELEASED           0xC8
-#define DOWN_ARROW_PRESSED          0x50
-#define DOWN_ARROW_RELEASED         0xD0
-#define FUNCTION_ONE_PRESSED         0x3B
-#define FUNCTION_TWO_PRESSED        0x3C
-#define FUNCTION_THREE_PRESSED      0x3D      
-#define C_SCANCODE                  0x2E
-
-/* enter, left control, 1a 1b*/
-
-// #define END_RELEASED              
-
-/* flags to deal with shift and caps lock */
+/* flags to deal with shift, caps lock, control, alt, and flags for arrow key functionality */
 int shift_on[NUM_TERMINALS] = {0, 0, 0}; 
 int caps_lock_on[NUM_TERMINALS] = {0, 0, 0}; 
 int control_on[NUM_TERMINALS] = {0, 0, 0}; 
@@ -50,8 +11,6 @@ int alt_on[NUM_TERMINALS] = {0, 0, 0};
 int echo_flag[NUM_TERMINALS] = {1, 1, 1}; 
 int distance_from_right[NUM_TERMINALS] = {0, 0, 0}; 
 
-// int total_chars_in_buf[NUM_TERMINALS] = {0, 0, 0}; 
-// keyboard_cursor_idx = 0;
 /* scancodes for lowercase letters */
 static char scancode_to_char[NUM_CODES] = {
     0, 0,
@@ -68,8 +27,8 @@ static char scancode_to_char[NUM_CODES] = {
     '0', ')',
     '-', '_',
     '=', '+',
-    0, 0, // BACKSPACE
-    0, 0, // TAB
+      0, 0, /* BACKSPACE */
+      0, 0, /* TAB */
     'q', 'Q',
     'w', 'W',
     'e', 'E',
@@ -83,7 +42,7 @@ static char scancode_to_char[NUM_CODES] = {
     '[', '{',
     ']', '}',
     '\n', '\n',
-    0, 0, // LEFT CONTROL
+      0, 0, /* LEFT CONTROL */
     'a', 'A',
     's', 'S',
     'd', 'D',
@@ -96,7 +55,7 @@ static char scancode_to_char[NUM_CODES] = {
     ';',  ':',
     '\'', '\"',
     '`', '~',
-    0, 0, // LEFT SHIFT
+      0, 0, /* LEFT SHIFT */
     '\\', '|',
     'z', 'Z',
     'x', 'X',
@@ -108,48 +67,65 @@ static char scancode_to_char[NUM_CODES] = {
     ',', '<',
     '.', '>',
     '/', '?',
-    0, 0, // RIGHT SHIFT
+      0, 0, /* RIGHT SHIFT */
     '*', ' ',
-    0, 0, // LEFT ALT
+      0, 0, /* LEFT ALT */
     ' ', ' '
 };
 
+/*  void reserved()
+        INPUTS: none
+        OUTPUTS: none
+        SIDE EFFECTS: none, just a placeholder
+*/
 void reserved() { return; }
+
+/*  void reserved()
+        INPUTS: none
+        OUTPUTS: none
+        SIDE EFFECTS: none, just a placeholder
+*/
 void empty()    { return; }
 
 /*  void keyboard_interrupt()
         INPUTS: none
         OUTPUTS: none
-        SIDE EFFECTS: (should) read which character is printed and print it to screen
+        SIDE EFFECTS: (should) read which character is printed and print it to screen, handles keyboard interrupts
 */
 void keyboard_interrupt()     
 { 
-    // read character --> print to screen
-    unsigned int pressed;
-    char output_char;
+    /* read character --> print to screen */
+    unsigned int pressed; char output_char;
+    /* enable keyboard interrupt flag for putc */
     putc_to_visible_flag = 1;
+    /* grabs the scancode of what was pressed */
     pressed = inb(0x60);
-    // if (control_on[visible_terminal] && (pressed == LEFT_SHIFT_PRESSED || pressed == RIGHT_SHIFT_PRESSED)){
-    //     scheduling();
-    // } 
-    // printf("%x",pressed);
+    
+    /* if we are in shell (not a different user program) and we press up arrow, populate cmd line with previous command */
     if (pressed == UP_ARROW_PRESSED && shell_flag[visible_terminal] == 1){
+        /* if the buffer containing the last command is not null */
         if (last_buf[visible_terminal][0] != '\0'){
+            /** moves the cursor all the way to the right if it is not already there
+             * distance_from_right tells us how far from the right the cursor is
+             * right_arrow moves the cursor right
+             * increments cursor index and decrements distance_from_right */
             while (distance_from_right[visible_terminal] > 0){
                 right_arrow(); 
                 keyboard_cursor_idx[visible_terminal]++;
                 distance_from_right[visible_terminal]--;
             }
+            /* clears keyboard buffer and copies the last command into the keyboard buffer */
+            memset(keyboard_buffer[visible_terminal], '\0', keyboard_buffer_end_idx[visible_terminal]);
             memcpy(keyboard_buffer[visible_terminal], last_buf[visible_terminal], last_buf_index[visible_terminal]);
+            /* backspaces everything currently on the screen and then writes the last command on the screen, also updating keyboard index */
             int temp_idx = keyboard_cursor_idx[visible_terminal] + 1;
-            while (temp_idx-- > 1) backspace();
+            while (temp_idx-- > 1) backspace(); 
             _sys_write_terminal(0, keyboard_buffer[visible_terminal], last_buf_index[visible_terminal]);
             keyboard_cursor_idx[visible_terminal] = last_buf_index[visible_terminal];
             keyboard_buffer_end_idx[visible_terminal] = keyboard_cursor_idx[visible_terminal];
         }
-        // return;
     }
-    /* functionaltiy for down arrow key */
+    /* if we are in shell (not a different user program) and we press up down, populate cmd line with current command */
     if (pressed == DOWN_ARROW_PRESSED && shell_flag[visible_terminal] == 1){
         /* clears line by moving all the way right and then backspaces all */
         while (distance_from_right[visible_terminal] > 0){
@@ -168,22 +144,16 @@ void keyboard_interrupt()
         keyboard_cursor_idx[visible_terminal] = current_buf_index[visible_terminal];
         keyboard_buffer_end_idx[visible_terminal] = keyboard_cursor_idx[visible_terminal];
     }
-    // if (control_on[visible_terminal] == 1 && pressed == C_SCANCODE) {
-    //     sti();
-    //     sys_halt(0);
-    //     sti();
-    //     echo_flag[visible_terminal] = 1;
-    //     sys_read_flag[visible_terminal] = 1;
-    //     return;
-    // }
     /* backspace */
     if (pressed == BACKSPACE){
         backspace();
+        /* if index is not 0, replace the current position with a null and decrement the index */
         if (keyboard_cursor_idx[visible_terminal] > 0){
             keyboard_buffer[visible_terminal][keyboard_cursor_idx[visible_terminal]--] = '\0';
             keyboard_buffer_end_idx[visible_terminal]--;
             echo_flag[visible_terminal] = 1;
         }
+        /* turn flag back off since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
@@ -194,6 +164,7 @@ void keyboard_interrupt()
             keyboard_cursor_idx[visible_terminal]--;
             echo_flag[visible_terminal] = 1;
         }
+        /* turn flag back off since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
@@ -203,6 +174,7 @@ void keyboard_interrupt()
         distance_from_right[visible_terminal] -= ret_from_right;
         keyboard_cursor_idx[visible_terminal] += ret_from_right;
         echo_flag[visible_terminal] = 1;
+        /* turn flag back off since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
@@ -211,12 +183,14 @@ void keyboard_interrupt()
         int i;
         for (i = 0; i < NUM_TERMINALS; i++) caps_lock_on[i] = (caps_lock_on[i]) ? 0 : 1;
         putc_to_visible_flag = 0;
+        /* turn flag back off since we are returning */
         return;
     }
     /* shift pressed */
     if ((pressed == LEFT_SHIFT_PRESSED) || (pressed == RIGHT_SHIFT_PRESSED)){
         int i;
         for (i = 0; i < NUM_TERMINALS; i++) shift_on[i] = 1;
+        /* turn flag back off since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
@@ -224,6 +198,7 @@ void keyboard_interrupt()
     if ((pressed == LEFT_SHIFT_RELEASED) || (pressed == RIGHT_SHIFT_RELEASED)){
         int i;
         for (i = 0; i < NUM_TERMINALS; i++) shift_on[i] = 0;
+        /* turn flag back off since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
@@ -231,6 +206,7 @@ void keyboard_interrupt()
     if (pressed == LEFT_CONTROL_PRESSED){
         int i;
         for (i = 0; i < NUM_TERMINALS; i++) control_on[i] = 1;
+        /* turn flag back off since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
@@ -238,6 +214,7 @@ void keyboard_interrupt()
     if (pressed == LEFT_CONTROL_RELEASED){
         int i;
         for (i = 0; i < NUM_TERMINALS; i++) control_on[i] = 0;
+        /* turn flag back off since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
@@ -245,6 +222,7 @@ void keyboard_interrupt()
     if (pressed == LEFT_ALT_PRESSED){
         int i;
         for (i = 0; i < NUM_TERMINALS; i++) alt_on[i] = 1;
+        /* turn flag back off since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
@@ -252,98 +230,124 @@ void keyboard_interrupt()
     if (pressed == LEFT_ALT_RELEASED){
         int i;
         for (i = 0; i < NUM_TERMINALS; i++) alt_on[i] = 0;
+        /* turn flag back off since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
+    /* handles the case where we are trying to switch terminals */
     if (alt_on[visible_terminal])
     {
+        /* turn flag back off since we are returning */
+        putc_to_visible_flag = 0;
         switch(pressed){
             case(FUNCTION_ONE_PRESSED):
-                putc_to_visible_flag = 0;
+                /* if we are already in the terminal we are trying to switch to, do nothing */
                 if (visible_terminal == 0) return;
                 switch_terminal(0);
                 return;
             case(FUNCTION_TWO_PRESSED):
-                putc_to_visible_flag = 0;
+                /* if we are already in the terminal we are trying to switch to, do nothing */
                 if (visible_terminal == 1) return;
                 switch_terminal(1);
                 return;
             case(FUNCTION_THREE_PRESSED):
-                putc_to_visible_flag = 0;
+                /* if we are already in the terminal we are trying to switch to, do nothing */
                 if (visible_terminal == 2) return;
                 switch_terminal(2);
                 return;
             default:
+                /* sets the flag back to 1 if we dont end up returning */
+                putc_to_visible_flag = 1;
                 break;
         }
     }
-    /* if we are releasing a key we don't do anything */
-    /* ctrl+L clears screen */  
+    /* ctrl+L clears screen and preserves what was typed on the cmd line before the press */  
     if (control_on[visible_terminal] && pressed == L_SCANCODE){
+        /* clear our temp buf (this is used to save what was in the kbd buf before we clear) and put the values from kbd buf into it */
         memset(temp_kbd_buf[visible_terminal], '\0', KEYBOARD_BUFFER_SIZE);
         memcpy(temp_kbd_buf[visible_terminal], keyboard_buffer[visible_terminal], keyboard_cursor_idx[visible_terminal]);
         temp_kbd_idx[visible_terminal] = keyboard_cursor_idx[visible_terminal];
+        /* clear the screen*/
         clear();
+        /* return from any terminal reads */
         sys_read_flag[visible_terminal] = 0;
+        /* make sure we can still echo */
         echo_flag[visible_terminal] = 1;
+        /* tell the program that we need to write the temp buf onto the screen */
         re_echo_flag[visible_terminal] = 1;
+        /* reset the indexes */
         keyboard_cursor_idx[visible_terminal] = 0;
         keyboard_buffer_end_idx[visible_terminal] = 0;
+        /* clear keyboard buf */
         memset(keyboard_buffer[visible_terminal], '\0', KEYBOARD_BUFFER_SIZE);
+        /* reset this flag to 0 since we are returning */
         putc_to_visible_flag = 0;
         return;
     }
-    /* if tilde, we want to halt RTC spazzing */
-    // if (scancode_to_char[pressed*2] == '`')
-    //     RTC_ON_FLAG[visible_terminal] = (RTC_ON_FLAG[visible_terminal]) ? 0 : 1;
+   
+    /* if we are releasing a key we don't do anything */
     if (pressed >= START_RELEASED || pressed == RIGHT_CONTROL_TAG || pressed > START_IGNORE){
         putc_to_visible_flag = 0;
         return;
     }
-    /* uses the uppercase character in the scancode if shift ^ caps lock is on*/
-    if (!caps_lock_on[visible_terminal] && shift_on[visible_terminal])     // shift_on ^ caps_lock_on
+    /* uses the uppercase character in the scancode if shift ^ caps lock is on */
+    if (!caps_lock_on[visible_terminal] && shift_on[visible_terminal])    
         output_char = scancode_to_char[pressed*2+1];
     
-    // don't let caps lock affect shift
+    /* don't let caps lock affect shift */
     else if ((caps_lock_on[visible_terminal] && !shift_on[visible_terminal] && pressed >= BACKSPACE) 
             && (pressed >= LETTER_START && pressed <= LETTER_END)
             && !(pressed >= CAPS_IGNORE_START && pressed <= CAPS_IGNORE_END) 
             && !(pressed >= IGNORE_BRACKET && pressed <= LEFT_CONTROL_PRESSED))
                 output_char = scancode_to_char[pressed*2+1];
-    
+
+    /* else if caps is on and shift is pressed, print out the lowercase or unshifted version of the scancode char */
     else if ((caps_lock_on[visible_terminal] && shift_on[visible_terminal] && pressed < BACKSPACE))
                 output_char = scancode_to_char[pressed*2+1];
-    
-    else        output_char = scancode_to_char[pressed*2]; // else print out the lowercase or unshifted version of the scancode char
+
+    /* else print out the lowercase or unshifted version of the scancode char */
+    else        output_char = scancode_to_char[pressed*2]; 
     
     /* interaction with _sys_read_terminal */
+    /* if the buffer is full, dont echo anything to screen and don't store it in the buffer */
     if(keyboard_cursor_idx[visible_terminal] == KEYBOARD_BUFFER_SIZE-1) echo_flag[visible_terminal] = 0;
+    /* if there is still space in the buffer to type, put the char int the buffer, increment index */
     if (keyboard_cursor_idx[visible_terminal] < KEYBOARD_BUFFER_SIZE-1 && pressed != ENTER_PRESSED){
         keyboard_buffer[visible_terminal][keyboard_cursor_idx[visible_terminal]++] = output_char;
         keyboard_buffer_end_idx[visible_terminal]++;
+        /* if distance from right isn't 0, decrease it */
         if (distance_from_right[visible_terminal] > 0) distance_from_right[visible_terminal]--;
     }
+    /* case we press enter */
     if(pressed == ENTER_PRESSED){
+        /* if there is still room in the buffer to type, increment index and put the char in the buffer */
         if (keyboard_buffer_end_idx[visible_terminal] < KEYBOARD_BUFFER_SIZE) keyboard_buffer[visible_terminal][keyboard_buffer_end_idx[visible_terminal]++] = output_char;
+        /* update index of cursor -- used for arrow key presses*/
         keyboard_cursor_idx[visible_terminal] = keyboard_buffer_end_idx[visible_terminal];
+        /* if we are in shell, store the command into the last_buf for use with up arrow key */
         if (shell_flag[visible_terminal] == 1){
             memset(last_buf[visible_terminal], '\0', KEYBOARD_BUFFER_SIZE);
             memcpy(last_buf[visible_terminal], keyboard_buffer[visible_terminal], keyboard_cursor_idx[visible_terminal] - 1);
             last_buf_index[visible_terminal] = keyboard_cursor_idx[visible_terminal] - 1;
         }
+        /* set sys_read_flag to 0 so that we can break out of the while loop there*/
         sys_read_flag[visible_terminal] = 0;
+        /* reset all indexes, distance_from_right, and echo flag */
         keyboard_cursor_idx[visible_terminal] = 0;
         keyboard_buffer_end_idx[visible_terminal] = 0;
         echo_flag[visible_terminal] = 1;
         distance_from_right[visible_terminal] = 0;
     }
+    /* clear current buf and store what was typed so far into it -- happens with every key press that is echoed, used for down arrow key press */
         memset(current_buf[visible_terminal], '\0', KEYBOARD_BUFFER_SIZE);
         memcpy(current_buf[visible_terminal], keyboard_buffer[visible_terminal], keyboard_cursor_idx[visible_terminal]);
         current_buf_index[visible_terminal] = keyboard_cursor_idx[visible_terminal];
-
+    /* if echo flag is on, print char to screen */
     if (echo_flag[visible_terminal] == 1) putc(output_char);
+    /* these are pretty self explanatory */
     wraparound();
     scroll_down();
+    /* turn this flag back off since we are exiting the keyboard interrupt */
     putc_to_visible_flag = 0;
 }
 
@@ -354,19 +358,15 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    // if (cur_pcb_ptr[0] != NULL && cur_pcb_ptr[0]->rtc_counter == 0) cur_pcb_ptr[0]->rtc_counter = cur_pcb_ptr[0]->rtc_interrupt_divider;
-    // else if (cur_pcb_ptr[0] != NULL) cur_pcb_ptr[0]->rtc_counter--;
-    // if (cur_pcb_ptr[1] != NULL && cur_pcb_ptr[1]->rtc_counter == 0) cur_pcb_ptr[1]->rtc_counter = cur_pcb_ptr[1]->rtc_interrupt_divider;
-    // else if (cur_pcb_ptr[1] != NULL) cur_pcb_ptr[1]->rtc_counter--;
-    // if (cur_pcb_ptr[2] != NULL && cur_pcb_ptr[2]->rtc_counter == 0) cur_pcb_ptr[2]->rtc_counter = cur_pcb_ptr[2]->rtc_interrupt_divider;
-    // else if (cur_pcb_ptr[2] != NULL) cur_pcb_ptr[2]->rtc_counter--;
+    /* if the counter is at 0, reset it, otherwise decrement it */
     if (cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->rtc_counter == 0) cur_pcb_ptr[process_terminal]->rtc_counter = cur_pcb_ptr[process_terminal]->rtc_interrupt_divider;
     else if (cur_pcb_ptr[process_terminal] != NULL) cur_pcb_ptr[process_terminal]->rtc_counter--;
     
-    
+    /* clears register C so RTC interrupts can continue happening*/
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 
 }
+
 
 /* Array of error messages in order so we can index into them based on the argument of the function call*/
 char * error_messages[NUM_EXCEPTIONS] = {
@@ -399,12 +399,14 @@ char * error_messages[NUM_EXCEPTIONS] = {
 */
 void exception_handler(int index)
 {
+    /* mask interrupts */
     cli();
+    /* turn on error flag to tell halt to return control back to user */
     error_flag[process_terminal] = 1;
-    printf("EXCEPTION %d: %s\n", index, error_messages[index]); // prints out which exception was triggered
-    // sys_halt(index);
+    /* print error message */
+    printf("EXCEPTION %d: %s\n", index, error_messages[index]); 
+    /* halts program */
     sys_halt(index);
-    // sti();
     return;
 }
 

@@ -15,19 +15,20 @@
 /* CONSTANTS FOR GENERAL PAGING SETUP */
 #define NUMBER_OF_ENTRIES       1024
 #define SIZE_OF_PAGE            _4KB_PAGE
-#define KERNEL_START            0x400000    // starting at 4MB
-#define USER_START              _128_MB     // 8MB
+#define KERNEL_START            0x400000    /* starting at 4MB */
+#define USER_START              _128_MB     
 #define USER_END                _132_MB
 #define PRESENT                 0x1
 #define READ_WRITE              0x2
 #define USER                    0x4
 #define GLOBAL_BIT              0x100
 #define PAGE_SIZE               0x80
+
 /* CONSTANTS FOR VIDEO MEMORY PAGING  */
 #define VIDEO_START                     _132_MB
 #define VIDEO                           0xB8000
 #define VIDEO_OFFSET                    (VIDEO >> 12)
-#define TERMINAL_ONE_BUFFER             (VIDEO + _4KB_PAGE) //page_table[0]
+#define TERMINAL_ONE_BUFFER             (VIDEO + _4KB_PAGE) 
 #define TERMINAL_ONE_BUFFER_OFFSET      (VIDEO_OFFSET + 1)
 #define TERMINAL_TWO_BUFFER             (VIDEO + (_4KB_PAGE*2)) 
 #define TERMINAL_TWO_BUFFER_OFFSET      (VIDEO_OFFSET + 2)
@@ -36,12 +37,13 @@
 
 
 /* CONSTANTS FOR PROGRAM PAGING */
-#define SYS_VIRTUAL_MEM     0x20 // 128MB equates to x8000000, however page directory goes in 4MB increments,
-                                 // so we do x8000000 / x400000 = x20
+
+/* 128MB equates to x8000000, however page directory goes in 4MB increments, so we do x8000000 / x400000 = x20 */
+#define SYS_VIRTUAL_MEM     0x20 
 #define PROGRAM_IMAGE       0x08048000
 
 
-// testing globals
+/* testing globals */
 #define ABOVE_KERNEL_MEM        (KERNEL_START + _4MB_PAGE + 4)
 #define BELOW_KERNEL_MEM        (KERNEL_START - 12)
 #define IN_KERNEL_MEM           (KERNEL_START + 12)
@@ -54,7 +56,7 @@ uint32_t page_directory [NUMBER_OF_ENTRIES] __attribute__((aligned (SIZE_OF_PAGE
 uint32_t page_table [NUMBER_OF_ENTRIES] __attribute__((aligned (SIZE_OF_PAGE)));
 uint32_t page_table_vidmap [NUMBER_OF_ENTRIES] __attribute__((aligned (SIZE_OF_PAGE)));
 
-/*function prototype needed to initialize paging */
+/* function prototype needed to initialize paging */
 void paging_init();
 void flush_tlb();
 void program_paging();

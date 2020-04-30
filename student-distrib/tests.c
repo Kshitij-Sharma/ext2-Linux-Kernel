@@ -190,7 +190,7 @@ int test_idt_div_zero(int test_arg){
 	zero = *test;
 	zero = 0;
 	arg = test_arg/zero;
-	arg &= 0x0;				// clear arg for warning removal
+	arg &= 0x0;				/* clear arg for warning removal */
 	return PASS | arg;
 }
 
@@ -682,6 +682,15 @@ int test_directory_read(){
 	return PASS;
 }
 
+/* System Read Test - directory
+ * 
+ * Shows that you can read the directory
+ * Inputs: none
+ * Outputs: PASS or assertion failure
+ * Side Effects: displays contents of the directory
+ * Coverage: file open/read
+ * Files: syscall_handlers.h/.c, filesys.c/.h
+ */
 int test_execute_helpers(){
 	TEST_HEADER;
 	char buf1[128];
@@ -707,9 +716,7 @@ int test_execute(){
 	return PASS;
 }
 
-/* Checkpoint 3 tests */
-/* Checkpoint 4 tests */
-/* Checkpoint 5 tests */
+
 int pit_test(){
 	pit_init(20);
 	printf("pit intiialized \n");
@@ -765,20 +772,9 @@ void launch_tests(){
 	// TEST_OUTPUT("test_sys_open_rtc", test_sys_open_rtc()); // changes frequency of RTC interrupts
 	// TEST_OUTPUT("test_sys_read_rtc", test_sys_read_rtc());
 
-	/* CP3 Tests */
+	/* ******************************** CP3 Tests ******************************* */
 	// TEST_OUTPUT("test_system_call", test_system_call());
 	// TEST_OUTPUT("test_execute_helpers", test_execute_helpers());
 	// TEST_OUTPUT("test_execute", test_execute());
 	// TEST_OUTPUT("test_pit", pit_test());
-
-	/* CP4 Tests */
-	/* CP5 Tests */
-
-	/* CP2 Tests */
-	/* CP2 Tests */
-	/* CP2 Tests */
-
-	/* CP2 Tests */
-	/* CP2 Tests */
-	/* CP2 Tests */
 }

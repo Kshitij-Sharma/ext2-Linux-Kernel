@@ -3,11 +3,11 @@
 #ifndef ASM
 
 
-// #include "types.h"
 #include "i8259.h"
 #include "lib.h"
 #include "idt_handlers.h"
 
+/* handlers for each of the exceptions -- names are pretty self explanatory*/
 extern void divide_by_zero();
 extern void debug();
 extern void non_maskable_interrupt();

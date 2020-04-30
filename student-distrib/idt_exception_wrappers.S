@@ -1,7 +1,7 @@
 #define ASM     1
 #include "idt_exception_wrappers.h"
 .text 
-
+/* declares the function labels */
 .globl divide_by_zero, debug, non_maskable_interrupt, breakpoint
 .globl into_detected_overflow, out_of_bounds, invalid_opcode
 .globl no_coprocessor, double_fault, coprocessor_segment_overrun
@@ -260,4 +260,3 @@ SIMD_floating_point:
 
     popal
     iret
-/*void system_call()                  { return; }*/

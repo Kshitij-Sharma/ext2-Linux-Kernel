@@ -1,6 +1,5 @@
-/* filesys.h - Defines a set of files needed for the file system 
-* 1. Contains a struct for the boot block
-* 2. Contains an index node for a proper file
+/* 
+* filesys.h - Defines a set of files needed for the file system 
 */
 #ifndef _FILESYS
 #define _FILESYS
@@ -15,7 +14,7 @@
 #define DENTRY_RESERVED  24
 
 /* for index nodes */
-#define INODE_SIZE       1023 //[(4KB - 4B)/4B)] because first 4B holds length
+#define INODE_SIZE       1023 
 #define _4KB_            4096
 
 /* file type macros */
@@ -55,7 +54,6 @@ typedef struct boot_block_struct{
   uint32_t inodes;
   uint32_t datablocks;
   char reserved[BOOT_RESERVED];
-  // char reserved[BOOT_RESERVED];
   dentry_t dir_entries[DIR_ENTRIES];
 } boot_block_t;
 /* This structure is used to hold file length
@@ -69,9 +67,9 @@ boot_block_t* boot_block;
 inode_t* inode_head;
 uint8_t* data_blocks;
 
-//
-//  File system routines
-//
+/************************
+ * File system routines *
+ * **********************/
 
 /* Initialize the start of the file system */
 int32_t filesys_init(module_t *offset);
