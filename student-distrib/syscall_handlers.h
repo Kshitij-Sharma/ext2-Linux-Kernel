@@ -13,6 +13,7 @@
 #define MAX_INTERRUPT_FREQUENCY     512 
 #define ERROR_VAL                   256
 #define MIN_RATE                    3
+#define NO_SUCH_CMD_LEN             16
 
 /* function helpers for execute */
 extern int32_t sys_halt(int8_t status);

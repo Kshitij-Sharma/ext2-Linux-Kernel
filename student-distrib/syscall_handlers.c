@@ -29,6 +29,8 @@ uint32_t active_processes[MAX_NUM_PROCESSES] = {0, 0, 0, 0, 0, 0};
  */
 int32_t sys_halt(int8_t status) {
     int32_t i;
+
+    too_many_shells_flag = 0;
     /* closes all file sin PCB */
     for (i = MIN_FD_IDX; i < FILE_DESC_ARR_SIZE; i++)
         if (cur_pcb_ptr[process_terminal]->file_desc_array[i].flags) sys_close(i);
@@ -116,7 +118,10 @@ int32_t sys_execute(const int8_t *command) {
             break;
         }
     }
-    if (i >= MAX_NUM_PROCESSES) return -1;
+    if (i >= MAX_NUM_PROCESSES) {
+        too_many_shells_flag = 1;
+        return -1;
+    }
     active_processes[process_num] = 1;
 
     /* sets up paging scheme for current program */
@@ -585,6 +590,11 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes) {
     /* check edge cases */
     if (NULL == buf || nbytes < 0) return -1;
     if (nbytes == 0) return 0;
+    /* custom error message for too many processes */
+    if (too_many_shells_flag == 1 && strncmp("no such command\n", buf, NO_SUCH_CMD_LEN) == 0) {
+        printf("Too many processes are currently active.\nPlease terminate one with the 'exit' command to start more.\n");
+        return NO_SUCH_CMD_LEN;
+    }
 
     /* put passed in buffer into an appropriately sized buffer */
     memset(write_string, '\0', nbytes);

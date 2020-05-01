@@ -43,7 +43,8 @@ extern char* video_buf[NUM_TERMINALS];
 /* used for wraparound edge case on the far right egdes */
 extern int forward_next[NUM_TERMINALS];
 extern int backward_next[NUM_TERMINALS];
-
+/* name is self explanatory */
+extern int too_many_shells_flag;
 /* **********START OF KBD VARIABLES*************/
 
 #define KEYBOARD_BUFFER_SIZE    128

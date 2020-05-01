@@ -22,8 +22,9 @@ static char* video_mem = (char *)VIDEO;
 char* video_buf[3]= {(char *) TERMINAL_ONE_BUFFER, (char *)TERMINAL_TWO_BUFFER, (char *)TERMINAL_THREE_BUFFER};
 /* global vars used for wraparound/backspace corner case */
 int backward_next[NUM_TERMINALS] = {0, 0, 0};
-int forward_next[NUM_TERMINALS] = {0, 0, 0};       
-
+int forward_next[NUM_TERMINALS] = {0, 0, 0};  
+/* flag to tell us if we have 6 processes running */     
+int too_many_shells_flag = 0;
 /* void backspace(void);
  * Inputs: void
  * Return Value: none
