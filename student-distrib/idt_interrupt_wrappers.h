@@ -1,6 +1,6 @@
 /* idt_interrupt_wrappers.h - Defines for various x86 descriptors, descriptor tables,
  * and selectors
- * vim:ts=4 noexpandtab
+@ * vim:ts=4 noexpandtab
  */
 
 #ifndef _IDT_INTERRUPT_WRAPPERS_H
@@ -11,7 +11,6 @@
 #include "i8259.h"
 #include "lib.h"
 #include "idt_handlers.h"
-#include "multiprocessing.h"
 
 /* calls C function handlers for all 3 of the below */
 extern void keyboard_interrupt_asm();
@@ -27,7 +26,7 @@ extern void system_call_asm();
 #define RTC_DATA_PORT       0x71
 #define PIC_COMMAND_PORT    0x20
 
-#define IRQ_SLAVE           0x02
+#define IRQ_SLAVE           2
 #define IRQ_RTC             8
 #define IRQ_KEYBOARD        1
 #define IRQ_PIT             0

@@ -1,8 +1,8 @@
 #ifndef _SYSCALL_HANDLERS_H
 #define _SYSCALL_HANDLERS_H
 
-#include "idt_handlers.h"
 #include "lib.h"
+#include "idt_handlers.h"
 #include "rtc.h"
 #include "filesys.h"
 #include "paging.h"

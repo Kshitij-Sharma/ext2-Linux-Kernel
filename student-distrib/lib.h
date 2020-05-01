@@ -34,38 +34,45 @@ int8_t* strncpy(int8_t* dest, const int8_t*src, uint32_t n);
 void test_interrupts(void);
 
 /* helper functions that do exactly what their name says */
-int log_base_two(int n);
-int power_of_two(int num);
+int32_t log_base_two(int32_t n);
+int32_t power_of_two(int32_t num);
 void update_cursor();
 /* holds location of each terminal's buffer */
 extern char* video_buf[NUM_TERMINALS];
 
 /* used for wraparound edge case on the far right egdes */
-extern int forward_next[NUM_TERMINALS];
-extern int backward_next[NUM_TERMINALS];
+extern int32_t forward_next[NUM_TERMINALS];
+extern int32_t backward_next[NUM_TERMINALS];
 /* name is self explanatory */
-extern int too_many_shells_flag;
-/* **********START OF KBD VARIABLES*************/
+extern int32_t too_many_shells_flag;
 
+/***********START OF KBD VARIABLES*************/
 #define KEYBOARD_BUFFER_SIZE    128
-#define NUM_TERMINALS           3
+/* main buffer used for input/output */
 char keyboard_buffer[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];
-volatile int sys_read_flag[NUM_TERMINALS];
-volatile int shell_flag[NUM_TERMINALS];
-int keyboard_cursor_idx[NUM_TERMINALS];
-int keyboard_buffer_end_idx[NUM_TERMINALS];
-
+/* flag for sys_read to know when enter is pressed */
+volatile int32_t sys_read_flag[NUM_TERMINALS];
+/* flag to know if shell is currently active or a different program */
+volatile int32_t shell_flag[NUM_TERMINALS];
+/* cursor index */
+int32_t keyboard_cursor_idx[NUM_TERMINALS];
+/* index of the keyboard buffer's last char */
+int32_t keyboard_buffer_end_idx[NUM_TERMINALS];
+ 
+/* used for ctrl+L */
 char temp_kbd_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];    /* used for ctrl-L to store what was already typed */
 char last_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];        /* used for up arrow to store previous command */
 char current_buf[NUM_TERMINALS][KEYBOARD_BUFFER_SIZE];     /* used for down arrow to store a copy of current command */
-int last_buf_index[NUM_TERMINALS];
-int current_buf_index[NUM_TERMINALS];
+int32_t last_buf_index[NUM_TERMINALS];
+int32_t current_buf_index[NUM_TERMINALS];
+int32_t typing_during_prog_flag[NUM_TERMINALS];
 
+/* index used for temp_kbd_buf for ctrl+L and for typing during program execution */
 int temp_kbd_idx[NUM_TERMINALS];                            
 int re_echo_flag[NUM_TERMINALS];                            /* flag to see if we need to re display text for control L */
 int putc_to_visible_flag;
 
-/* **********END OF KBD VARIABLES*************/
+/***********END OF KBD VARIABLES*************/
 
 /* Userspace address-check functions */
 int32_t bad_userspace_addr(const void* addr, int32_t len);

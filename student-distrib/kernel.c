@@ -14,7 +14,6 @@
 
 
 #define RUN_TESTS
-#define NUM_TERMINAL 3
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -148,16 +147,19 @@ void entry(unsigned long magic, unsigned long addr) {
     rtc_init();
     filesys_init((module_t*)mbi->mods_addr);
     paging_init();
+
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your
      * IDT correctly otherwise QEMU will triple fault and simple close
      * without showing you any output */
     printf("Enabling Interrupts\n");
+    
     sti();
     clear();
-    int i;
+
+    int32_t i;
     /* sets up terminals for proper printing */
-    for (i = 0; i < NUM_TERMINAL; i++){
+    for (i = 0; i < NUM_TERMINALS; i++){
         forward_next[i] = 1;
         backward_next[i] = NUM_COLS;
     }

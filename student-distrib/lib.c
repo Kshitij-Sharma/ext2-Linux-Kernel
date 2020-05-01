@@ -16,46 +16,62 @@
 /* screen_x and screen_y are position of cursor for each terminal */
 static int screen_x[NUM_TERMINALS] = {0, 0, 0};
 static int screen_y[NUM_TERMINALS] = {0, 0, 0};
-/* video memory variable */
+
+/* video memory and buffers  */
 static char* video_mem = (char *)VIDEO;
-/* buffers for each terminal */
-char* video_buf[3]= {(char *) TERMINAL_ONE_BUFFER, (char *)TERMINAL_TWO_BUFFER, (char *)TERMINAL_THREE_BUFFER};
+char* video_buf[NUM_TERMINALS]= {(char *) TERMINAL_ONE_BUFFER, (char *)TERMINAL_TWO_BUFFER, (char *)TERMINAL_THREE_BUFFER};
+
 /* global vars used for wraparound/backspace corner case */
-int backward_next[NUM_TERMINALS] = {0, 0, 0};
-int forward_next[NUM_TERMINALS] = {0, 0, 0};  
+int32_t backward_next[NUM_TERMINALS] = {0, 0, 0};
+int32_t forward_next[NUM_TERMINALS] = {0, 0, 0};  
+
 /* flag to tell us if we have 6 processes running */     
-int too_many_shells_flag = 0;
+int32_t too_many_shells_flag = 0;
+
 /* void backspace(void);
  * Inputs: void
  * Return Value: none
  * Function: Backspace functionality */
-int right_arrow(void){
-    if ((screen_x[visible_terminal] == NUM_COLS) && (screen_y[visible_terminal] == NUM_ROWS - 1)) return 0;
-    if (keyboard_cursor_idx[visible_terminal] == KEYBOARD_BUFFER_SIZE - 1){
+int32_t right_arrow(void){
+    if ((screen_x[visible_terminal] == NUM_COLS) 
+        && (screen_y[visible_terminal] == NUM_ROWS - 1)) 
         return 0;
-    }
-    if (screen_x[visible_terminal] != NUM_COLS){
+        
+    if (keyboard_cursor_idx[visible_terminal] == KEYBOARD_BUFFER_SIZE - 1)
+        return 0;
+
+    if (screen_x[visible_terminal] != NUM_COLS)
+    {
         /* moves cursor back */
         screen_x[visible_terminal]++;
         /* deletes char at cursor */
         forward_next[visible_terminal] = screen_x[visible_terminal] + 1;
         backward_next[visible_terminal] = screen_x[visible_terminal] - 1;
-        if (screen_x[visible_terminal] == 80) {
+        if (screen_x[visible_terminal] == NUM_COLS) 
+        {
             backward_next[visible_terminal] = 0;
-            forward_next[visible_terminal] = 79;
+            forward_next[visible_terminal] = NUM_COLS - 1;
         }
         update_cursor();
         return 1;
     }
+
     /* case where we go up a line */
-    if (screen_x[visible_terminal] == NUM_COLS && screen_y[visible_terminal] < NUM_ROWS - 1){
-        if (*(uint8_t *)(VIDEO + ((NUM_COLS * (screen_y[visible_terminal] + 1) + NUM_COLS-1) << 1)) == '\n') return 0;
-        if (backward_next == 0){
+    if (screen_x[visible_terminal] == NUM_COLS 
+        && screen_y[visible_terminal] < NUM_ROWS - 1)
+    {
+        if (*(uint8_t *)(VIDEO + ((NUM_COLS * (screen_y[visible_terminal] + 1) + NUM_COLS-1) << 1)) == '\n') 
+            return 0;
+        
+        /* case where we are at the start */
+        if (backward_next == 0)
+        {
             screen_x[visible_terminal] = 0;
             backward_next[visible_terminal] = NUM_COLS;
             forward_next[visible_terminal] = 1;
         }
         screen_y[visible_terminal]++;
+        
         /* move cursor up */
         update_cursor();
         return 1;
@@ -70,37 +86,48 @@ int right_arrow(void){
  * Inputs: void
  * Return Value: none
  * Function: Backspace functionality */
-int left_arrow(void){
-    if (screen_x[visible_terminal] == 0 && screen_y[visible_terminal] == 0) return 0;
-    if (keyboard_cursor_idx[visible_terminal] == 0){
+int32_t left_arrow(void){
+    if (screen_x[visible_terminal] == 0 
+        && screen_y[visible_terminal] == 0) 
         return 0;
-    }
-    if (screen_x[visible_terminal] != 0){
+    if (keyboard_cursor_idx[visible_terminal] == 0)
+        return 0;
+
+    if (screen_x[visible_terminal] != 0)
+    {
         /* moves cursor back */
         screen_x[visible_terminal]--;
         /* deletes char at cursor */
         forward_next[visible_terminal] = screen_x[visible_terminal] + 1;
         backward_next[visible_terminal] = screen_x[visible_terminal] - 1;
-        if (screen_x[visible_terminal] == 0) {
-            backward_next[visible_terminal] = 80;
+        
+        /* case where we are at the start */
+        if (screen_x[visible_terminal] == 0) 
+        {
+            backward_next[visible_terminal] = NUM_COLS;
             forward_next[visible_terminal] = 1;
         }
         update_cursor();
         return 1;
     }
+
     /* case where we go up a line */
-    if (screen_x[visible_terminal] == 0 && screen_y[visible_terminal] != 0){
-        if (*(uint8_t *)(VIDEO + ((NUM_COLS * (screen_y[visible_terminal] - 1) + NUM_COLS-1) << 1)) == '\n') return 0;
-        if (backward_next[visible_terminal] == 80){
+    if (screen_x[visible_terminal] == 0 && screen_y[visible_terminal] != 0)
+    {
+        if (*(uint8_t *)(VIDEO + ((NUM_COLS * (screen_y[visible_terminal] - 1) + NUM_COLS-1) << 1)) == '\n') 
+            return 0;
+        if (backward_next[visible_terminal] == NUM_COLS)
+        {
             screen_x[visible_terminal] = NUM_COLS-1;
-            backward_next[visible_terminal] = 79;
+            backward_next[visible_terminal] = NUM_COLS - 1;
             forward_next[visible_terminal] = 0;
+        }else
+        {
+            screen_x[visible_terminal] = NUM_COLS - 1;
+            forward_next[visible_terminal] = NUM_COLS;
+            backward_next[visible_terminal] = NUM_COLS - 2;
         }
-        else{
-            screen_x[visible_terminal] = NUM_COLS-1;
-            forward_next[visible_terminal] = 80;
-            backward_next[visible_terminal] = 78;
-        }
+        
         screen_y[visible_terminal]--;
         /* move cursor up */
         update_cursor();
@@ -148,32 +175,38 @@ void clear(void) {
  * Return Value: none
  * Function: Scrolls the page down */
 void scroll_down(void) {
-    int term = (putc_to_visible_flag == 0) ? process_terminal : visible_terminal;
+    int32_t term = (putc_to_visible_flag == 0) ? 
+                    process_terminal : visible_terminal;
+    
     if (screen_y[term] >= NUM_ROWS){
         int32_t i;
         /* move text on screen up */
         for (i = NUM_COLS; i < NUM_ROWS * NUM_COLS; i++) {
-            if (visible_terminal == term){
+            
+            if (visible_terminal == term)
+            {
                 *(uint8_t *)(VIDEO + ((i-NUM_COLS) << 1)) =  *(uint8_t *)(VIDEO + (i << 1));
                 *(uint8_t *)(VIDEO + (i << 1) + 1) = ATTRIB;
-            }
-            else{
+            }else
+            {
                 *(uint8_t *)(video_buf[term] + ((i-NUM_COLS) << 1)) =  *(uint8_t *)(video_buf[term] + (i << 1));
                 *(uint8_t *)(video_buf[term] + (i << 1) + 1) = ATTRIB;
             }
         }
+
         /* fill in the bottom row with blanks */
         for (i = (NUM_ROWS-1) * NUM_COLS; i < NUM_ROWS*NUM_COLS; i++){
-            if (visible_terminal == term){
+            if (visible_terminal == term)
+            {
                 *(uint8_t *)(VIDEO + (i << 1)) = '\0';
                 *(uint8_t *)(VIDEO + (i << 1) + 1) = ATTRIB;
-            }
-            else{
+            }else
+            {
                 *(uint8_t *)(video_buf[term] + (i << 1)) = '\0';
                 *(uint8_t *)(video_buf[term] + (i << 1) + 1) = ATTRIB;
             }
         }
-        screen_y[term] = NUM_ROWS-1;
+        screen_y[term] = NUM_ROWS - 1;
         screen_x[term] = 0;
     }
 }
@@ -183,15 +216,20 @@ void scroll_down(void) {
  * Return Value: none
  * Function: wraps curos around to next  */
 void wraparound(void) {
-    int term = (putc_to_visible_flag == 0) ? process_terminal : visible_terminal;
-    if (forward_next[term] == 80){
+    int32_t term = (putc_to_visible_flag == 0) ? 
+                process_terminal : visible_terminal;
+    
+    /* case where we are a the end*/
+    if (forward_next[term] == NUM_COLS)
         forward_next[term] = 0;
-    }
-    if (screen_x[term] == NUM_COLS - 1)       forward_next[term] = 80;
+    if (screen_x[term] == NUM_COLS - 1)       
+        forward_next[term] = NUM_COLS;
+        
+    /* case where we are at the start */
     if(screen_x[term] == 0 && forward_next[term] == 0)
     {
         screen_y[term]++;
-        backward_next[term] = 80;
+        backward_next[term] = NUM_COLS;
         forward_next[term] = 1;
     }
 }
@@ -201,11 +239,13 @@ void wraparound(void) {
  * Return Value: none
  * Function: Backspace functionality */
 void backspace(void){
-    if (screen_x[visible_terminal] == 0 && screen_y[visible_terminal] == 0) return;
-    if (keyboard_cursor_idx[visible_terminal] == 0){
+    if (screen_x[visible_terminal] == 0 && screen_y[visible_terminal] == 0) 
         return;
-    }
-    if (screen_x[visible_terminal] != 0){
+    if (keyboard_cursor_idx[visible_terminal] == 0)
+        return;
+    
+    if (screen_x[visible_terminal] != 0)
+    {
         /* moves cursor back */
         screen_x[visible_terminal]--;
         /* deletes char at cursor */
@@ -213,8 +253,11 @@ void backspace(void){
         *(uint8_t *)(VIDEO + ((NUM_COLS * screen_y[visible_terminal] + screen_x[visible_terminal]) << 1) + 1) = ATTRIB;
         forward_next[visible_terminal] = screen_x[visible_terminal] + 1;
         backward_next[visible_terminal] = screen_x[visible_terminal] - 1;
-        if (screen_x[visible_terminal] == 0) {
-            backward_next[visible_terminal] = 80;
+    
+        /* case where we are at the start */
+        if (screen_x[visible_terminal] == 0) 
+        {
+            backward_next[visible_terminal] = NUM_COLS;
             forward_next[visible_terminal] = 1;
         }
         update_cursor();
@@ -222,17 +265,21 @@ void backspace(void){
     }
     /* case where we go up a line */
     if (screen_x[visible_terminal] == 0 && screen_y[visible_terminal] != 0){
-        if (*(uint8_t *)(VIDEO + ((NUM_COLS * (screen_y[visible_terminal] - 1) + NUM_COLS-1) << 1)) == '\n') return;
-        if (backward_next[visible_terminal] == 80){
-            screen_x[visible_terminal] = NUM_COLS-1;
-            backward_next[visible_terminal] = 79;
+        if (*(uint8_t *)(VIDEO + ((NUM_COLS * (screen_y[visible_terminal] - 1) + NUM_COLS-1) << 1)) == '\n') 
+            return;
+        
+        /* case where we are at the end */
+        if (backward_next[visible_terminal] == NUM_COLS)
+        {
+            screen_x[visible_terminal] = NUM_COLS - 1;
+            backward_next[visible_terminal] = NUM_COLS - 1;
             forward_next[visible_terminal] = 0;
-        }
-        else{
+        }else{
             screen_x[visible_terminal] = NUM_COLS-1;
             forward_next[visible_terminal] = 80;
             backward_next[visible_terminal] = 78;
         }
+
         /* delete last char in prev row */
         *(uint8_t *)(VIDEO + ((NUM_COLS * (screen_y[visible_terminal] - 1) + screen_x[visible_terminal]) << 1)) = ' ';
         *(uint8_t *)(VIDEO + ((NUM_COLS * (screen_y[visible_terminal] - 1) + screen_x[visible_terminal]) << 1) + 1) = ATTRIB;
@@ -249,15 +296,16 @@ void backspace(void){
  * Inputs: n: number to calculate log of
  * Return Value: log of n 
  * Function: Calculates log base 2 of n */
-int log_base_two(int n) 
+int32_t log_base_two(int32_t n) 
 { 
     return (n > 1) ? 1 + log_base_two(n / 2) : 0; 
 } 
+
 /* void power_of_two(int num);
  * Inputs: num: int to check if it is power of two
  * Return Value: 0 for success, 1 for failure
  * Function: Checks for power of two  */
-int power_of_two(int num){
+int32_t power_of_two(int32_t num){
     if (num == 0) return 1;
     while (num != 1){
         if (num % 2 == 1) return 1;
@@ -298,7 +346,7 @@ int32_t printf(int8_t *format, ...) {
                     int32_t alternate = 0;
                     buf++;
 
-format_char_switch:
+                    format_char_switch:
                     /* Conversion specifiers */
                     switch (*buf) {
                         /* Print a literal '%' character */

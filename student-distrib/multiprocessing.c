@@ -15,7 +15,7 @@ pcb_t *cur_pcb_ptr[NUM_TERMINALS] = {NULL, NULL, NULL};
 void switch_terminal(int32_t terminal_num)
 {
     /* error checking */
-    if (terminal_num < 0 || terminal_num >= NUM_TERMINAL) return;
+    if (terminal_num < 0 || terminal_num >= NUM_TERMINALS) return;
 
     /* gets the video buffer address of the current terminal */
     uint32_t prev_terminal_video = (visible_terminal == 0) ? TERMINAL_ONE_BUFFER : (visible_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
@@ -56,9 +56,13 @@ void scheduling()
 {
     /* make sure pit doesn't occur before first shell runs */
     if (pit_flag == 0) return;
-    /* gets video memory of process we are switching away from */
+
+    /** TERMINAL WE ARE SWITCHING AWAY FROM
+     *      1. gets video memory of process we are switching away from 
+     *      2. saves ESP and EBP of current process if there is a process running
+     *      3. switching AWAY from a terminal using vidmap -> switch vidmap
+     **/
     uint32_t prev_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
-    /* saves ESP and EBP of current process if there is a process running */
     if (cur_pcb_ptr[process_terminal] != NULL)
     {
         asm volatile(
@@ -66,34 +70,40 @@ void scheduling()
             "movl %%ebp, %1;"
             : "=r"((cur_pcb_ptr[process_terminal]->esp)), "=r"((cur_pcb_ptr[process_terminal]->ebp)));
     }
-    /* switching AWAY from a terminal using vidmap */
     if (cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->vidmap_terminal == 1) 
         vidmap_paging_modify(prev_terminal_video);
 
+
+    /** UPDATE TERMINAL 
+     *      1. circularly update process terminal
+     *      2. execute shell if no processes
+    */
     process_terminal = (process_terminal + 1) % 3;
-    /* if shell has not yet been started on the terminal */
     if (cur_pcb_ptr[process_terminal] == NULL)
     {
         sys_execute("shell");
         return;
     }
-    /* increments to the next procress */
-    uint32_t new_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
 
-    /* set the page to the proper updated process*/
+
+    /** TERMINAL WE ARE SWITCHING TO
+     *      1. gets video memory of new terminal 
+     *      2. sets up program paging
+     *      3. set tss for context switch
+     *      4. switching TO vidmap -> set vidmap to video  
+     *      5. perform context switch in assembly
+     **/
+    uint32_t new_terminal_video = (process_terminal == 0) ? TERMINAL_ONE_BUFFER : (process_terminal == 1) ? TERMINAL_TWO_BUFFER : TERMINAL_THREE_BUFFER;
     program_paging((cur_pcb_ptr[process_terminal]->process_id * _4MB_PAGE) + _8_MB);
 
-    /* proper setup for context switch */
     tss.ss0 = KERNEL_DS;
-    /* pointer to the top of stack/pcb */
     tss.esp0 = (uint32_t)(_8_MB - _8_KB * (cur_pcb_ptr[process_terminal]->process_id) - _4_BYTES); 
-    /* the terminal we are swtiching TO is using vidmap */
+    
     if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1 && process_terminal == visible_terminal)
         vidmap_paging_modify(VIDEO);
     else if (cur_pcb_ptr[process_terminal]->vidmap_terminal == 1)
         vidmap_paging_modify(new_terminal_video);
 
-    /* restore esp and ebp */
     asm volatile(
         "movl %0, %%esp;" /* push user_ds */
         "movl %1, %%ebp;"

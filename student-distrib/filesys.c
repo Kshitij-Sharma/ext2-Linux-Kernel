@@ -5,12 +5,12 @@
 
 #include "filesys.h"
 
-/*
-    filesys_init()
-    Description: Initializes the filsystem at the proper starting address
-    Inputs: offset - starting address of the file system
-    Outputs: None
-    Return Value: 0 if success
+/**
+ * filesys_init()
+ * Description: Initializes the filsystem at the proper starting address
+ * Inputs: offset - starting address of the file system
+ * Outputs: None
+ * Return Value: 0 if success
 */
 int32_t filesys_init(module_t *offset)
 {
@@ -22,14 +22,15 @@ int32_t filesys_init(module_t *offset)
   data_blocks = (uint8_t *)((_4KB_ * (int32_t)boot_block->inodes) + (uint32_t)inode_head);
   return 0;
 }
-/*
-    read_dentry_by_name()
-    Description: Using directory entry name, this function copies the file information
-    to a dentry pointer
-    Inputs: fname - string of the filename
-            dentry - holds file 
-    Outputs: None
-    Return Value: 
+
+/**
+ * read_dentry_by_name()
+ * Description: Using directory entry name, this function copies the file information
+ *              to a dentry pointer
+ * Inputs:  fname - string of the filename
+ *          dentry - holds file 
+ * Outputs: None
+ * Return Value: 0 on succes, -1 on failure 
 */
 int32_t read_dentry_by_name(const uint8_t *fname, dentry_t *dentry)
 {
@@ -38,6 +39,7 @@ int32_t read_dentry_by_name(const uint8_t *fname, dentry_t *dentry)
     return -1;
   if (strlen((const int8_t *)fname) > FILENAME_LEN)
     return -1;
+  
   /* loops through all 63 files and checks for the proper name match */
   uint32_t i;
 
@@ -47,55 +49,54 @@ int32_t read_dentry_by_name(const uint8_t *fname, dentry_t *dentry)
     if (!strncmp((int8_t *)fname, (int8_t *)(boot_block->dir_entries)[i].file_name, FILENAME_LEN))
       return read_dentry_by_index(i, dentry);
   }
-
+  /* if not found, we return -1*/
   return -1;
 }
 
 /*
-*   read_dentry_by_index()
-*   Description: Using an index, this function copies the file information
-*   to a dentry pointer
-*   Return Value
-*   Inputs: index - index value of file
-*           dentry - holds file 
-*   Outputs: None
+* read_dentry_by_index()
+* Description: Using an index, this function copies the file information
+* to a dentry pointer
+* Return Value
+* Inputs: index - index value of file
+*         dentry - holds file 
+* Outputs: None
 */
 int32_t read_dentry_by_index(uint32_t index, dentry_t *dentry)
 {
-  if (!(index < DIR_ENTRIES) || (dentry == NULL))
+  /* if index is too large or the dentry is nonexistent, fail  */
+  if (index >= DIR_ENTRIES || (dentry == NULL))
     return -1;
 
+  /* creats a temp dentry for comparison purposes*/
   dentry_t *temp = &((boot_block->dir_entries)[index]);
 
   /* populate dentry */
   (dentry->file_type) = (temp->file_type);
-  (dentry->inode) = (temp->inode);
+  (dentry->inode)     = (temp->inode);
   /* copy the contents of filename */
   uint32_t i;
-  for (i = 0; i < FILENAME_LEN; i++)
-  {
-    (dentry->file_name)[i] = (temp->file_name)[i];
-  }
+  for (i = 0; i < FILENAME_LEN; i++)    (dentry->file_name)[i] = (temp->file_name)[i];
+  
   return 0;
 }
 
-/*
-*   read_data()
-*   Description: Reads a certain number of bytes from the datablocks in the filesystem
-*   Return Value
-*   Inputs: inode - index node number
-            offset - position in file we want to read from
-            buf - buffer we want to copy the data to
-            length - number of bytes to read starting at offset
-*   Outputs: None
+/**
+* read_data()
+* Description: Reads a certain number of bytes from the datablocks in the filesystem
+* Return Value
+* Inputs: inode - index node number
+*         offset - position in file we want to read from
+*         buf - buffer we want to copy the data to
+*         length - number of bytes to read starting at offset
+* Outputs: None
 */
 int32_t read_data(uint32_t inode, uint32_t offset, uint8_t *buf, uint32_t length)
 {
-  inode_t *file_cur;
-  uint8_t *data_cur;
-  uint32_t bytes_read = 0;
-  int data_block_num = offset / _4KB_;
-  int i = 0;
+  inode_t *file_cur; 
+  uint8_t *data_cur; 
+  uint32_t bytes_read = 0, data_block_num = offset / _4KB_, i = 0;
+  
   /* parameter checks  */
   if (inode < 0 || inode >= DIR_ENTRIES || buf == NULL || length < 0)
     return -1;

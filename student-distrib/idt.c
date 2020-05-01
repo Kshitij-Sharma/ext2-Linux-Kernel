@@ -9,7 +9,7 @@
                                         40 for RTC interrupts
 */
 void idt_init(){
-    int i;          /* loop variable */
+    int32_t i;          /* loop variable */
     /* Array that stores pointers to the exception/interrupt handlers*/
     void * interrupts_and_excpetions[NUM_VEC] = {
         divide_by_zero,             /* excpetion start */

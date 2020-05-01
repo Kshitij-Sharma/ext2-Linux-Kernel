@@ -16,8 +16,8 @@ file_ops_t std_in_fops = {_sys_read_terminal, _sys_dummy_write, _sys_dummy_open,
 file_ops_t std_out_fops = {_sys_dummy_read, _sys_write_terminal, _sys_dummy_open, _sys_dummy_close};
 
 int8_t buf_executable_header[NUM_TERMINALS][HEADER_INFO];
-int read_dir_flag[NUM_TERMINALS] = {0, 0, 0};
-int arg_flag[NUM_TERMINALS] = {1, 1, 1};
+int32_t read_dir_flag[NUM_TERMINALS] = {0, 0, 0};
+int32_t arg_flag[NUM_TERMINALS] = {1, 1, 1};
 uint32_t active_processes[MAX_NUM_PROCESSES] = {0, 0, 0, 0, 0, 0};
 
 /** sys_halt
@@ -29,8 +29,8 @@ uint32_t active_processes[MAX_NUM_PROCESSES] = {0, 0, 0, 0, 0, 0};
  */
 int32_t sys_halt(int8_t status) {
     int32_t i;
-
     too_many_shells_flag = 0;
+    
     /* closes all file sin PCB */
     for (i = MIN_FD_IDX; i < FILE_DESC_ARR_SIZE; i++)
         if (cur_pcb_ptr[process_terminal]->file_desc_array[i].flags) sys_close(i);
@@ -51,6 +51,11 @@ int32_t sys_halt(int8_t status) {
     /* sets program paging to previous process */
     program_paging(((cur_pcb_ptr[process_terminal]->process_id) * _4MB_PAGE) + _8_MB);
     shell_flag[process_terminal] = 1;
+    /* if we typed during the execution of a program, add a newline and turn the flag off*/
+    if (typing_during_prog_flag[process_terminal] == 1){
+        putc('\n');
+        typing_during_prog_flag[process_terminal] = 0;
+    }
 
     /* returns to previous program's execution */
     /* switch stack context */
@@ -79,7 +84,6 @@ int32_t sys_halt(int8_t status) {
 int32_t sys_execute(const int8_t *command) {
     int8_t tempret = 0, prog_name[FILENAME_LEN], arg[KEYBOARD_BUFFER_SIZE];
     uint32_t return_value = 0, term = visible_terminal, i;
-
     process_num = 0;
 
     /* parses arguments passed into command, stores them in prog_name and arg */
@@ -87,13 +91,15 @@ int32_t sys_execute(const int8_t *command) {
     memset(arg, '\0', KEYBOARD_BUFFER_SIZE);
     tempret = _execute_parse_args(command, prog_name, arg);
     if (tempret == -1) return -1;
+
     /* checks if we are executing from scheduling vs. from command line */
     if (cur_pcb_ptr[process_terminal] == NULL) term = process_terminal;
-    /* reset flags */
+
+    /* set flags based on argument and error condition */
     error_flag[term] = 0;
     arg_flag[term] = 1;
-    /* set to 0 if no arguments */
     if (tempret == -2) arg_flag[term] = 0;
+
 
     /* saves the old base and stack pointer prior to execution to return to later*/
     if (cur_pcb_ptr[term] != NULL)
@@ -108,7 +114,7 @@ int32_t sys_execute(const int8_t *command) {
     tempret = _execute_executable_check(prog_name, buf_executable_header[term]);
     if (tempret == -1) return -1;
 
-    /* computes the process ID */
+    /* computes the process ID and sets process to active */
     for (i = 0; i < MAX_NUM_PROCESSES; i++)
     {
         if (active_processes[i] == 1) continue;
@@ -127,11 +133,9 @@ int32_t sys_execute(const int8_t *command) {
     /* sets up paging scheme for current program */
     tempret = _execute_setup_program_paging();
     if (tempret == -1) return -1;
-
     /* loads the user program */
     tempret = _execute_user_program_loader(prog_name);
     if (tempret == -1) return -1;
-
     /* checks if we are executing shell */
     if (strncmp(prog_name, "shell", 5) == 0) shell_flag[term] = 1;
         else shell_flag[term] = 0;
@@ -207,7 +211,7 @@ int32_t _execute_executable_check(int8_t *prog_name, int8_t *buf) {
 
     /* fills buf with 40 bytes of program info, we use read_dentry/data b/c we don't want to move our pointer forward */
     ret = read_dentry_by_name((uint8_t *)prog_name, &prog_dentry);
-    if (prog_dentry.file_type != REGULAR_FILE || ret == -1) return -1;
+    if (prog_dentry.file_type != FILE || ret == -1) return -1;
     read_data(prog_dentry.inode, 0, (uint8_t *)buf, _4KB_);
 
     /* checks "ELF" */
@@ -393,7 +397,7 @@ int32_t sys_open(const uint8_t *filename) {
     /* switches based on type of file */
     switch (this_dentry.file_type)
     {
-    case RTC_FILE:
+    case RTC:
         this_fops = &rtc_fops;
         this_inode = _sys_open_rtc(filename); /* returns 0 */
         break;
@@ -401,7 +405,7 @@ int32_t sys_open(const uint8_t *filename) {
         this_fops = &dir_fops;
         this_inode = _sys_open_directory(filename); /* returns 0 */
         break;
-    case REGULAR_FILE:
+    case FILE:
         this_fops = &file_fops;
         this_inode = _sys_open_file(filename); /* returns inode */
         break;
@@ -543,8 +547,8 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes) {
 
     memset(keyboard_buffer[process_terminal], '\0', KEYBOARD_BUFFER_SIZE);
 
-    /* for ctrl L */
-    if (re_echo_flag[process_terminal] == 1)
+    /* for ctrl L and for typing during execution of a program (saving the chars typed) */
+    if (re_echo_flag[process_terminal] == 1 || (shell_flag[process_terminal] == 1 && temp_kbd_idx[process_terminal] != 0))
     {
         keyboard_cursor_idx[process_terminal] = temp_kbd_idx[process_terminal];
         keyboard_buffer_end_idx[process_terminal] = keyboard_cursor_idx[process_terminal];
@@ -555,6 +559,8 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes) {
             i++;
         }
         re_echo_flag[process_terminal] = 0;
+        memset(temp_kbd_buf[process_terminal], '\0', KEYBOARD_BUFFER_SIZE);
+        temp_kbd_idx[process_terminal] = 0;
     }
 
     /* adjusts nbytes if overflow */
@@ -709,7 +715,6 @@ int32_t _sys_open_file(const uint8_t *filename) {
     /* sets up a blank dentry to be filled by read */
     this_file.inode = 0;
     this_file.file_type = 0;
-    data_bytes_read = 0;
 
     /* populates dentry with read call */
     ret_val = read_dentry_by_name(file, &this_file);

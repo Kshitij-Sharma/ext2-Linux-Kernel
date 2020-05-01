@@ -4,10 +4,6 @@
 
 #include "i8259.h"
 
-/* Interrupt masks to determine which interrupts are enabled and disabled */
-uint8_t master_mask; /* IRQs 0-7  */
-uint8_t slave_mask;  /* IRQs 8-15 */
-
 /* i8259_init(void) initializes the PIC
         INPUTS: none
         OUTPUTS: none

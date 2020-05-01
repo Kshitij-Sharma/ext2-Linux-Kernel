@@ -8,7 +8,7 @@
 #include "PCB.h"
 #include "idt_interrupt_wrappers.h"
 
-#define NUM_TERMINAL   3
+#define NUM_TERMINALS       3
 
 /* function to switch video memory */
 extern void switch_terminal(int32_t terminal_num);
@@ -20,6 +20,6 @@ extern volatile uint32_t visible_terminal;
 /* variable that tells us which terminal the current process is running on */
 extern volatile uint32_t process_terminal;
 /* array of current pcb pointer of each terminal */
-extern pcb_t* cur_pcb_ptr[NUM_TERMINAL];
+extern pcb_t* cur_pcb_ptr[NUM_TERMINALS];
 
 #endif

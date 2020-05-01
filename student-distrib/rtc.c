@@ -7,7 +7,7 @@
 */
 void rtc_init(){
     char prev;
-    int i;
+    int32_t i;
     for (i = 0; i < NUM_TERMINALS; i++){
         re_echo_flag[i] = 0;
         RTC_ON_FLAG[i] = 0;

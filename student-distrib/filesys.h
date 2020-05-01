@@ -18,14 +18,13 @@
 #define _4KB_            4096
 
 /* file type macros */
-#define RTC_FILE          0
+#define RTC               0
 #define DIRECTORY         1
-#define REGULAR_FILE      2
-
+#define FILE              2
 
 /* executable information */
-#define HEADER_INFO       40
-#define EXECUTABLE_CHECK  4
+#define HEADER_INFO                 40
+#define EXECUTABLE_CHECK            4
 #define ELF_ONE                     0x7F
 #define ELF_TWO                     0x45
 #define ELF_THREE                   0x4C
@@ -34,10 +33,7 @@
 #define ELF_BYTE_TWO                26
 #define ELF_BYTE_THREE              25
 #define ELF_BYTE_FOUR               24
-
-
-typedef int32_t bytes_offset;       
-bytes_offset data_bytes_read;                                                                                                                                                                             ;
+                                                                                                                                                                           ;
 /* This structure is used to hold file attributes such as 
  * file name, size, index node value, and reserved data */
 typedef struct dentry_struct{
@@ -56,6 +52,7 @@ typedef struct boot_block_struct{
   char reserved[BOOT_RESERVED];
   dentry_t dir_entries[DIR_ENTRIES];
 } boot_block_t;
+
 /* This structure is used to hold file length
  * and file data block numbers */
 typedef struct inode_struct{

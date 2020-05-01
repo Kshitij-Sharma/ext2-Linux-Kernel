@@ -40,37 +40,37 @@
 #define FUNCTION_THREE_PRESSED      0x3D      
 #define C_SCANCODE                  0x2E
 
+#define NUM_EXCEPTIONS          20
+#define NUM_CODES               116
+
+#define KB_DATA_PORT            0x60 
+#define KB_STATUS_REGISTER      0x64        
+#define KB_CMD_REGISTER         0x64       
 #define RTC_CMD_PORT            0x70
 #define RTC_DATA_PORT           0x71
 #define RTC_STATUS_REGISTER_A   0X8A
 #define RTC_STATUS_REGISTER_B   0X8B
 #define RTC_STATUS_REGISTER_C   0X0C
 #define PIC_COMMAND_PORT        0x20
-#define NUM_EXCEPTIONS          20
-#define KB_DATA_PORT            0x60 
-#define KB_STATUS_REGISTER      0x64        
-#define KB_CMD_REGISTER         0x64       
-#define NUM_CODES               116
 #define NUM_TERMINALS           3
-
 /* some interrupt handlers */
 /* empty is used for interrupts/exceptions we dont handle and it does nothing */
 extern void empty();
 /* reserved is used for Intel reserved interrupts/exceptions and does nothing */
 extern void reserved();
-/* rtc_interrupt is used to rtc_interrupts */
+/* used to handle rtc interrupts */
 extern void rtc_interrupt();
-/* does nothing */
-extern void SIMD_floating_point();
-/* used for the pit */
+/* used to handle keyboard interrupts */
+extern void keyboard_interrupt();
+/* used to handle pit interrupts  */
 extern void pit_interrupt();
-
-/* handles exceptions */
-void exception_handler(int index);
+/* used to handle exceptions */
+void exception_handler(int32_t index);
 /* used for testing but doesn't rly do much anymore */
-int RTC_ON_FLAG[NUM_TERMINALS];
+int32_t RTC_ON_FLAG[NUM_TERMINALS];
 /* used to handle errors */
 uint32_t error_flag[NUM_TERMINALS];
+
 
 #endif
 

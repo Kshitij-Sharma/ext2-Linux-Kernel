@@ -11,7 +11,8 @@
         INPUTS: none
         OUTPUTS: none
         SIDE EFFECTS: prints out key pressed to screen
-*/keyboard_interrupt_asm:     
+*/
+keyboard_interrupt_asm:     
         pushal
         
         /* send EOI signal */
