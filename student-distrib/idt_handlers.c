@@ -10,6 +10,7 @@ int control_on[NUM_TERMINALS] = {0, 0, 0};
 int alt_on[NUM_TERMINALS] = {0, 0, 0}; 
 int echo_flag[NUM_TERMINALS] = {1, 1, 1}; 
 int distance_from_right[NUM_TERMINALS] = {0, 0, 0}; 
+int not_in_prev_cmd_flag = 1;
 
 /* scancodes for lowercase letters */
 static char scancode_to_char[NUM_CODES] = {
@@ -105,9 +106,9 @@ void keyboard_interrupt()
     if (pressed == UP_ARROW_PRESSED && shell_flag[visible_terminal] == 1)
     {
         /* if the buffer containing the last command is not null */
-        if (last_buf[visible_terminal][0] != '\0')
+        if (last_buf[visible_terminal][0] != '\0' && not_in_prev_cmd_flag != 0)
         {
-
+            not_in_prev_cmd_flag = 0;
             /** moves the cursor all the way to the right if it is not already there
              * distance_from_right tells us how far from the right the cursor is
              * right_arrow moves the cursor right
@@ -137,6 +138,7 @@ void keyboard_interrupt()
     /* if we are in shell (not a different user program) and we press up down, populate cmd line with current command */
     if (pressed == DOWN_ARROW_PRESSED && shell_flag[visible_terminal] == 1)
     {
+        not_in_prev_cmd_flag = 1;
         /* clears line by moving all the way right and then backspaces all */
         while (distance_from_right[visible_terminal] > 0)
         {
@@ -396,6 +398,7 @@ void keyboard_interrupt()
 
     /* case we press enter */
     if(pressed == ENTER_PRESSED){
+        not_in_prev_cmd_flag = 1;
         /* if there is still room in the buffer to type, increment index and put the char in the buffer */
         if (keyboard_buffer_end_idx[visible_terminal] < KEYBOARD_BUFFER_SIZE) 
             keyboard_buffer[visible_terminal][keyboard_buffer_end_idx[visible_terminal]++] = output_char;
@@ -421,9 +424,11 @@ void keyboard_interrupt()
     }
 
     /* clear current buf and store what was typed so far into it -- happens with every key press that is echoed, used for down arrow key press */
+    if (not_in_prev_cmd_flag == 1){
         memset(current_buf[visible_terminal], '\0', KEYBOARD_BUFFER_SIZE);
         memcpy(current_buf[visible_terminal], keyboard_buffer[visible_terminal], keyboard_cursor_idx[visible_terminal]);
         current_buf_index[visible_terminal] = keyboard_cursor_idx[visible_terminal];
+    }
     
     /* if echo flag is on, print char to screen */
     if (echo_flag[visible_terminal] == 1) putc(output_char);
@@ -446,10 +451,9 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    /* if the counter is at 0, reset it, otherwise decrement it */
-    if (cur_pcb_ptr[process_terminal] != NULL && cur_pcb_ptr[process_terminal]->rtc_counter == 0) cur_pcb_ptr[process_terminal]->rtc_counter = cur_pcb_ptr[process_terminal]->rtc_interrupt_divider;
-    else if (cur_pcb_ptr[process_terminal] != NULL) cur_pcb_ptr[process_terminal]->rtc_counter--;
-    
+    /* decrement counter of running process */
+    if (cur_pcb_ptr[process_terminal] != NULL) cur_pcb_ptr[process_terminal]->rtc_counter--;
+
     /* clears register C so RTC interrupts can continue happening*/
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
     inb(RTC_DATA_PORT); 

@@ -592,7 +592,7 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes) {
  */
 int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes) {
     int32_t i, bytes_written;
-    char write_string[nbytes];
+    // char write_string[nbytes];
     /* check edge cases */
     if (NULL == buf || nbytes < 0) return -1;
     if (nbytes == 0) return 0;
@@ -603,17 +603,17 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes) {
     }
 
     /* put passed in buffer into an appropriately sized buffer */
-    memset(write_string, '\0', nbytes);
-    memcpy(write_string, buf, nbytes);
+    // memset(write_string, '\0', nbytes);
+    // memcpy(write_string, buf, nbytes);
 
     /* prints all non-null characters */
     bytes_written = 0;
     for (i = 0; i < nbytes; i++)
     {
         /* writes non null characters */
-        if (write_string[i] != '\0')
+        if (((char *)buf)[i] != '\0')
         {
-            putc(write_string[i]);
+            putc(((char*)buf)[i]);
             bytes_written++;
         }
     }

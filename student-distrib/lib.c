@@ -19,7 +19,7 @@ static int screen_y[NUM_TERMINALS] = {0, 0, 0};
 
 /* video memory and buffers  */
 static char* video_mem = (char *)VIDEO;
-char* video_buf[NUM_TERMINALS]= {(char *) TERMINAL_ONE_BUFFER, (char *)TERMINAL_TWO_BUFFER, (char *)TERMINAL_THREE_BUFFER};
+char* video_buf[NUM_TERMINALS] = {(char *) TERMINAL_ONE_BUFFER, (char *)TERMINAL_TWO_BUFFER, (char *)TERMINAL_THREE_BUFFER};
 
 /* global vars used for wraparound/backspace corner case */
 int32_t backward_next[NUM_TERMINALS] = {0, 0, 0};
@@ -459,7 +459,8 @@ int32_t puts(int8_t* s) {
 void putc(uint8_t c) {
     int term = (putc_to_visible_flag == 0) ? process_terminal : visible_terminal;
     if(c == '\n' || c == '\r') {
-        screen_y[term]++;
+        /* doesn't increment screen_y if we need to wrap around since wraparound takes care of that */
+        if (!(screen_x[term] == 0 || screen_x[term] == NUM_COLS || screen_x[term] == NUM_COLS - 1)) screen_y[term]++;
         screen_x[term] = 0;
     } else { /* write info to the respective buffer of each process */
         if(visible_terminal == term){ /* If the current process is on screen, write it to video memory */
@@ -475,8 +476,8 @@ void putc(uint8_t c) {
             screen_y[term] = (screen_y[term] + (screen_x[term] / NUM_COLS)) % NUM_ROWS;
 
     }
-    wraparound();
-    scroll_down();
+    if (screen_x[term] == 0 || screen_x[term] == NUM_COLS || screen_x[term] == NUM_COLS - 1) wraparound();
+    if (screen_y[term] >= NUM_ROWS) scroll_down();
     update_cursor();
 }
 

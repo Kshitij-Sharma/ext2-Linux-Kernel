@@ -39,7 +39,7 @@ typedef struct pcb_t{
   uint32_t esp;
   uint32_t eip;
   int32_t vidmap_terminal;
-  int32_t rtc_interrupt_divider;
+  uint32_t rtc_interrupt_divider;
   uint32_t rtc_counter;
 } pcb_t;
 
