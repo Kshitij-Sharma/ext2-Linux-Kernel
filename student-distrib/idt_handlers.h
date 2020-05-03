@@ -6,6 +6,7 @@
 #include "i8259.h"
 #include "idt_interrupt_wrappers.h"
 
+/* KEYBOARD SCANCODE TABLE */
 #define ENTER_PRESSED               0x1C
 #define LEFT_SHIFT_PRESSED          0X2A
 #define LEFT_SHIFT_RELEASED         0XAA
@@ -39,6 +40,12 @@
 #define FUNCTION_TWO_PRESSED        0x3C
 #define FUNCTION_THREE_PRESSED      0x3D      
 #define C_SCANCODE                  0x2E
+#define SPECIAL_CHARS_START_1       0x27
+#define SPECIAL_CHARS_END_1         0x2B
+#define SPECIAL_CHARS_START_2       0x33
+#define SPECIAL_CHARS_END_2         0x35
+#define SQUARE_BRACKET_OPEN         0x1A
+#define SQUARE_BRACKET_CLOSE        0x1B
 
 #define NUM_EXCEPTIONS          20
 #define NUM_CODES               116

@@ -378,7 +378,10 @@ void keyboard_interrupt()
                 output_char = scancode_to_char[pressed*2+1];
 
     /* else if caps is on and shift is pressed, print out the lowercase or unshifted version of the scancode char */
-    else if ((caps_lock_on[visible_terminal] && shift_on[visible_terminal] && pressed < BACKSPACE))
+    else if ((caps_lock_on[visible_terminal] && shift_on[visible_terminal]) 
+    && (pressed < BACKSPACE || (pressed >= SPECIAL_CHARS_START_1 && pressed <= SPECIAL_CHARS_END_1) 
+    || (pressed >= SPECIAL_CHARS_START_2 && pressed <= SPECIAL_CHARS_END_2) 
+    || (pressed == SQUARE_BRACKET_OPEN) || (pressed == SQUARE_BRACKET_CLOSE)))
                 output_char = scancode_to_char[pressed*2+1];
 
     /* else print out the lowercase or unshifted version of the scancode char */
