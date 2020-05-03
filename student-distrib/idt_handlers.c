@@ -165,9 +165,14 @@ void keyboard_interrupt()
     if (pressed == BACKSPACE){
         backspace();
         /* if index is not 0, replace the current position with a null and decrement the index */
-        if (keyboard_cursor_idx[visible_terminal] > 0){
+        if (keyboard_cursor_idx[visible_terminal] > 0 && distance_from_right[visible_terminal] == 0){
             keyboard_buffer[visible_terminal][keyboard_cursor_idx[visible_terminal]--] = '\0';
             keyboard_buffer_end_idx[visible_terminal]--;
+            echo_flag[visible_terminal] = 1;
+        }
+        else if (keyboard_cursor_idx[visible_terminal] > 0){
+            keyboard_buffer[visible_terminal][--keyboard_cursor_idx[visible_terminal]] = ' ';
+            distance_from_right[visible_terminal]++;
             echo_flag[visible_terminal] = 1;
         }
         /* handles the case where we backspace when typing things during execution of a program but not for the program*/
@@ -390,7 +395,7 @@ void keyboard_interrupt()
         && pressed != ENTER_PRESSED)
     {
         keyboard_buffer[visible_terminal][keyboard_cursor_idx[visible_terminal]++] = output_char;
-        keyboard_buffer_end_idx[visible_terminal]++;
+        if(distance_from_right[visible_terminal] == 0) keyboard_buffer_end_idx[visible_terminal]++;
         /* if distance from right isn't 0, decrease it */
         if (distance_from_right[visible_terminal] > 0) 
             distance_from_right[visible_terminal]--;
