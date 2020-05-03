@@ -541,7 +541,7 @@ int32_t _sys_close_terminal(int32_t fd) {
  * Side Effects: none
  */
 int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes) {
-    uint32_t retval = 0, i = 0;
+    uint32_t retval = 0, i = 0, j;
     if (NULL == buf || nbytes < 0) return -1;
     if (nbytes == 0) return 0;
 
@@ -553,18 +553,25 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes) {
         keyboard_cursor_idx[process_terminal] = temp_kbd_idx[process_terminal];
         keyboard_buffer_end_idx[process_terminal] = keyboard_cursor_idx[process_terminal];
         memcpy(keyboard_buffer[process_terminal], temp_kbd_buf[process_terminal], keyboard_cursor_idx[process_terminal]);
-        while (i < keyboard_cursor_idx[process_terminal])
+        memcpy(current_buf[process_terminal], temp_kbd_buf[process_terminal], keyboard_cursor_idx[process_terminal]);
+        
+        while (i < keyboard_cursor_idx[process_terminal] && keyboard_buffer[process_terminal][i] != '\n')
         {
             putc(keyboard_buffer[process_terminal][i]);
             i++;
         }
+
+        if (keyboard_buffer[process_terminal][i] == '\n') keyboard_cursor_idx[process_terminal]--;
+        keyboard_buffer_end_idx[process_terminal] = keyboard_cursor_idx[process_terminal];
+        current_buf_index[process_terminal] = keyboard_buffer_end_idx[process_terminal];
+
         re_echo_flag[process_terminal] = 0;
         memset(temp_kbd_buf[process_terminal], '\0', KEYBOARD_BUFFER_SIZE);
         temp_kbd_idx[process_terminal] = 0;
     }
 
     /* adjusts nbytes if overflow */
-    i = 0;
+    j = 0;
     nbytes = (nbytes > KEYBOARD_BUFFER_SIZE) ? KEYBOARD_BUFFER_SIZE - 1 : nbytes;
 
     /* reads data/fills buffer from keyboard */
@@ -574,13 +581,13 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes) {
     cli();
 
     /* copies memory from keyboard input to buffer */
-    while (keyboard_buffer[process_terminal][i] != '\0' && keyboard_buffer[process_terminal][i] != '\n' && i < nbytes)
+    while (keyboard_buffer[process_terminal][j] != '\0' && keyboard_buffer[process_terminal][j] != '\n' && j < nbytes)
     {
-        memcpy(&(((char *)buf)[i]), &(keyboard_buffer[process_terminal][i]), 1);
+        memcpy(&(((char *)buf)[j]), &(keyboard_buffer[process_terminal][j]), 1);
         retval++;
-        i++;
+        j++;
     }
-    ((char *)buf)[i] = '\n';
+    ((char *)buf)[j] = '\n';
     return retval + 1;
 }
 /** _sys_write_terminal
@@ -680,6 +687,7 @@ int32_t _sys_write_rtc(int32_t fd, const void *buf, int32_t nbytes) {
  * Side Effects: none
  */
 int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes) {
+    /* reset the counter of the process we are reading for so that we get the full duration of the rtc interrupr */
     cur_pcb_ptr[process_terminal]->rtc_counter = cur_pcb_ptr[process_terminal]->rtc_interrupt_divider;
 
     /* with virtualized RTC, keep reading until enough interrupts have occurred for desired frequency */
@@ -687,6 +695,7 @@ int32_t _sys_read_rtc(int32_t fd, void *buf, int32_t nbytes) {
     while (cur_pcb_ptr[process_terminal]->rtc_counter > 0);
     cli();
 
+    /* reset the counter for that particular process back to its max */
     cur_pcb_ptr[process_terminal]->rtc_counter = cur_pcb_ptr[process_terminal]->rtc_interrupt_divider;
     return 0;
 }

@@ -186,7 +186,7 @@ void keyboard_interrupt()
     }
 
     /* left arrow key */
-    if (pressed == LEFT_ARROW_PRESSED)
+    if (pressed == LEFT_ARROW_PRESSED && shell_flag[visible_terminal] == 1)
     {
         if (keyboard_cursor_idx[visible_terminal] > 0)
         {
@@ -201,7 +201,7 @@ void keyboard_interrupt()
 
     /* right arrow key */
     if (pressed == RIGHT_ARROW_PRESSED && distance_from_right[visible_terminal] > 0 
-        && keyboard_cursor_idx[visible_terminal] < KEYBOARD_BUFFER_SIZE - 1)
+        && keyboard_cursor_idx[visible_terminal] < KEYBOARD_BUFFER_SIZE - 1 && shell_flag[visible_terminal] == 1)
     {
         /* call right arrow and update cursor */
         int32_t ret_from_right = right_arrow();
@@ -438,9 +438,10 @@ void keyboard_interrupt()
     /* if echo flag is on, print char to screen */
     if (echo_flag[visible_terminal] == 1) putc(output_char);
 
-    if (shell_flag[visible_terminal] != 1 && temp_kbd_idx[visible_terminal] < KEYBOARD_BUFFER_SIZE && output_char != '\n' && sys_read_flag[visible_terminal] != 1) {
-    temp_kbd_buf[visible_terminal][temp_kbd_idx[visible_terminal]++] = output_char;
-    typing_during_prog_flag[visible_terminal] = 1;
+    /* stores characters written during program execution to a buffer */
+    if (shell_flag[visible_terminal] != 1 && temp_kbd_idx[visible_terminal] < KEYBOARD_BUFFER_SIZE && sys_read_flag[visible_terminal] != 1) {
+        temp_kbd_buf[visible_terminal][temp_kbd_idx[visible_terminal]++] = output_char;
+        typing_during_prog_flag[visible_terminal] = 1;
     }
     /* these are pretty self explanatory */
     wraparound();
@@ -456,8 +457,10 @@ void keyboard_interrupt()
 */
 void rtc_interrupt() 
 { 
-    /* decrement counter of running process */
-    if (cur_pcb_ptr[process_terminal] != NULL) cur_pcb_ptr[process_terminal]->rtc_counter--;
+    /* decrement counter of all processes so that there is no lag or slowdown in the frequency */
+    if (cur_pcb_ptr[0] != NULL && cur_pcb_ptr[0]->rtc_counter > 0) cur_pcb_ptr[0]->rtc_counter--;
+    if (cur_pcb_ptr[1] != NULL && cur_pcb_ptr[1]->rtc_counter > 0) cur_pcb_ptr[1]->rtc_counter--;
+    if (cur_pcb_ptr[2] != NULL && cur_pcb_ptr[2]->rtc_counter > 0) cur_pcb_ptr[2]->rtc_counter--;
 
     /* clears register C so RTC interrupts can continue happening*/
     outb(RTC_STATUS_REGISTER_C, RTC_CMD_PORT); 
