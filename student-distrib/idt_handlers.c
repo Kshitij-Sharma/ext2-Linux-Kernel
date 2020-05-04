@@ -100,7 +100,7 @@ void keyboard_interrupt()
     /* enable keyboard interrupt flag for putc */
     putc_to_visible_flag = 1;
     /* grabs the scancode of what was pressed */
-    pressed = inb(0x60);
+    pressed = inb(KB_DATA_PORT);
     
     /* if we are in shell (not a different user program) and we press up arrow, populate cmd line with previous command */
     if (pressed == UP_ARROW_PRESSED && shell_flag[visible_terminal] == 1)
@@ -461,6 +461,7 @@ void keyboard_interrupt()
 void rtc_interrupt() 
 { 
     /* decrement counter of all processes so that there is no lag or slowdown in the frequency */
+    /* the 0, 1, and 2 are indexing into each cur_pcb_ptr for each terminal */
     if (cur_pcb_ptr[0] != NULL && cur_pcb_ptr[0]->rtc_counter > 0) cur_pcb_ptr[0]->rtc_counter--;
     if (cur_pcb_ptr[1] != NULL && cur_pcb_ptr[1]->rtc_counter > 0) cur_pcb_ptr[1]->rtc_counter--;
     if (cur_pcb_ptr[2] != NULL && cur_pcb_ptr[2]->rtc_counter > 0) cur_pcb_ptr[2]->rtc_counter--;

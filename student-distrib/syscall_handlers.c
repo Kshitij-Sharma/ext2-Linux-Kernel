@@ -138,7 +138,7 @@ int32_t sys_execute(const int8_t *command) {
     if (tempret == -1) return -1;
     /* checks if we are executing shell */
     if (strncmp(prog_name, "shell", 5) == 0) shell_flag[term] = 1;
-        else shell_flag[term] = 0;
+    else shell_flag[term] = 0;
 
     /* creates PCB for process */
     cur_pcb_ptr[term] = _execute_create_PCB(arg, term);
@@ -204,7 +204,7 @@ int32_t _execute_parse_args(const int8_t *command, int8_t *prog_name, int8_t *ar
 int32_t _execute_executable_check(int8_t *prog_name, int8_t *buf) {
 
     /* 4 values @ start signifying executable */
-    int8_t elf[4] = {ELF_ONE, ELF_TWO, ELF_THREE, ELF_FOUR}; int32_t ret; dentry_t prog_dentry;
+    int8_t elf[EXECUTABLE_CHECK] = {ELF_ONE, ELF_TWO, ELF_THREE, ELF_FOUR}; int32_t ret; dentry_t prog_dentry;
 
     /* buffer used for checking */
     memset((void *)buf, '\0', EXECUTABLE_CHECK);
@@ -397,20 +397,20 @@ int32_t sys_open(const uint8_t *filename) {
     /* switches based on type of file */
     switch (this_dentry.file_type)
     {
-    case RTC:
-        this_fops = &rtc_fops;
-        this_inode = _sys_open_rtc(filename); /* returns 0 */
-        break;
-    case DIRECTORY:
-        this_fops = &dir_fops;
-        this_inode = _sys_open_directory(filename); /* returns 0 */
-        break;
-    case FILE:
-        this_fops = &file_fops;
-        this_inode = _sys_open_file(filename); /* returns inode */
-        break;
-    default:
-        return -1;
+        case RTC:
+            this_fops = &rtc_fops;
+            this_inode = _sys_open_rtc(filename); /* returns 0 */
+            break;
+        case DIRECTORY:
+            this_fops = &dir_fops;
+            this_inode = _sys_open_directory(filename); /* returns 0 */
+            break;
+        case FILE:
+            this_fops = &file_fops;
+            this_inode = _sys_open_file(filename); /* returns inode */
+            break;
+        default:
+            return -1;
     }
     /* assigns appropriate file descriptor */
     cur_pcb_ptr[process_terminal]->file_desc_array[cur_pcb_idx] = (file_desc_t){this_fops, this_inode, 0, 1};
@@ -588,6 +588,7 @@ int32_t _sys_read_terminal(int32_t fd, void *buf, int32_t nbytes) {
         j++;
     }
     ((char *)buf)[j] = '\n';
+    /* the +1 accounts for the '\n' */
     return retval + 1;
 }
 /** _sys_write_terminal
@@ -639,7 +640,8 @@ int32_t _sys_write_terminal(int32_t fd, const void *buf, int32_t nbytes) {
  * Side Effects: 
  */
 int32_t _sys_open_rtc(const uint8_t *filename) {
-    int freq[1] = {2};
+    /* puts the number 2 into the buffer to set the frequency to 2Hz */
+    int32_t freq[1] = {2};
     _sys_write_rtc(NULL, (void *)freq, 4); /* sets the RTC frequency to 2Hz */
     return 0;
 }

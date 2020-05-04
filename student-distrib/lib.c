@@ -157,7 +157,8 @@ void update_cursor() {
 /* void clear(void);
  * Inputs: void
  * Return Value: none
- * Function: Clears video memory */
+ * Function: Clears video memory 
+ * */
 void clear(void) {
     int32_t i;
     for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {

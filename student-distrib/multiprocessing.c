@@ -45,7 +45,7 @@ void switch_terminal(int32_t terminal_num)
  */
 void scheduling()
 {
-    /* make sure pit doesn't occur before first shell runs */
+    /* make sure scheduling doesn't occur before we have executed everything in kernel.c */
     if (pit_flag == 0) return;
 
     /** TERMINAL WE ARE SWITCHING AWAY FROM

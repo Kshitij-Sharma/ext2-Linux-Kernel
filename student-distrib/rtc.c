@@ -34,9 +34,12 @@ void rtc_init(){
 */
 void pit_init(double frequency){
 
-    int divisor = (int)(PIT_FREQ_DIVISOR / frequency);
-    outb(0x36, PIT_COMMAND_PORT);
+    int32_t divisor = (int)(PIT_FREQ_DIVISOR / frequency);
+    outb(PIT_INIT_CONSTANT, PIT_COMMAND_PORT);
+    /* send the lower byte to the data port (the FF is to grab that first byte) */
     outb(divisor & 0xFF, PIT_DATA_PORT_ZERO);
+    /* send the upper byte to the data port (the 8 is to move the byte down to the first 8 bits) */
     outb(divisor >> 8, PIT_DATA_PORT_ZERO);
+    /* enables PIC line 0 */
     enable_irq(IRQ_PIT);
 }

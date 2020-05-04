@@ -9,7 +9,7 @@
 */
 void paging_init() {
 	/* looping variable */
- 	int i;
+ 	int32_t i;
 
  	/* This loop initializes the page directory and oen page table as empty, 
 	 		grants read/write permissions */

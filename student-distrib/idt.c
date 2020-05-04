@@ -43,8 +43,8 @@ void idt_init(){
         reserved,
         reserved,
         reserved,
-        reserved,                   /*reserved by Intel end */
-        pit_interrupt_asm,              /*interrupt start */
+        reserved,                   /* reserved by Intel end */
+        pit_interrupt_asm,              /* interrupt start */
         keyboard_interrupt_asm,
         empty,                      /* cascade to slave */
         empty, 
@@ -74,7 +74,7 @@ void idt_init(){
         idt[i].reserved4 = 0;
         /* reserved 3 should be 1 when we are setting a trap gate. 0 for an interrupt gate */
         idt[i].reserved3 = (i < FIRST_INTERRUPT_IDX || i > LAST_INTERRUPT_IDX ) ? 1 : 0;
-        if (i == 128) idt[i].reserved3 = 0;
+        if (i == SYSTEM_CALL_IDX) idt[i].reserved3 = 0;
         idt[i].reserved2 = 1;
         idt[i].reserved1 = 1;
         idt[i].reserved0 = 0;
